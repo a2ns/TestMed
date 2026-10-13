@@ -12,15 +12,15 @@
 
 use serde::{Deserialize, Serialize};
 
-#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EtatFsv {
     pub disponible: bool,
     pub detail: String,
 }
 
-#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CarteVitaleLue {
     pub nir_chiffre: String,
     pub nom: String,

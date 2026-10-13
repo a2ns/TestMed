@@ -1,15 +1,15 @@
 use serde::{Deserialize, Serialize};
 
-#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CourrierRequest {
     pub patient_id: String,
     pub gabarit: String,
     pub notes: String,
 }
 
-#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CourrierGenere {
     pub contenu: String,
 }

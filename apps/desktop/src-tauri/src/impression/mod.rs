@@ -7,8 +7,8 @@ use std::io::Write;
 
 pub mod commande;
 
-#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CourrierImpression {
     pub praticien: String,
     pub cabinet: String,

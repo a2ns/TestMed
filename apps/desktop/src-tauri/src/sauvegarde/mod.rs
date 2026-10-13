@@ -3,16 +3,16 @@
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
-#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ResultatSauvegarde {
     pub chemin: String,
     pub taille_octets: u64,
     pub tables: usize,
 }
 
-#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct ConfigSauvegarde {
     pub dossier: String,
     pub retention: u32, // nombre de sauvegardes conservées

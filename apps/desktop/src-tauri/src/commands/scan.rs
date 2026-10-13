@@ -63,8 +63,8 @@ pub async fn scan_masse(
     })
 }
 
-#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ScanResultat {
     pub id_document: String,
     pub nb_pages: usize,

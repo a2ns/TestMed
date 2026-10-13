@@ -3,8 +3,8 @@
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
-#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct EntreeAudit {
     pub id: i64,
     pub ts: chrono::DateTime<chrono::Utc>,

@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
-#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct Patient {
     pub id: String,
     pub nom: String,
@@ -14,8 +14,8 @@ pub async fn list_patients(recherche: String) -> Result<Vec<Patient>, String> {
     crate::db::query_patients(&recherche).await.map_err(|e| e.to_string())
 }
 
-#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct PatientDetail {
     pub id: String,
     pub nom: String,
@@ -42,8 +42,8 @@ pub async fn get_patient(id: String, token: String) -> Result<PatientDetail, Str
     crate::db::get_patient(&id).await.map_err(|e| e.to_string())
 }
 
-#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NouveauPatient {
     pub nom: String,
     pub prenoms: String,
@@ -64,8 +64,8 @@ pub async fn creer_patient(p: NouveauPatient) -> Result<String, String> {
     crate::db::creer_patient(&p).await.map_err(|e| e.to_string())
 }
 
-#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct Consultation {
     pub id: String,
     pub patient_id: String,
@@ -74,8 +74,8 @@ pub struct Consultation {
     pub date: chrono::DateTime<chrono::Utc>,
 }
 
-#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NouvelleConsultation {
     pub patient_id: String,
     pub motif: String,
@@ -99,8 +99,8 @@ pub async fn creer_consultation(c: NouvelleConsultation) -> Result<String, Strin
         .map_err(|e| e.to_string())
 }
 
-#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct Antecedent {
     pub id: String,
     pub categorie: String,
@@ -116,8 +116,8 @@ pub async fn list_antecedents(patient_id: String) -> Result<Vec<Antecedent>, Str
         .map_err(|e| e.to_string())
 }
 
-#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NouvelAntecedent {
     pub patient_id: String,
     pub categorie: String,
@@ -136,8 +136,8 @@ pub async fn creer_antecedent(a: NouvelAntecedent) -> Result<String, String> {
         .map_err(|e| e.to_string())
 }
 
-#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct Traitement {
     pub id: String,
     pub medicament: String,
@@ -153,8 +153,8 @@ pub async fn list_traitements(patient_id: String) -> Result<Vec<Traitement>, Str
         .map_err(|e| e.to_string())
 }
 
-#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NouveauTraitement {
     pub patient_id: String,
     pub medicament: String,
@@ -172,8 +172,8 @@ pub async fn creer_traitement(t: NouveauTraitement) -> Result<String, String> {
         .map_err(|e| e.to_string())
 }
 
-#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct Allergie {
     pub id: String,
     pub substance: String,
@@ -188,8 +188,8 @@ pub async fn list_allergies(patient_id: String) -> Result<Vec<Allergie>, String>
         .map_err(|e| e.to_string())
 }
 
-#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NouvelleAllergie {
     pub patient_id: String,
     pub substance: String,

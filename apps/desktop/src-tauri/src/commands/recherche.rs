@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
-#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct ResultatDocument {
     pub id: String,
     pub patient_id: Option<String>,

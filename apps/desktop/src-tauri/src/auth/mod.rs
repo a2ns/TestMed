@@ -8,8 +8,8 @@ use std::sync::Mutex;
 use std::time::Instant;
 use uuid::Uuid;
 
-#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize, Clone, FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct Utilisateur {
     pub id: String,
     pub identifiant: String,
@@ -21,8 +21,8 @@ pub struct Utilisateur {
     pub cabinet_adresse: Option<String>,
 }
 
-#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Identifiants {
     pub identifiant: String,
     pub mot_de_passe: String,
