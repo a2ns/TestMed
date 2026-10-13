@@ -15,6 +15,7 @@ mod scan;
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .setup(|_app| {
             let url = std::env::var("DATABASE_URL")
                 .unwrap_or_else(|_| "postgres://magicmed:magicmed@localhost:5432/magicmed".into());
