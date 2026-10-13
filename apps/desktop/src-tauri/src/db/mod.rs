@@ -252,6 +252,67 @@ pub async fn get_prescriptions(ordonnance_id: &str) -> Result<Vec<crate::command
     .await
 }
 
+pub async fn list_rdv_jour(jour: &str) -> Result<Vec<crate::commands::agenda::RendezVous>, sqlx::Error> {
+    let pool = pool()?;
+    sqlx::query_as::<_, crate::commands::agenda::RendezVous>(
+        "SELECT r.id, r.patient_id, p.nom as nom_patient, p.prenoms as prenoms_patient, \
+         r.debut, r.duree_min as duree_min, r.statut, r.motif \
+         FROM rendez_vous r JOIN patient p ON p.id = r.patient_id \
+         WHERE r.debut::date = $1::date AND r.statut <> 'ANNULE' ORDER BY r.debut",
+    )
+    .bind(jour)
+    .fetch_all(pool)
+    .await
+}
+
+pub async fn creer_rdv(
+    patient_id: &str,
+    debut: chrono::DateTime<chrono::Utc>,
+    duree_min: i32,
+    motif: &Option<String>,
+    notes: &Option<String>,
+) -> Result<String, sqlx::Error> {
+    let pool = pool()?;
+    let conflit: Option<(String,)> = sqlx::query_as(
+        "SELECT id FROM rendez_vous \
+         WHERE debut::date = $1::date AND statut <> 'ANNULE' \
+         AND ($2::timestamptz, $2::timestamptz + make_interval(mins => $3)) \
+         OVERLAPS (debut, debut + make_interval(mins => duree_min))",
+    )
+    .bind(debut)
+    .bind(debut)
+    .bind(duree_min)
+    .fetch_optional(pool)
+    .await?;
+    if conflit.is_some() {
+        return Err(sqlx::Error::Configuration("créneau déjà occupé".into()));
+    }
+    let id = uuid::Uuid::new_v4().to_string();
+    sqlx::query(
+        "INSERT INTO rendez_vous (id, patient_id, debut, duree_min, motif, notes) \
+         VALUES ($1, $2, $3, $4, $5, $6)",
+    )
+    .bind(&id)
+    .bind(patient_id)
+    .bind(debut)
+    .bind(duree_min)
+    .bind(motif)
+    .bind(notes)
+    .execute(pool)
+    .await?;
+    Ok(id)
+}
+
+pub async fn changer_statut_rdv(id: &str, statut: &str) -> Result<(), sqlx::Error> {
+    let pool = pool()?;
+    sqlx::query("UPDATE rendez_vous SET statut = $2 WHERE id = $1")
+        .bind(id)
+        .bind(statut)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
 pub async fn query_patients(recherche: &str) -> Result<Vec<crate::commands::patients::Patient>, String> {
     let pool = pool()?;
     let rows = sqlx::query_as::<_, crate::commands::patients::Patient>(

@@ -67,6 +67,7 @@ model Patient {
   traitements Traitement[]
   allergies   Allergie[]
   ordonnances Ordonnance[]
+  rendezVous RendezVous[]
 }
 
 model Antecedent {
@@ -190,6 +191,22 @@ model Prescription {
   substitution Boolean @default(false)
   renouvellements Int  @default(0)
   position     Int    @default(0)
+}
+
+model RendezVous {
+  id        String   @id @default(uuid())
+  patientId String
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  praticienId String?
+  debut     DateTime
+  dureeMin  Int      @default(20)
+  statut    String   @default("PLANIFIE") // PLANIFIE | ARRIVE | HONORE | ANNULE
+  motif     String?
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([debut])
+  @@index([patientId])
 }
 
 model AuditLog {

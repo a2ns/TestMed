@@ -110,6 +110,17 @@ export type NouvellePrescription = {
   renouvellements: number;
 };
 
+export type RendezVous = {
+  id: string;
+  patientId: string;
+  nomPatient: string;
+  prenomsPatient: string;
+  debut: string;
+  dureeMin: number;
+  statut: "PLANIFIE" | "ARRIVE" | "HONORE" | "ANNULE";
+  motif: string | null;
+};
+
 export type Scanner = string;
 
 export type ScanResultat = {
@@ -170,6 +181,11 @@ export const api = {
     invoke<Ordonnance[]>("list_ordonnances", { patientId }),
   getPrescriptions: (ordonnanceId: string) =>
     invoke<PrescriptionLigne[]>("get_prescriptions", { ordonnanceId }),
+  listRdvJour: (jour: string) => invoke<RendezVous[]>("list_rdv_jour", { jour }),
+  creerRdv: (patientId: string, debut: string, dureeMin: number, motif: string | null, notes: string | null) =>
+    invoke<string>("creer_rdv", { r: { patientId, debut, dureeMin, motif, notes } }),
+  changerStatutRdv: (id: string, statut: string) =>
+    invoke<void>("changer_statut_rdv", { id, statut }),
   importDocument: (doc: {
     patientId: string | null;
     nomFichier: string;

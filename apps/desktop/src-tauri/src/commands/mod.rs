@@ -1,3 +1,4 @@
+pub mod agenda;
 pub mod courriers;
 pub mod documents;
 pub mod ordonnances;

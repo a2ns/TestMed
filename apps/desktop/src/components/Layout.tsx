@@ -3,6 +3,7 @@ import { useAuth } from "../lib/auth";
 
 const MENU = [
   { to: "/", label: "Tableau de bord", icone: "📊", end: true },
+  { to: "/agenda", label: "Agenda", icone: "📅", end: false },
   { to: "/patients", label: "Patients", icone: "👤", end: false },
   { to: "/ged", label: "GED", icone: "🗂️", end: false },
   { to: "/courriers", label: "Courriers", icone: "✉️", end: false },

@@ -4,6 +4,7 @@ import Layout from "./components/Layout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Patients from "./pages/Patients";
+import Agenda from "./pages/Agenda";
 import Ged from "./pages/Ged";
 import Courriers from "./pages/Courriers";
 import FichePatient from "./pages/FichePatient";
@@ -17,6 +18,7 @@ function AppProtegee() {
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<Dashboard />} />
+        <Route path="agenda" element={<Agenda />} />
         <Route path="patients" element={<Patients />} />
         <Route path="patients/nouveau" element={<NouveauPatient />} />
         <Route path="patients/:id" element={<FichePatient />} />
