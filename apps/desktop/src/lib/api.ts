@@ -24,6 +24,60 @@ export type Utilisateur = {
   cabinetAdresse: string | null;
 };
 
+export type PatientDetail = {
+  id: string;
+  nom: string;
+  prenoms: string;
+  dateNaissance: string | null;
+  sexe: string | null;
+  adresse: string | null;
+  telephone: string | null;
+  email: string | null;
+  medecinTraitant: string | null;
+};
+
+export type NouveauPatient = {
+  nom: string;
+  prenoms: string;
+  dateNaissance: string | null;
+  sexe: string | null;
+  adresse: string | null;
+  telephone: string | null;
+  email: string | null;
+  medecinTraitant: string | null;
+};
+
+export type Consultation = {
+  id: string;
+  patientId: string;
+  motif: string | null;
+  notes: string | null;
+  date: string;
+};
+
+export type Antecedent = {
+  id: string;
+  categorie: string;
+  libelle: string;
+  annee: number | null;
+  notes: string | null;
+};
+
+export type Traitement = {
+  id: string;
+  medicament: string;
+  posologie: string;
+  duree: string | null;
+  actif: boolean;
+};
+
+export type Allergie = {
+  id: string;
+  substance: string;
+  gravite: string;
+  reactions: string | null;
+};
+
 export type Scanner = string;
 
 export type ScanResultat = {
@@ -45,6 +99,32 @@ export type CourrierImpression = {
 export const api = {
   listPatients: (recherche: string) =>
     invoke<Patient[]>("list_patients", { recherche }),
+  getPatient: (id: string) => invoke<PatientDetail>("get_patient", { id }),
+  creerPatient: (p: NouveauPatient) => invoke<string>("creer_patient", { p }),
+  listConsultations: (patientId: string) =>
+    invoke<Consultation[]>("list_consultations", { patientId }),
+  creerConsultation: (patientId: string, motif: string, notes: string) =>
+    invoke<string>("creer_consultation", { c: { patientId, motif, notes } }),
+  listAntecedents: (patientId: string) =>
+    invoke<Antecedent[]>("list_antecedents", { patientId }),
+  creerAntecedent: (
+    patientId: string,
+    categorie: string,
+    libelle: string,
+    annee: number | null,
+    notes: string | null
+  ) =>
+    invoke<string>("creer_antecedent", {
+      a: { patientId, categorie, libelle, annee, notes },
+    }),
+  listTraitements: (patientId: string) =>
+    invoke<Traitement[]>("list_traitements", { patientId }),
+  creerTraitement: (patientId: string, medicament: string, posologie: string, duree: string | null) =>
+    invoke<string>("creer_traitement", { t: { patientId, medicament, posologie, duree } }),
+  listAllergies: (patientId: string) =>
+    invoke<Allergie[]>("list_allergies", { patientId }),
+  creerAllergie: (patientId: string, substance: string, gravite: string, reactions: string | null) =>
+    invoke<string>("creer_allergie", { a: { patientId, substance, gravite, reactions } }),
   importDocument: (doc: {
     patientId: string | null;
     nomFichier: string;

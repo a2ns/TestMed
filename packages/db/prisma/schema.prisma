@@ -57,6 +57,48 @@ model Patient {
   documents  Document[]
   courriers  Courrier[]
   consultations Consultation[]
+  antecedents Antecedent[]
+  traitements Traitement[]
+  allergies   Allergie[]
+}
+
+model Antecedent {
+  id        String   @id @default(uuid())
+  patientId String
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  categorie String   // MEDICAL | CHIRURGICAL | FAMILIAL | OBSTETRIQUE | TOXIQUE
+  libelle   String
+  annee     Int?
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([patientId])
+}
+
+model Traitement {
+  id        String   @id @default(uuid())
+  patientId String
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  medicament String
+  posologie String
+  duree     String?
+  actif     Boolean  @default(true)
+  dateDebut DateTime @default(now())
+  dateFin   DateTime?
+
+  @@index([patientId])
+}
+
+model Allergie {
+  id        String   @id @default(uuid())
+  patientId String
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  substance String
+  gravite  String   // FAIBLE | MODEREE | SEVERE
+  reactions String?
+  createdAt DateTime @default(now())
+
+  @@index([patientId])
 }
 
 model Consultation {

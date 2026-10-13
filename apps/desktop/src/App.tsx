@@ -6,6 +6,8 @@ import Dashboard from "./pages/Dashboard";
 import Patients from "./pages/Patients";
 import Ged from "./pages/Ged";
 import Courriers from "./pages/Courriers";
+import FichePatient from "./pages/FichePatient";
+import NouveauPatient from "./pages/NouveauPatient";
 
 function AppProtegee() {
   const { utilisateur } = useAuth();
@@ -15,6 +17,8 @@ function AppProtegee() {
       <Route element={<Layout />}>
         <Route index element={<Dashboard />} />
         <Route path="patients" element={<Patients />} />
+        <Route path="patients/nouveau" element={<NouveauPatient />} />
+        <Route path="patients/:id" element={<FichePatient />} />
         <Route path="ged" element={<Ged />} />
         <Route path="courriers" element={<Courriers />} />
         <Route path="*" element={<Navigate to="/" replace />} />

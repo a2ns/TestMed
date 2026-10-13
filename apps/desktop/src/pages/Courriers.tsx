@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 
@@ -18,6 +19,7 @@ export default function Courriers() {
   const [statut, setStatut] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const { utilisateur } = useAuth();
+  const navigate = useNavigate();
 
   async function dossierGed() {
     const p = await import("@tauri-apps/api/path");

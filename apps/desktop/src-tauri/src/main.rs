@@ -18,6 +18,16 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::patients::list_patients,
+            commands::patients::get_patient,
+            commands::patients::creer_patient,
+            commands::patients::list_consultations,
+            commands::patients::creer_consultation,
+            commands::patients::list_antecedents,
+            commands::patients::creer_antecedent,
+            commands::patients::list_traitements,
+            commands::patients::creer_traitement,
+            commands::patients::list_allergies,
+            commands::patients::creer_allergie,
             commands::documents::import_document,
             commands::courriers::generer_courrier_ia,
             commands::scan::lister_scanners,
