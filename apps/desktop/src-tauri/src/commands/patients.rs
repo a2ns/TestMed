@@ -206,3 +206,19 @@ pub async fn creer_allergie(a: NouvelleAllergie) -> Result<String, String> {
         .await
         .map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub async fn supprimer_consultation(id: String, token: String) -> Result<(), String> {
+    let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
+    crate::db::supprimer_consultation(&id)
+        .await
+        .map_err(|e| e.to_string())?;
+    crate::audit::journaliser(
+        &utilisateur.id,
+        "CONSULTATION_SUPPRESSION",
+        Some("consultation"),
+        Some(&id),
+        None,
+    );
+    Ok(())
+}

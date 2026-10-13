@@ -194,14 +194,27 @@ export default function Ged() {
                     {new Date(r.createdAt).toLocaleDateString("fr-FR")}
                   </div>
                 </div>
-                {r.nomPatient && (
+                <div className="flex items-center gap-3 mt-1">
+                  {r.nomPatient && (
+                    <button
+                      onClick={() => navigate(`/patients/${r.patientId}`)}
+                      className="text-sky-600 hover:underline text-sm"
+                    >
+                      {r.nomPatient}
+                    </button>
+                  )}
                   <button
-                    onClick={() => navigate(`/patients/${r.patientId}`)}
-                    className="text-sky-600 hover:underline text-sm mt-1"
+                    onClick={async () => {
+                      if (window.confirm("Supprimer ce document (fichier inclus) ?")) {
+                        await api.supprimerDocument(r.id, token!);
+                        setResultats(resultats.filter((x) => x.id !== r.id));
+                      }
+                    }}
+                    className="text-xs text-red-500 hover:text-red-700"
                   >
-                    {r.nomPatient}
+                    🗑 Supprimer
                   </button>
-                )}
+                </div>
                 {r.extrait && (
                   <p
                     className="text-sm text-slate-600 mt-1"

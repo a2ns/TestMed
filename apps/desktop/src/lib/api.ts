@@ -232,6 +232,10 @@ export const api = {
   compterATrier: (token: string) => invoke<number>("compter_a_trier", { token }),
   classerDocument: (documentId: string, patientId: string, typeDoc: string | null, token: string) =>
     invoke<void>("classer_document", { documentId, patientId, typeDoc, token }),
+  supprimerDocument: (id: string, token: string) =>
+    invoke<void>("supprimer_document", { id, token }),
+  supprimerConsultation: (id: string, token: string) =>
+    invoke<void>("supprimer_consultation", { id, token }),
   importDocument: (doc: {
     patientId: string | null;
     nomFichier: string;

@@ -533,6 +533,37 @@ pub async fn classer_document(document_id: &str, patient_id: &str, type_doc: Opt
     Ok(())
 }
 
+
+/// Supprime un document de la GED (fichier + ligne en base).
+pub async fn supprimer_document(id: &str) -> Result<(), sqlx::Error> {
+    let pool = pool()?;
+    // Chemin du fichier avant suppression de la ligne.
+    let chemin: Option<(String,)> = sqlx::query_as(
+        "SELECT \"cheminStockage\" FROM \"Document\" WHERE id = $1",
+    )
+    .bind(id)
+    .fetch_optional(pool)
+    .await?;
+    sqlx::query("DELETE FROM \"Document\" WHERE id = $1")
+        .bind(id)
+        .execute(pool)
+        .await?;
+    if let Some((chemin,)) = chemin {
+        let _ = std::fs::remove_file(&chemin);
+    }
+    Ok(())
+}
+
+/// Supprime une consultation (correction des doublons de saisie).
+pub async fn supprimer_consultation(id: &str) -> Result<(), sqlx::Error> {
+    let pool = pool()?;
+    sqlx::query("DELETE FROM \"Consultation\" WHERE id = $1")
+        .bind(id)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
 pub async fn query_patients(recherche: &str) -> Result<Vec<crate::commands::patients::Patient>, String> {
     let pool = pool().map_err(|e| e.to_string())?;
     let rows = sqlx::query_as::<_, crate::commands::patients::Patient>(

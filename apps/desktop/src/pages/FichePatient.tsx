@@ -37,6 +37,11 @@ export default function FichePatient() {
     await api.creerConsultation(id, motif, notes);
     setConsultations(await api.listConsultations(id));
   }
+
+  async function supprimerUneConsultation(idCons: string) {
+    await api.supprimerConsultation(idCons, token!);
+    if (id) setConsultations(await api.listConsultations(id));
+  }
   async function ajouterAntecedent(cat: string, lib: string, annee: number | null) {
     if (!id) return;
     await api.creerAntecedent(id, cat, lib, annee, null);
@@ -99,6 +104,7 @@ export default function FichePatient() {
         <SectionConsultations
           consultations={consultations}
           ajouter={ajouterConsultation}
+          supprimer={supprimerUneConsultation}
         />
       )}
       {onglet === "antecedents" && (
@@ -121,9 +127,11 @@ export default function FichePatient() {
 function SectionConsultations({
   consultations,
   ajouter,
+  supprimer,
 }: {
   consultations: Consultation[];
   ajouter: (motif: string, notes: string) => Promise<void>;
+  supprimer: (id: string) => Promise<void>;
 }) {
   const [motif, setMotif] = useState("");
   const [notes, setNotes] = useState("");
@@ -156,9 +164,20 @@ function SectionConsultations({
         <div key={c.id} className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex justify-between">
             <span className="font-semibold">{c.motif}</span>
-            <span className="text-sm text-slate-500">
-              {new Date(c.date).toLocaleString("fr-FR")}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-slate-500">
+                {new Date(c.date).toLocaleString("fr-FR")}
+              </span>
+              <button
+                onClick={() => {
+                  if (window.confirm("Supprimer cette consultation ?"))
+                    supprimer(c.id);
+                }}
+                className="text-xs text-red-500 hover:text-red-700"
+              >
+                🗑 Supprimer
+              </button>
+            </div>
           </div>
           {c.notes && <p className="mt-2 text-sm whitespace-pre-wrap">{c.notes}</p>}
         </div>
@@ -376,6 +395,7 @@ function SectionAllergies({
 function SectionDocuments({ patientId }: { patientId: string }) {
   const [docs, setDocs] = useState<ResultatDocument[]>([]);
   const [erreur, setErreur] = useState<string | null>(null);
+  const { token } = useAuth();
 
   useEffect(() => {
     api
@@ -383,6 +403,11 @@ function SectionDocuments({ patientId }: { patientId: string }) {
       .then(setDocs)
       .catch((e) => setErreur(String(e)));
   }, [patientId]);
+
+  async function supprimerDoc(idDoc: string) {
+    await api.supprimerDocument(idDoc, token!);
+    setDocs(await api.listDocuments(patientId));
+  }
 
   return (
     <div className="space-y-4">
@@ -405,9 +430,20 @@ function SectionDocuments({ patientId }: { patientId: string }) {
               {new Date(d.createdAt).toLocaleString("fr-FR")}
             </div>
           </div>
-          <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">
-            {d.type}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">
+              {d.type}
+            </span>
+            <button
+              onClick={() => {
+                if (window.confirm("Supprimer ce document (fichier inclus) ?"))
+                  supprimerDoc(d.id);
+              }}
+              className="text-xs text-red-500 hover:text-red-700"
+            >
+              🗑
+            </button>
+          </div>
         </div>
       ))}
     </div>
