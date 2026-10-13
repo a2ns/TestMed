@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, ResultatDocument } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import PatientPicker from "../components/PatientPicker";
 
 const TYPES = [
   "COURRIER",
@@ -18,7 +19,13 @@ export default function Ged() {
   const navigate = useNavigate();
   const { token } = useAuth();
   const [patientId, setPatientId] = useState("");
+  const [patientNom, setPatientNom] = useState("");
   const [typeDoc, setTypeDoc] = useState("AUTRE");
+
+  function setPatient(id: string, nom: string) {
+    setPatientId(id);
+    setPatientNom(nom);
+  }
   const [scanners, setScanners] = useState<string[]>([]);
   const [scanner, setScanner] = useState("");
   const [statut, setStatut] = useState<string | null>(null);
@@ -179,15 +186,12 @@ export default function Ged() {
 
       <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-4 mt-6">
         <div className="flex flex-wrap gap-4 items-end">
-          <div>
-            <label className="block text-sm text-slate-500 mb-1">
-              ID patient (optionnel)
-            </label>
-            <input
-              value={patientId}
-              onChange={(e) => setPatientId(e.target.value)}
-              className="border border-slate-300 rounded-lg px-3 py-2"
-              placeholder="UUID"
+          <div className="min-w-64">
+            <PatientPicker
+              label="Patient (optionnel)"
+              patientId={patientId}
+              patientNom={patientNom}
+              onSelect={setPatient}
             />
           </div>
           <div>

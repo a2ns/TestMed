@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import PatientPicker from "../components/PatientPicker";
 
 // token exposé via useAuth pour les appels audités
 
@@ -12,7 +13,13 @@ const GABARITS = [
 
 export default function Courriers() {
   const [patientId, setPatientId] = useState("");
+  const [patientNom, setPatientNom] = useState("");
   const [gabarit, setGabarit] = useState(GABARITS[0].code);
+
+  function setPatient(id: string, nom: string) {
+    setPatientId(id);
+    setPatientNom(nom);
+  }
   const [notes, setNotes] = useState("");
   const [contenu, setContenu] = useState("");
   const [chargement, setChargement] = useState(false);
@@ -90,14 +97,10 @@ export default function Courriers() {
       <div className="grid grid-cols-2 gap-6">
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-slate-500 mb-1">
-              ID patient
-            </label>
-            <input
-              value={patientId}
-              onChange={(e) => setPatientId(e.target.value)}
-              placeholder="UUID du patient"
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white"
+            <PatientPicker
+              patientId={patientId}
+              patientNom={patientNom}
+              onSelect={setPatient}
             />
           </div>
           <div>
