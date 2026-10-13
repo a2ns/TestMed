@@ -40,7 +40,7 @@ pub async fn recherche_documents(
         "SELECT d.id, d.\"patientId\" as patient_id, p.nom as nom_patient, d.\"nomFichier\" as nom_fichier, d.type, \
          ts_headline('french', d.\"ocrTexte\", to_tsquery('french', $1), 'StartSel=[[, StopSel=]]') as extrait, \
          d.\"createdAt\" as created_at \
-         FROM document d LEFT JOIN patient p ON p.id = d.\"patientId\" \
+         FROM \"Document\" d LEFT JOIN \"Patient\" p ON p.id = d.\"patientId\" \
          WHERE d.tsv @@ to_tsquery('french', $1) AND ($2::text IS NULL OR d.type = $2) \
          ORDER BY ts_rank(d.tsv, to_tsquery('french', $1)) DESC \
          LIMIT 50"
@@ -68,7 +68,7 @@ pub async fn list_documents(patient_id: Option<String>) -> Result<Vec<ResultatDo
     let requete = format!(
         "SELECT d.id, d.\"patientId\" as patient_id, p.nom as nom_patient, d.\"nomFichier\" as nom_fichier, d.type, \
          NULL as extrait, d.\"createdAt\" as created_at \
-         FROM document d LEFT JOIN patient p ON p.id = d.\"patientId\" \
+         FROM \"Document\" d LEFT JOIN \"Patient\" p ON p.id = d.\"patientId\" \
          WHERE ($1::text IS NULL OR d.\"patientId\" = $1) \
          ORDER BY d.\"createdAt\" DESC LIMIT 200"
     );
