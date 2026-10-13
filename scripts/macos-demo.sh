@@ -42,9 +42,13 @@ MAGICMED_CLE_MASTER=$(openssl rand -base64 32)
 MAGICMED_SAUVEGARDE_DOSSIER=$HOME/MagicMed-backups
 MAGICMED_SAUVEGARDE_RETENTION=30
 EOF
+  # Prisma lit packages/db/.env ; Tauri lit .env à la racine → les deux.
+  cp .env packages/db/.env
   echo "⚠️  Pour activer l'assistant IA : renseignez AI_API_KEY dans .env"
   echo "   (ou passez sur Ollama local : AI_BASE_URL=http://localhost:11434/v1)"
 fi
+# Synchronise packages/db/.env s'il manque (reprise après correction)
+[ -f .env ] && [ ! -f packages/db/.env ] && cp .env packages/db/.env
 
 # 4. Schéma + compte admin
 echo "🗄️  Initialisation du schéma et du compte admin…"
