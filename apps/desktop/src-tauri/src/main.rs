@@ -34,6 +34,8 @@ fn main() {
             commands::agenda::list_rdv_jour,
             commands::agenda::creer_rdv,
             commands::agenda::changer_statut_rdv,
+            commands::recherche::recherche_documents,
+            commands::recherche::list_documents,
             commands::documents::import_document,
             commands::courriers::generer_courrier_ia,
             commands::scan::lister_scanners,

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { api } from "../lib/api";
+import { useNavigate } from "react-router-dom";
+import { api, ResultatDocument } from "../lib/api";
 
 const TYPES = [
   "COURRIER",
@@ -13,6 +14,7 @@ const TYPES = [
 ];
 
 export default function Ged() {
+  const navigate = useNavigate();
   const [patientId, setPatientId] = useState("");
   const [typeDoc, setTypeDoc] = useState("AUTRE");
   const [scanners, setScanners] = useState<string[]>([]);
@@ -21,6 +23,11 @@ export default function Ged() {
   const [erreur, setErreur] = useState<string | null>(null);
   const [scanEnCours, setScanEnCours] = useState(false);
 
+  const [recherche, setRecherche] = useState("");
+  const [filtreType, setFiltreType] = useState("");
+  const [resultats, setResultats] = useState<ResultatDocument[]>([]);
+  const [rechercheEnCours, setRechercheEnCours] = useState(false);
+
   useEffect(() => {
     api
       .listerScanners()
@@ -28,8 +35,21 @@ export default function Ged() {
         setScanners(s);
         if (s.length > 0) setScanner(s[0]);
       })
-      .catch((e) => setErreur(String(e)));
+      .catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    if (recherche.trim().length < 2) {
+      setResultats([]);
+      return;
+    }
+    setRechercheEnCours(true);
+    api
+      .rechercheDocuments(recherche, filtreType || null)
+      .then(setResultats)
+      .catch((e) => setErreur(String(e)))
+      .finally(() => setRechercheEnCours(false));
+  }, [recherche, filtreType]);
 
   async function importerFichier(e: React.ChangeEvent<HTMLInputElement>) {
     const fichier = e.target.files?.[0];
@@ -60,14 +80,9 @@ export default function Ged() {
     setStatut(null);
     try {
       const dossierGed = await import("@tauri-apps/api/path").then((p) =>
-        p.appDataDir().then((d) => d + "ged")
+        p.appDataDir().then((d) => `${d}ged`)
       );
-      const res = await api.scanMasse(
-        scanner,
-        dossierGed,
-        patientId || null,
-        typeDoc
-      );
+      const res = await api.scanMasse(scanner, dossierGed, patientId || null, typeDoc);
       setStatut(
         `Scan terminé : ${res.nbPages} page(s), document ${res.idDocument.slice(0, 8)}… indexé (OCR)`
       );
@@ -81,7 +96,77 @@ export default function Ged() {
   return (
     <div className="p-8 max-w-6xl">
       <h1 className="text-2xl font-bold mb-6">GED — MagicGed</h1>
+
       <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-4">
+        <h2 className="font-semibold">Recherche plein texte</h2>
+        <div className="flex flex-wrap gap-4 items-center">
+          <input
+            value={recherche}
+            onChange={(e) => setRecherche(e.target.value)}
+            placeholder="Rechercher dans le contenu des documents (OCR)…"
+            className="flex-1 min-w-72 border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-sky-400"
+          />
+          <select
+            value={filtreType}
+            onChange={(e) => setFiltreType(e.target.value)}
+            className="border border-slate-300 rounded-lg px-3 py-2 bg-white"
+          >
+            <option value="">Tous les types</option>
+            {TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </div>
+        {rechercheEnCours && (
+          <p className="text-sm text-slate-500">Recherche…</p>
+        )}
+        {resultats.length > 0 && (
+          <div className="divide-y rounded-lg border border-slate-200">
+            {resultats.map((r) => (
+              <div key={r.id} className="px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">
+                      {r.type}
+                    </span>
+                    <span className="font-medium">{r.nomFichier}</span>
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    {new Date(r.createdAt).toLocaleDateString("fr-FR")}
+                  </div>
+                </div>
+                {r.nomPatient && (
+                  <button
+                    onClick={() => navigate(`/patients/${r.patientId}`)}
+                    className="text-sky-600 hover:underline text-sm mt-1"
+                  >
+                    {r.nomPatient}
+                  </button>
+                )}
+                {r.extrait && (
+                  <p
+                    className="text-sm text-slate-600 mt-1"
+                    dangerouslySetInnerHTML={{
+                      __html: r.extrait
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/\[\[/g, '<mark class="bg-yellow-200">')
+                        .replace(/\]\]/g, "</mark>"),
+                    }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        {recherche.trim().length >= 2 && !rechercheEnCours && resultats.length === 0 && (
+          <p className="text-sm text-slate-500">Aucun document trouvé.</p>
+        )}
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-4 mt-6">
         <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-sm text-slate-500 mb-1">

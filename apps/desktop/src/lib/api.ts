@@ -121,6 +121,16 @@ export type RendezVous = {
   motif: string | null;
 };
 
+export type ResultatDocument = {
+  id: string;
+  patientId: string | null;
+  nomPatient: string | null;
+  nomFichier: string;
+  type: string;
+  extrait: string | null;
+  createdAt: string;
+};
+
 export type Scanner = string;
 
 export type ScanResultat = {
@@ -186,6 +196,10 @@ export const api = {
     invoke<string>("creer_rdv", { r: { patientId, debut, dureeMin, motif, notes } }),
   changerStatutRdv: (id: string, statut: string) =>
     invoke<void>("changer_statut_rdv", { id, statut }),
+  rechercheDocuments: (recherche: string, typeDoc: string | null) =>
+    invoke<ResultatDocument[]>("recherche_documents", { recherche, typeDoc }),
+  listDocuments: (patientId: string | null) =>
+    invoke<ResultatDocument[]>("list_documents", { patientId }),
   importDocument: (doc: {
     patientId: string | null;
     nomFichier: string;
