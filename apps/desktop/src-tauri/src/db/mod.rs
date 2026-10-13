@@ -10,6 +10,24 @@ pub async fn init(database_url: &str) -> Result<(), sqlx::Error> {
         .connect(database_url)
         .await?;
     let _ = POOL.set(pool);
+
+    // Autofix : colonnes des évolutions récentes du schéma que
+    // `prisma db push` peut manquer. Idempotent (IF NOT EXISTS).
+    let _ = sqlx::query(
+        "ALTER TABLE \"Praticien\" ADD COLUMN IF NOT EXISTS telephone TEXT",
+    )
+    .execute(pool)
+    .await;
+    let _ = sqlx::query(
+        "ALTER TABLE \"Praticien\" ADD COLUMN IF NOT EXISTS email TEXT",
+    )
+    .execute(pool)
+    .await;
+    let _ = sqlx::query(
+        "ALTER TABLE \"Document\" ADD COLUMN IF NOT EXISTS \"aTrier\" BOOLEAN NOT NULL DEFAULT false",
+    )
+    .execute(pool)
+    .await;
     Ok(())
 }
 
