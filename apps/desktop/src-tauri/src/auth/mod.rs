@@ -72,8 +72,14 @@ pub fn supprimer_session(token: &str) {
 pub async fn connexion(identifiants: Identifiants) -> Result<String, String> {
     let hash = crate::db::hash_mot_de_passe(&identifiants.identifiant).await;
     let ok = match &hash {
-        Ok(h) => bcrypt::verify(&identifiants.mot_de_passe, h).unwrap_or(false),
-        Err(_) => false,
+        Ok(h) if h.starts_with('$') => bcrypt::verify(&identifiants.mot_de_passe, h).unwrap_or(false),
+        Ok(h) => {
+            return Err(format!("compte admin incomplet (hash invalide : {}…) — relancez le seed", &h.chars().take(20).collect::<String>()))
+        }
+        Err(e) => {
+            // L'erreur réelle (SQL, colonne, connexion) remonte pour diagnostic.
+            return Err(format!("erreur d'accès au compte : {e}"));
+        }
     };
     if !ok {
         crate::audit::journaliser(
