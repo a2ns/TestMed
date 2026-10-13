@@ -234,8 +234,6 @@ export const api = {
     invoke<string>("connexion", { identifiants: { identifiant, motDePasse } }),
   utilisateurCourant: (token: string) => invoke<Utilisateur>("utilisateur_courant", { token }),
   deconnexion: (token: string) => invoke<void>("deconnexion", { token }),
-  creerCompte: (identifiant: string, motDePasse: string, role: string, adminToken: string) =>
-    invoke<void>("creer_compte", { identifiants: { identifiant, motDePasse }, role, adminToken }),
   listAuditLog: (adminToken: string, limite: number) =>
     invoke<EntreeAudit[]>("list_audit_log", { adminToken, limite }),
   lancerSauvegarde: (token: string) =>
@@ -244,4 +242,6 @@ export const api = {
     invoke<{ disponible: boolean; detail: string }>("verifier_fsv", { token }),
   verifierDmp: (token: string) =>
     invoke<{ configure: boolean; detail: string }>("verifier_dmp", { token }),
+  creerCompte: (identifiant: string, motDePasse: string, role: string, adminToken: string) =>
+    invoke<void>("creer_compte", { identifiants: { identifiant, motDePasse }, role, adminToken }),
 };

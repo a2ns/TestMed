@@ -2,6 +2,12 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 
+const ROLES = [
+  { code: "MEDECIN", libelle: "Médecin" },
+  { code: "SECRETAIRE", libelle: "Secrétaire" },
+  { code: "ADMIN", libelle: "Administrateur" },
+];
+
 export default function Systeme() {
   const { token, utilisateur } = useAuth();
   const [sauvegardeEnCours, setSauvegardeEnCours] = useState(false);
@@ -10,6 +16,11 @@ export default function Systeme() {
 
   const [etatFsv, setEtatFsv] = useState<{ disponible: boolean; detail: string } | null>(null);
   const [etatDmp, setEtatDmp] = useState<{ configure: boolean; detail: string } | null>(null);
+
+  const [identifiant, setIdentifiant] = useState("");
+  const [motDePasse, setMotDePasse] = useState("");
+  const [role, setRole] = useState("MEDECIN");
+  const [compteStatut, setCompteStatut] = useState<string | null>(null);
 
   useEffect(() => {
     if (utilisateur?.role !== "ADMIN") return;
@@ -41,15 +52,80 @@ export default function Systeme() {
     }
   }
 
+  async function creerCompte() {
+    setErreur(null);
+    setCompteStatut(null);
+    try {
+      await api.creerCompte(identifiant, motDePasse, role, token!);
+      setCompteStatut(`Compte « ${identifiant} » créé (${role})`);
+      setIdentifiant("");
+      setMotDePasse("");
+    } catch (e) {
+      setErreur(String(e));
+    }
+  }
+
   return (
     <div className="p-8 max-w-4xl space-y-6">
-      <h1 className="text-2xl font-bold">Système &amp; conformité</h1>
+      <h1 className="text-2xl font-bold">Système &amp; administration</h1>
+
+      <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-3">
+        <h2 className="font-semibold">👥 Comptes utilisateurs</h2>
+        <p className="text-sm text-slate-500">
+          Créez les comptes du cabinet. Le praticien devrait ensuite compléter
+          sa fiche (nom, RPPS, cabinet) pour l'en-tête des courriers.
+        </p>
+        <div className="flex flex-wrap gap-3 items-end">
+          <div>
+            <label className="block text-sm text-slate-500 mb-1">Identifiant</label>
+            <input
+              value={identifiant}
+              onChange={(e) => setIdentifiant(e.target.value)}
+              placeholder="jdupont"
+              className="border border-slate-300 rounded-lg px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-500 mb-1">Mot de passe</label>
+            <input
+              type="password"
+              value={motDePasse}
+              onChange={(e) => setMotDePasse(e.target.value)}
+              className="border border-slate-300 rounded-lg px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-500 mb-1">Rôle</label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="border border-slate-300 rounded-lg px-3 py-2 bg-white"
+            >
+              {ROLES.map((r) => (
+                <option key={r.code} value={r.code}>
+                  {r.libelle}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            onClick={creerCompte}
+            disabled={!identifiant || !motDePasse}
+            className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 disabled:opacity-40"
+          >
+            + Créer le compte
+          </button>
+        </div>
+        {compteStatut && (
+          <p className="text-sm text-emerald-600">{compteStatut}</p>
+        )}
+      </div>
 
       <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-3">
         <h2 className="font-semibold">💾 Sauvegarde chiffrée</h2>
         <p className="text-sm text-slate-500">
           Sauvegarde complète de la base (pg_dump), compressée puis chiffrée
-          AES-256-GCM avec la clé maître. Rétention automatique (30 par défaut,
+          AES-256-GCM avec la clé maîtresse. Rétention automatique (30 par défaut,
           configurable via MAGICMED_SAUVEGARDE_RETENTION).
         </p>
         <button
