@@ -1,21 +1,34 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./lib/auth";
 import Layout from "./components/Layout";
+import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Patients from "./pages/Patients";
 import Ged from "./pages/Ged";
 import Courriers from "./pages/Courriers";
 
+function AppProtegee() {
+  const { utilisateur } = useAuth();
+  if (!utilisateur) return <Login />;
+  return (
+    <Routes>
+      <Route element={<Layout />}>
+        <Route index element={<Dashboard />} />
+        <Route path="patients" element={<Patients />} />
+        <Route path="ged" element={<Ged />} />
+        <Route path="courriers" element={<Courriers />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
+  );
+}
+
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="patients" element={<Patients />} />
-          <Route path="ged" element={<Ged />} />
-          <Route path="courriers" element={<Courriers />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <AppProtegee />
+      </BrowserRouter>
+    </AuthProvider>
   );
 }

@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useAuth } from "../lib/auth";
 
 const MENU = [
   { to: "/", label: "Tableau de bord", icone: "📊", end: true },
@@ -8,6 +9,9 @@ const MENU = [
 ];
 
 export default function Layout() {
+  const { utilisateur, deconnexion } = useAuth();
+  const navigate = useNavigate();
+
   return (
     <div className="flex h-screen">
       <aside className="w-60 bg-slate-900 text-slate-200 flex flex-col">
@@ -32,7 +36,22 @@ export default function Layout() {
             </NavLink>
           ))}
         </nav>
-        <div className="px-5 py-4 text-xs text-slate-500">v0.1.0 — refonte</div>
+        <div className="border-t border-slate-800 px-5 py-4">
+          <div className="text-sm text-slate-200 font-medium truncate">
+            {utilisateur?.prenoms} {utilisateur?.nom}
+          </div>
+          <div className="text-xs text-slate-400 mb-3">{utilisateur?.role}</div>
+          <button
+            onClick={() => {
+              deconnexion();
+              navigate("/");
+            }}
+            className="text-xs text-slate-400 hover:text-white"
+          >
+            Se déconnecter
+          </button>
+        </div>
+        <div className="px-5 py-2 text-xs text-slate-600">v0.1.0 — refonte</div>
       </aside>
       <main className="flex-1 overflow-auto bg-slate-50">
         <Outlet />

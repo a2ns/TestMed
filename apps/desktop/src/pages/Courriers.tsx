@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api } from "../lib/api";
+import { useAuth } from "../lib/auth";
 
 const GABARITS = [
   { code: "adressage", libelle: "Adressement spécialiste" },
@@ -16,6 +17,7 @@ export default function Courriers() {
   const [impressionEnCours, setImpressionEnCours] = useState(false);
   const [statut, setStatut] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
+  const { utilisateur } = useAuth();
 
   async function dossierGed() {
     const p = await import("@tauri-apps/api/path");
@@ -30,8 +32,8 @@ export default function Courriers() {
     try {
       await api.imprimerCourrier(
         {
-          praticien: "Dr Praticien", // TODO : praticien connecté
-          cabinet: "Cabinet médical — adresse",
+          praticien: `Dr ${utilisateur?.nom ?? ""} ${utilisateur?.prenoms ?? ""}`.trim(),
+          cabinet: `${utilisateur?.cabinetNom ?? "Cabinet médical"} — ${utilisateur?.cabinetAdresse ?? ""}`.trim(),
           patient: patientId,
           destinataire: "Destinataire",
           objet: gabarit,

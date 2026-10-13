@@ -56,6 +56,14 @@ Prérequis postes : `sane-backends` (macOS : `brew install sane-backends`),
 2. Impression système : `lpr`/CUPS (macOS), `ShellExecuteW` "print" (Windows).
 3. Archivage optionnel du PDF dans la GED.
 
+### Authentification (implémenté)
+- Comptes `praticien` (identifiant + mot de passe bcrypt, `npm run seed`
+  dans `packages/db` crée le compte `admin` initial).
+- Session en mémoire du client (token, expiration 8 h), rôles
+  MEDECIN / SECRETAIRE / ADMIN ; création de comptes réservée à ADMIN.
+- IHM : écran de connexion, garde d'accès (toutes les vues exigent une
+  session), nom + rôle affichés en bas de la barre latérale.
+
 ## 5. Sécurité / RGPD
 
 - Authentification par utilisateur (rôles : médecin, secrétaire, admin).

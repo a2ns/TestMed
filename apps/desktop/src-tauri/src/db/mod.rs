@@ -17,6 +17,44 @@ fn pool() -> Result<&'static PgPool, String> {
     POOL.get().ok_or_else(|| "base non initialisée".to_string())
 }
 
+pub fn hash_mot_de_passe(identifiant: &str) -> Result<String, String> {
+    let pool = pool()?;
+    let hash: (String,) = sqlx::query_as(
+        "SELECT mot_de_passe FROM praticien WHERE identifiant = $1 AND actif = true",
+    )
+    .bind(identifiant)
+    .fetch_one(pool)
+    .map_err(|e| e.to_string())?;
+    Ok(hash.0)
+}
+
+pub fn charger_utilisateur(identifiant: &str) -> Result<crate::auth::Utilisateur, String> {
+    let pool = pool()?;
+    sqlx::query_as::<_, crate::auth::Utilisateur>(
+        "SELECT id, identifiant, nom, prenoms, roles[1] as role, rpps, \
+         cabinet_nom, cabinet_adresse \
+         FROM praticien WHERE identifiant = $1 AND actif = true",
+    )
+    .bind(identifiant)
+    .fetch_one(pool)
+    .map_err(|e| e.to_string())
+}
+
+pub fn creer_utilisateur(identifiant: &str, hash: &str, role: &str) -> Result<(), String> {
+    let pool = pool()?;
+    sqlx::query(
+        "INSERT INTO praticien (id, identifiant, mot_de_passe, nom, prenoms, roles) \
+         VALUES ($1, $2, $3, '', '', ARRAY[$4]::role[])",
+    )
+    .bind(uuid::Uuid::new_v4().to_string())
+    .bind(identifiant)
+    .bind(hash)
+    .bind(role)
+    .execute(pool)
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 pub async fn query_patients(recherche: &str) -> Result<Vec<crate::commands::patients::Patient>, String> {
     let pool = pool()?;
     let rows = sqlx::query_as::<_, crate::commands::patients::Patient>(

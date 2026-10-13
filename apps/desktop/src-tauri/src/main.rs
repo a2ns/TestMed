@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod auth;
 mod commands;
 mod db;
 mod ia;
@@ -22,6 +23,10 @@ fn main() {
             commands::scan::lister_scanners,
             commands::scan::scan_masse,
             impression::imprimer_courrier,
+            auth::connexion,
+            auth::utilisateur_courant,
+            auth::deconnexion,
+            auth::creer_compte,
         ])
         .run(tauri::generate_context!())
         .expect("erreur au lancement de MagicMed");

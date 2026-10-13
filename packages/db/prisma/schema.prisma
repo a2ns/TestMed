@@ -26,12 +26,16 @@ enum DocType {
 
 model Praticien {
   id        String   @id @default(uuid())
+  identifiant String? @unique
+  motDePasse String?
   nom       String
   prenoms   String
   rpps      String?   @unique
   adeli     String?
   specialite String?
   roles     Role[]
+  cabinetNom String?
+  cabinetAdresse String?
   actif     Boolean  @default(true)
   createdAt DateTime @default(now())
 }

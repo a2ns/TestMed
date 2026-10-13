@@ -13,6 +13,17 @@ function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   );
 }
 
+export type Utilisateur = {
+  id: string;
+  identifiant: string;
+  nom: string;
+  prenoms: string;
+  role: string;
+  rpps: string | null;
+  cabinetNom: string | null;
+  cabinetAdresse: string | null;
+};
+
 export type Scanner = string;
 
 export type ScanResultat = {
@@ -50,4 +61,10 @@ export const api = {
     invoke<ScanResultat>("scan_masse", { scanner, dossierGed, patientId, typeDoc }),
   imprimerCourrier: (courrier: CourrierImpression, dossierGed: string, archiverEgalement: boolean) =>
     invoke<string>("imprimer_courrier", { courrier, dossierGed, archiverEgalement }),
+  connexion: (identifiant: string, motDePasse: string) =>
+    invoke<string>("connexion", { identifiants: { identifiant, motDePasse } }),
+  utilisateurCourant: (token: string) => invoke<Utilisateur>("utilisateur_courant", { token }),
+  deconnexion: (token: string) => invoke<void>("deconnexion", { token }),
+  creerCompte: (identifiant: string, motDePasse: string, role: string, adminToken: string) =>
+    invoke<void>("creer_compte", { identifiants: { identifiant, motDePasse }, role, adminToken }),
 };
