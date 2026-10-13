@@ -2,12 +2,13 @@
 //! en mémoire du client, rôles (MEDECIN / SECRETAIRE / ADMIN).
 
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::Instant;
 use uuid::Uuid;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, FromRow)]
 pub struct Utilisateur {
     pub id: String,
     pub identifiant: String,
@@ -68,8 +69,8 @@ pub fn supprimer_session(token: &str) {
 }
 
 #[tauri::command]
-pub fn connexion(identifiants: Identifiants) -> Result<String, String> {
-    let hash = crate::db::hash_mot_de_passe(&identifiants.identifiant);
+pub async fn connexion(identifiants: Identifiants) -> Result<String, String> {
+    let hash = crate::db::hash_mot_de_passe(&identifiants.identifiant).await;
     let ok = match &hash {
         Ok(h) => bcrypt::verify(&identifiants.mot_de_passe, h).unwrap_or(false),
         Err(_) => false,
@@ -84,7 +85,7 @@ pub fn connexion(identifiants: Identifiants) -> Result<String, String> {
         );
         return Err("identifiant ou mot de passe incorrect".into());
     }
-    let utilisateur = crate::db::charger_utilisateur(&identifiants.identifiant)?;
+    let utilisateur = crate::db::charger_utilisateur(&identifiants.identifiant).await?;
     let id = utilisateur.id.clone();
     let token = creer_session(utilisateur);
     crate::audit::journaliser(&id, "CONNEXION_OK", None, None, None);
@@ -102,12 +103,12 @@ pub fn deconnexion(token: String) {
 }
 
 #[tauri::command]
-pub fn creer_compte(identifiants: Identifiants, role: String, admin_token: String) -> Result<(), String> {
+pub async fn creer_compte(identifiants: Identifiants, role: String, admin_token: String) -> Result<(), String> {
     let admin = valider_session(&admin_token).ok_or("session admin requise")?;
     if admin.role != "ADMIN" {
         return Err("rôle ADMIN requis pour créer un compte".into());
     }
     let hash = bcrypt::hash(&identifiants.mot_de_passe, bcrypt::DEFAULT_COST)
         .map_err(|e| e.to_string())?;
-    crate::db::creer_utilisateur(&identifiants.identifiant, &hash, &role)
+    crate::db::creer_utilisateur(&identifiants.identifiant, &hash, &role).await
 }

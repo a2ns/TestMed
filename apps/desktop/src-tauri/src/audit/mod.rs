@@ -17,8 +17,12 @@ pub struct EntreeAudit {
 /// Journalise une action de manière non bloquante : une panne d'audit ne
 /// doit jamais empêcher l'action métier (l'erreur est seulement remontée).
 pub fn journaliser(user_id: &str, action: &str, cible_type: Option<&str>, cible_id: Option<&str>, detail: Option<serde_json::Value>) {
+    let user_id = user_id.to_string();
+    let action = action.to_string();
+    let cible_type = cible_type.map(|s| s.to_string());
+    let cible_id = cible_id.map(|s| s.to_string());
     tauri::async_runtime::spawn(async move {
-        let res = crate::db::insert_audit(&user_id, &action, cible_type, cible_id, detail).await;
+        let res = crate::db::insert_audit(&user_id, &action, cible_type.as_deref(), cible_id.as_deref(), detail).await;
         if let Err(e) = res {
             eprintln!("[audit] échec de journalisation : {e}");
         }

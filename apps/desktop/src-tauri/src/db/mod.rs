@@ -13,22 +13,23 @@ pub async fn init(database_url: &str) -> Result<(), sqlx::Error> {
     Ok(())
 }
 
-fn pool() -> Result<&'static PgPool, String> {
+pub fn pool() -> Result<&'static PgPool, String> {
     POOL.get().ok_or_else(|| "base non initialisée".to_string())
 }
 
-pub fn hash_mot_de_passe(identifiant: &str) -> Result<String, String> {
+pub async fn hash_mot_de_passe(identifiant: &str) -> Result<String, String> {
     let pool = pool()?;
     let hash: (String,) = sqlx::query_as(
         "SELECT mot_de_passe FROM praticien WHERE identifiant = $1 AND actif = true",
     )
     .bind(identifiant)
     .fetch_one(pool)
+    .await
     .map_err(|e| e.to_string())?;
     Ok(hash.0)
 }
 
-pub fn charger_utilisateur(identifiant: &str) -> Result<crate::auth::Utilisateur, String> {
+pub async fn charger_utilisateur(identifiant: &str) -> Result<crate::auth::Utilisateur, String> {
     let pool = pool()?;
     sqlx::query_as::<_, crate::auth::Utilisateur>(
         "SELECT id, identifiant, nom, prenoms, roles[1] as role, rpps, \
@@ -37,10 +38,11 @@ pub fn charger_utilisateur(identifiant: &str) -> Result<crate::auth::Utilisateur
     )
     .bind(identifiant)
     .fetch_one(pool)
+    .await
     .map_err(|e| e.to_string())
 }
 
-pub fn creer_utilisateur(identifiant: &str, hash: &str, role: &str) -> Result<(), String> {
+pub async fn creer_utilisateur(identifiant: &str, hash: &str, role: &str) -> Result<(), String> {
     let pool = pool()?;
     sqlx::query(
         "INSERT INTO praticien (id, identifiant, mot_de_passe, nom, prenoms, roles) \
@@ -51,6 +53,7 @@ pub fn creer_utilisateur(identifiant: &str, hash: &str, role: &str) -> Result<()
     .bind(hash)
     .bind(role)
     .execute(pool)
+    .await
     .map_err(|e| e.to_string())?;
     Ok(())
 }

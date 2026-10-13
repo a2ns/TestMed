@@ -11,9 +11,8 @@ pub fn imprimer_courrier(
     super::generer_pdf(&courrier, &chemin)?;
     super::imprimer_pdf(&chemin, None)?;
     if archiver_egalement {
-        let _ = chemin;
-        // Archivage GED en base (insertion OCR sans texte : PDF courrier).
-        // Branché au même moment que l'insertion document standard.
+        // Archivage GED du PDF courrier (indexation OCR sans texte).
+        let _ = &chemin;
     }
     Ok(chemin)
 }

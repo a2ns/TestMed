@@ -45,7 +45,7 @@ fn main() {
             commands::courriers::generer_courrier_ia,
             commands::scan::lister_scanners,
             commands::scan::scan_masse,
-            impression::imprimer_courrier,
+            impression::commande::imprimer_courrier,
             auth::connexion,
             auth::utilisateur_courant,
             auth::deconnexion,
