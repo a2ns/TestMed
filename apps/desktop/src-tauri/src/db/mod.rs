@@ -18,7 +18,7 @@ pub fn pool() -> Result<&'static PgPool, sqlx::Error> {
 }
 
 pub async fn hash_mot_de_passe(identifiant: &str) -> Result<String, String> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     let hash: (String,) = sqlx::query_as(
         "SELECT mot_de_passe FROM praticien WHERE identifiant = $1 AND actif = true",
     )
@@ -30,7 +30,7 @@ pub async fn hash_mot_de_passe(identifiant: &str) -> Result<String, String> {
 }
 
 pub async fn charger_utilisateur(identifiant: &str) -> Result<crate::auth::Utilisateur, String> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query_as::<_, crate::auth::Utilisateur>(
         "SELECT id, identifiant, nom, prenoms, roles[1] as role, rpps, \
          cabinet_nom, cabinet_adresse \
@@ -43,7 +43,7 @@ pub async fn charger_utilisateur(identifiant: &str) -> Result<crate::auth::Utili
 }
 
 pub async fn creer_utilisateur(identifiant: &str, hash: &str, role: &str) -> Result<(), String> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query(
         "INSERT INTO praticien (id, identifiant, mot_de_passe, nom, prenoms, roles) \
          VALUES ($1, $2, $3, '', '', ARRAY[$4]::role[])",
@@ -59,7 +59,7 @@ pub async fn creer_utilisateur(identifiant: &str, hash: &str, role: &str) -> Res
 }
 
 pub async fn get_patient(id: &str) -> Result<crate::commands::patients::PatientDetail, sqlx::Error> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     let mut p = sqlx::query_as::<_, crate::commands::patients::PatientDetail>(
         "SELECT id, nom, prenoms, \"dateNaissance\"::date as date_naissance, sexe, adresse, telephone, email, medecin_traitant, \"nirChiffre\" as nir \
          FROM patient WHERE id = $1",
@@ -75,7 +75,7 @@ pub async fn get_patient(id: &str) -> Result<crate::commands::patients::PatientD
 }
 
 pub async fn creer_patient(p: &crate::commands::patients::NouveauPatient) -> Result<String, sqlx::Error> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     let id = uuid::Uuid::new_v4().to_string();
     let dn: Option<chrono::NaiveDate> = match &p.date_naissance {
         Some(s) if !s.trim().is_empty() => Some(s.parse::<chrono::NaiveDate>().map_err(|_| sqlx::Error::Configuration("date invalide (AAAA-MM-JJ)".into()))?),
@@ -112,7 +112,7 @@ pub async fn creer_patient(p: &crate::commands::patients::NouveauPatient) -> Res
 }
 
 pub async fn list_consultations(patient_id: &str) -> Result<Vec<crate::commands::patients::Consultation>, sqlx::Error> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query_as::<_, crate::commands::patients::Consultation>(
         "SELECT id, patient_id, motif, notes, date FROM consultation WHERE patient_id = $1 ORDER BY date DESC",
     )
@@ -122,7 +122,7 @@ pub async fn list_consultations(patient_id: &str) -> Result<Vec<crate::commands:
 }
 
 pub async fn creer_consultation(c: &crate::commands::patients::NouvelleConsultation) -> Result<String, sqlx::Error> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     let id = uuid::Uuid::new_v4().to_string();
     sqlx::query(
         "INSERT INTO consultation (id, patient_id, motif, notes) VALUES ($1, $2, $3, $4)",
@@ -137,7 +137,7 @@ pub async fn creer_consultation(c: &crate::commands::patients::NouvelleConsultat
 }
 
 pub async fn list_antecedents(patient_id: &str) -> Result<Vec<crate::commands::patients::Antecedent>, sqlx::Error> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query_as::<_, crate::commands::patients::Antecedent>(
         "SELECT id, categorie, libelle, annee, notes FROM antecedent WHERE patient_id = $1 ORDER BY categorie, annee",
     )
@@ -147,7 +147,7 @@ pub async fn list_antecedents(patient_id: &str) -> Result<Vec<crate::commands::p
 }
 
 pub async fn creer_antecedent(a: &crate::commands::patients::NouvelAntecedent) -> Result<String, sqlx::Error> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     let id = uuid::Uuid::new_v4().to_string();
     sqlx::query(
         "INSERT INTO antecedent (id, patient_id, categorie, libelle, annee, notes) VALUES ($1, $2, $3, $4, $5, $6)",
@@ -164,7 +164,7 @@ pub async fn creer_antecedent(a: &crate::commands::patients::NouvelAntecedent) -
 }
 
 pub async fn list_traitements(patient_id: &str) -> Result<Vec<crate::commands::patients::Traitement>, sqlx::Error> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query_as::<_, crate::commands::patients::Traitement>(
         "SELECT id, medicament, posologie, duree, actif FROM traitement WHERE patient_id = $1 ORDER BY actif DESC, date_debut DESC",
     )
@@ -174,7 +174,7 @@ pub async fn list_traitements(patient_id: &str) -> Result<Vec<crate::commands::p
 }
 
 pub async fn creer_traitement(t: &crate::commands::patients::NouveauTraitement) -> Result<String, sqlx::Error> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     let id = uuid::Uuid::new_v4().to_string();
     sqlx::query(
         "INSERT INTO traitement (id, patient_id, medicament, posologie, duree) VALUES ($1, $2, $3, $4, $5)",
@@ -190,7 +190,7 @@ pub async fn creer_traitement(t: &crate::commands::patients::NouveauTraitement) 
 }
 
 pub async fn list_allergies(patient_id: &str) -> Result<Vec<crate::commands::patients::Allergie>, sqlx::Error> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query_as::<_, crate::commands::patients::Allergie>(
         "SELECT id, substance, gravite, reactions FROM allergie WHERE patient_id = $1 ORDER BY gravite DESC",
     )
@@ -200,7 +200,7 @@ pub async fn list_allergies(patient_id: &str) -> Result<Vec<crate::commands::pat
 }
 
 pub async fn creer_allergie(a: &crate::commands::patients::NouvelleAllergie) -> Result<String, sqlx::Error> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     let id = uuid::Uuid::new_v4().to_string();
     sqlx::query(
         "INSERT INTO allergie (id, patient_id, substance, gravite, reactions) VALUES ($1, $2, $3, $4, $5)",
@@ -216,7 +216,7 @@ pub async fn creer_allergie(a: &crate::commands::patients::NouvelleAllergie) -> 
 }
 
 pub async fn creer_ordonnance(o: &crate::commands::ordonnances::NouvelleOrdonnance) -> Result<String, sqlx::Error> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     let id = uuid::Uuid::new_v4().to_string();
     let mut tx = pool.begin().await?;
     sqlx::query(
@@ -252,7 +252,7 @@ pub async fn creer_ordonnance(o: &crate::commands::ordonnances::NouvelleOrdonnan
 }
 
 pub async fn list_ordonnances(patient_id: &str) -> Result<Vec<crate::commands::ordonnances::Ordonnance>, sqlx::Error> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query_as::<_, crate::commands::ordonnances::Ordonnance>(
         "SELECT id, patient_id, type, securisee, date FROM ordonnance WHERE patient_id = $1 ORDER BY date DESC",
     )
@@ -262,7 +262,7 @@ pub async fn list_ordonnances(patient_id: &str) -> Result<Vec<crate::commands::o
 }
 
 pub async fn get_prescriptions(ordonnance_id: &str) -> Result<Vec<crate::commands::ordonnances::PrescriptionLigne>, sqlx::Error> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query_as::<_, crate::commands::ordonnances::PrescriptionLigne>(
         "SELECT id, zone, medicament, cip, posologie, duree, \"dureeJours\" as duree_jours, substitution, renouvellements, position \
          FROM prescription WHERE ordonnance_id = $1 ORDER BY position",
@@ -279,7 +279,7 @@ pub async fn insert_audit(
     cible_id: Option<&str>,
     detail: Option<serde_json::Value>,
 ) -> Result<(), sqlx::Error> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query(
         "INSERT INTO audit_log (ts, user_id, action, cible_type, cible_id, detail) \
          VALUES (now(), $1, $2, $3, $4, $5)",
@@ -295,7 +295,7 @@ pub async fn insert_audit(
 }
 
 pub async fn list_audit(limite: i64) -> Result<Vec<crate::audit::EntreeAudit>, sqlx::Error> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query_as::<_, crate::audit::EntreeAudit>(
         "SELECT id, ts, user_id, action, cible_type, cible_id, detail \
          FROM audit_log ORDER BY id DESC LIMIT $1",
@@ -306,7 +306,7 @@ pub async fn list_audit(limite: i64) -> Result<Vec<crate::audit::EntreeAudit>, s
 }
 
 pub async fn list_rdv_jour(jour: &str) -> Result<Vec<crate::commands::agenda::RendezVous>, sqlx::Error> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query_as::<_, crate::commands::agenda::RendezVous>(
         "SELECT r.id, r.patient_id, p.nom as nom_patient, p.prenoms as prenoms_patient, \
          r.debut, r.duree_min as duree_min, r.statut, r.motif \
@@ -325,7 +325,7 @@ pub async fn creer_rdv(
     motif: &Option<String>,
     notes: &Option<String>,
 ) -> Result<String, sqlx::Error> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     let conflit: Option<(String,)> = sqlx::query_as(
         "SELECT id FROM rendez_vous \
          WHERE debut::date = $1::date AND statut <> 'ANNULE' \
@@ -357,7 +357,7 @@ pub async fn creer_rdv(
 }
 
 pub async fn changer_statut_rdv(id: &str, statut: &str) -> Result<(), sqlx::Error> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query("UPDATE rendez_vous SET statut = $2 WHERE id = $1")
         .bind(id)
         .bind(statut)
@@ -367,7 +367,7 @@ pub async fn changer_statut_rdv(id: &str, statut: &str) -> Result<(), sqlx::Erro
 }
 
 pub async fn query_patients(recherche: &str) -> Result<Vec<crate::commands::patients::Patient>, String> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     let rows = sqlx::query_as::<_, crate::commands::patients::Patient>(
         "SELECT id, nom, prenoms FROM patient WHERE nom ILIKE $1 OR prenoms ILIKE $1 ORDER BY nom LIMIT 50",
     )
@@ -379,7 +379,7 @@ pub async fn query_patients(recherche: &str) -> Result<Vec<crate::commands::pati
 }
 
 pub async fn insert_document(doc: &crate::commands::documents::DocumentImport) -> Result<String, String> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     let id = uuid::Uuid::new_v4().to_string();
     sqlx::query("INSERT INTO document (id, patient_id, nom_fichier, chemin_stockage, type) VALUES ($1, $2, $3, $4, $5)")
         .bind(&id)
@@ -401,7 +401,7 @@ pub async fn insert_document_ocr(
     type_doc: &str,
     ocr_texte: &str,
 ) -> Result<(), String> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query(
         "INSERT INTO document (id, patient_id, nom_fichier, chemin_stockage, type, \"ocrTexte\", tsv) \
          VALUES ($1, $2, $3, $4, $5, $6, to_tsvector('french', $6))",
@@ -421,7 +421,7 @@ pub async fn insert_document_ocr(
 pub async fn generer_courrier(req: &crate::commands::courriers::CourrierRequest) -> Result<crate::commands::courriers::CourrierGenere, String> {
     // Le contexte patient est chargé depuis la base, puis le module IA
     // (Mistral API ou Ollama local) génère le brouillon de courrier.
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     let patient: (String, String, String) = sqlx::query_as(
         "SELECT id, nom, prenoms FROM patient WHERE id = $1",
     )
