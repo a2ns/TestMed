@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, Patient, RendezVous } from "../lib/api";
+import { useAuth } from "../lib/auth";
 
 const DEB = 8;
 const FIN = 19;
 const CRENEAU = 20;
+
+const DUREES = [10, 20, 30, 45, 60];
 
 function dateLocale(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
@@ -14,17 +17,28 @@ function dateLocale(d: Date): string {
 
 export default function Agenda() {
   const navigate = useNavigate();
+  const { token } = useAuth();
   const [jour, setJour] = useState(dateLocale(new Date()));
   const [rdvs, setRdvs] = useState<RendezVous[]>([]);
   const [erreur, setErreur] = useState<string | null>(null);
+
+  // Création
   const [formVisible, setFormVisible] = useState(false);
   const [creneau, setCreneau] = useState("");
-
   const [recherche, setRecherche] = useState("");
   const [resultats, setResultats] = useState<Patient[]>([]);
   const [patientId, setPatientId] = useState("");
   const [patientNom, setPatientNom] = useState("");
   const [motif, setMotif] = useState("");
+
+  // Modification
+  const [rdvModif, setRdvModif] = useState<RendezVous | null>(null);
+  const [modifHeure, setModifHeure] = useState("");
+  const [modifDuree, setModifDuree] = useState(20);
+  const [modifMotif, setMotifModif] = useState("");
+
+  // Suppression : confirmation
+  const [rdvSuppression, setRdvSuppression] = useState<RendezVous | null>(null);
 
   useEffect(() => {
     api
@@ -64,18 +78,62 @@ export default function Agenda() {
     });
   }
 
+  function ouvrirCreation(hhmm: string) {
+    setCreneau(hhmm);
+    setFormVisible(true);
+    setPatientId("");
+    setPatientNom("");
+    setRecherche("");
+    setMotif("");
+  }
+
+  function ouvrirModification(r: RendezVous) {
+    const d = new Date(r.debut);
+    setRdvModif(r);
+    setModifHeure(
+      `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
+    );
+    setModifDuree(r.dureeMin);
+    setMotifModif(r.motif ?? "");
+  }
+
+  async function rafraichir() {
+    setRdvs(await api.listRdvJour(jour));
+  }
+
   async function enregistrerRdv() {
     if (!patientId || !creneau) return;
     setErreur(null);
     try {
       const debutIso = new Date(`${jour}T${creneau}:00`).toISOString();
       await api.creerRdv(patientId, debutIso, CRENEAU, motif || null, null);
-      setRdvs(await api.listRdvJour(jour));
+      await rafraichir();
       setFormVisible(false);
-      setPatientId("");
-      setPatientNom("");
-      setRecherche("");
-      setMotif("");
+    } catch (e) {
+      setErreur(String(e));
+    }
+  }
+
+  async function enregistrerModification() {
+    if (!rdvModif || !modifHeure) return;
+    setErreur(null);
+    try {
+      const debutIso = new Date(`${jour}T${modifHeure}:00`).toISOString();
+      await api.modifierRdv(rdvModif.id, debutIso, modifDuree, modifMotif || null, token!);
+      setRdvModif(null);
+      await rafraichir();
+    } catch (e) {
+      setErreur(String(e));
+    }
+  }
+
+  async function supprimer() {
+    if (!rdvSuppression) return;
+    setErreur(null);
+    try {
+      await api.supprimerRdv(rdvSuppression.id, token!);
+      setRdvSuppression(null);
+      await rafraichir();
     } catch (e) {
       setErreur(String(e));
     }
@@ -83,7 +141,7 @@ export default function Agenda() {
 
   async function changerStatut(r: RendezVous, statut: string) {
     await api.changerStatutRdv(r.id, statut);
-    setRdvs(await api.listRdvJour(jour));
+    await rafraichir();
   }
 
   return (
@@ -98,6 +156,7 @@ export default function Agenda() {
         />
       </div>
 
+      {/* Formulaire de création */}
       {formVisible && (
         <div className="bg-white rounded-xl border border-slate-200 p-5 mb-6 space-y-3">
           <h2 className="font-semibold">
@@ -158,6 +217,96 @@ export default function Agenda() {
         </div>
       )}
 
+      {/* Formulaire de modification */}
+      {rdvModif && (
+        <div className="bg-white rounded-xl border border-slate-200 p-5 mb-6 space-y-3">
+          <h2 className="font-semibold">
+            Modifier le rendez-vous — {rdvModif.prenomsPatient} {rdvModif.nomPatient}
+          </h2>
+          <div className="flex flex-wrap gap-4 items-end">
+            <div>
+              <label className="block text-sm text-slate-500 mb-1">Heure</label>
+              <select
+                value={modifHeure}
+                onChange={(e) => setModifHeure(e.target.value)}
+                className="border border-slate-300 rounded-lg px-3 py-2 bg-white"
+              >
+                {creneauxDuJour().map((h) => (
+                  <option key={h}>{h}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-slate-500 mb-1">Durée</label>
+              <select
+                value={modifDuree}
+                onChange={(e) => setModifDuree(parseInt(e.target.value))}
+                className="border border-slate-300 rounded-lg px-3 py-2 bg-white"
+              >
+                {DUREES.map((d) => (
+                  <option key={d} value={d}>
+                    {d} min
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex-1 min-w-48">
+              <label className="block text-sm text-slate-500 mb-1">Motif</label>
+              <input
+                value={modifMotif}
+                onChange={(e) => setMotifModif(e.target.value)}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2"
+              />
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={enregistrerModification}
+              className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700"
+            >
+              Enregistrer
+            </button>
+            <button
+              onClick={() => setRdvModif(null)}
+              className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-100"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation de suppression */}
+      {rdvSuppression && (
+        <div className="bg-white rounded-xl border border-red-200 p-5 mb-6 space-y-3">
+          <h2 className="font-semibold text-red-700">
+            Supprimer le rendez-vous de {rdvSuppression.prenomsPatient}{" "}
+            {rdvSuppression.nomPatient} ?
+          </h2>
+          <p className="text-sm text-slate-500">
+            {new Date(rdvSuppression.debut).toLocaleTimeString("fr-FR", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}{" "}
+            — cette action est définitive.
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={supprimer}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+            >
+              Supprimer
+            </button>
+            <button
+              onClick={() => setRdvSuppression(null)}
+              className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-100"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
+
       {erreur && <p className="text-sm text-red-600 mb-4">Erreur : {erreur}</p>}
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -186,31 +335,7 @@ export default function Agenda() {
                       </span>
                     )}
                   </div>
-                  <div className="flex gap-2 text-xs">
-                    {rdv.statut === "PLANIFIE" && (
-                      <>
-                        <button
-                          onClick={() => changerStatut(rdv, "ARRIVE")}
-                          className="bg-emerald-600 text-white px-3 py-1 rounded-full hover:bg-emerald-700"
-                        >
-                          Arrivé
-                        </button>
-                        <button
-                          onClick={() => changerStatut(rdv, "ANNULE")}
-                          className="bg-white border border-slate-300 px-3 py-1 rounded-full hover:bg-slate-100"
-                        >
-                          Annuler
-                        </button>
-                      </>
-                    )}
-                    {rdv.statut === "ARRIVE" && (
-                      <button
-                        onClick={() => changerStatut(rdv, "HONORE")}
-                        className="bg-sky-600 text-white px-3 py-1 rounded-full hover:bg-sky-700"
-                      >
-                        Terminé
-                      </button>
-                    )}
+                  <div className="flex gap-2 text-xs items-center">
                     <span
                       className={`px-2 py-1 rounded-full font-medium ${
                         rdv.statut === "ARRIVE"
@@ -222,14 +347,39 @@ export default function Agenda() {
                     >
                       {rdv.statut}
                     </span>
+                    {rdv.statut === "PLANIFIE" && (
+                      <button
+                        onClick={() => changerStatut(rdv, "ARRIVE")}
+                        className="bg-emerald-600 text-white px-3 py-1 rounded-full hover:bg-emerald-700"
+                      >
+                        Arrivé
+                      </button>
+                    )}
+                    {rdv.statut === "ARRIVE" && (
+                      <button
+                        onClick={() => changerStatut(rdv, "HONORE")}
+                        className="bg-sky-600 text-white px-3 py-1 rounded-full hover:bg-sky-700"
+                      >
+                        Terminé
+                      </button>
+                    )}
+                    <button
+                      onClick={() => ouvrirModification(rdv)}
+                      className="bg-white border border-slate-300 px-3 py-1 rounded-full hover:bg-slate-100"
+                    >
+                      ✏️ Modifier
+                    </button>
+                    <button
+                      onClick={() => setRdvSuppression(rdv)}
+                      className="bg-white border border-red-300 text-red-600 px-3 py-1 rounded-full hover:bg-red-50"
+                    >
+                      🗑 Supprimer
+                    </button>
                   </div>
                 </div>
               ) : (
                 <button
-                  onClick={() => {
-                    setCreneau(hhmm);
-                    setFormVisible(true);
-                  }}
+                  onClick={() => ouvrirCreation(hhmm)}
                   className="flex-1 px-4 py-3 text-left text-sm text-slate-300 hover:bg-sky-50 hover:text-sky-600"
                 >
                   + libre

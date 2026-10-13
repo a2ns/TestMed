@@ -51,3 +51,47 @@ pub async fn changer_statut_rdv(id: String, statut: String) -> Result<(), String
         .await
         .map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub async fn supprimer_rdv(id: String, token: String) -> Result<(), String> {
+    let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
+    crate::db::supprimer_rdv(&id)
+        .await
+        .map_err(|e| e.to_string())?;
+    crate::audit::journaliser(
+        &utilisateur.id,
+        "RDV_SUPPRESSION",
+        Some("rendez_vous"),
+        Some(&id),
+        None,
+    );
+    Ok(())
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModificationRdv {
+    pub id: String,
+    pub debut: String,
+    pub duree_min: i32,
+    pub motif: Option<String>,
+}
+
+#[tauri::command]
+pub async fn modifier_rdv(m: ModificationRdv, token: String) -> Result<(), String> {
+    let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
+    let debut = chrono::DateTime::parse_from_rfc3339(&m.debut)
+        .map_err(|_| "date de début invalide")?
+        .with_timezone(&chrono::Utc);
+    crate::db::modifier_rdv(&m.id, debut, m.duree_min, &m.motif)
+        .await
+        .map_err(|e| e.to_string())?;
+    crate::audit::journaliser(
+        &utilisateur.id,
+        "RDV_MODIFICATION",
+        Some("rendez_vous"),
+        Some(&m.id),
+        None,
+    );
+    Ok(())
+}

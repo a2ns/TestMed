@@ -386,6 +386,50 @@ pub async fn changer_statut_rdv(id: &str, statut: &str) -> Result<(), sqlx::Erro
     Ok(())
 }
 
+pub async fn supprimer_rdv(id: &str) -> Result<(), sqlx::Error> {
+    let pool = pool()?;
+    sqlx::query("DELETE FROM \"RendezVous\" WHERE id = $1")
+        .bind(id)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+pub async fn modifier_rdv(
+    id: &str,
+    debut: chrono::DateTime<chrono::Utc>,
+    duree_min: i32,
+    motif: &Option<String>,
+) -> Result<(), sqlx::Error> {
+    let pool = pool()?;
+    // Conflit vérifié en excluant le RDV lui-même.
+    let conflit: Option<(String,)> = sqlx::query_as(
+        "SELECT id FROM \"RendezVous\" \\
+         WHERE id <> $4 AND debut::date = $1::date AND statut <> 'ANNULE' \\
+         AND ($2::timestamptz, $2::timestamptz + make_interval(mins => $3)) \\
+         OVERLAPS (debut, debut + make_interval(mins => \"dureeMin\"))",
+    )
+    .bind(debut)
+    .bind(debut)
+    .bind(duree_min)
+    .bind(id)
+    .fetch_optional(pool)
+    .await?;
+    if conflit.is_some() {
+        return Err(sqlx::Error::Configuration("créneau déjà occupé".into()));
+    }
+    sqlx::query(
+        "UPDATE \"RendezVous\" SET debut = $2, \"dureeMin\" = $3, motif = $4 WHERE id = $1",
+    )
+    .bind(id)
+    .bind(debut)
+    .bind(duree_min)
+    .bind(motif)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
 pub async fn query_patients(recherche: &str) -> Result<Vec<crate::commands::patients::Patient>, String> {
     let pool = pool().map_err(|e| e.to_string())?;
     let rows = sqlx::query_as::<_, crate::commands::patients::Patient>(

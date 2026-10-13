@@ -30,15 +30,24 @@ export default function Ged() {
   const [resultats, setResultats] = useState<ResultatDocument[]>([]);
   const [rechercheEnCours, setRechercheEnCours] = useState(false);
 
-  useEffect(() => {
+  // La détection des scanners (scanimage) peut être lente : elle ne se
+  // lance qu'à la demande, au clic sur le sélecteur, jamais au chargement.
+  const [scanDetection, setScanDetection] = useState<
+    "inconnu" | "en-cours" | "termine"
+  >("inconnu");
+
+  function detecterScanners() {
+    if (scanDetection !== "inconnu") return;
+    setScanDetection("en-cours");
     api
       .listerScanners()
       .then((s) => {
         setScanners(s);
         if (s.length > 0) setScanner(s[0]);
       })
-      .catch(() => undefined);
-  }, []);
+      .catch(() => undefined)
+      .finally(() => setScanDetection("termine"));
+  }
 
   useEffect(() => {
     if (recherche.trim().length < 2) {
@@ -209,10 +218,15 @@ export default function Ged() {
               <select
                 value={scanner}
                 onChange={(e) => setScanner(e.target.value)}
+                onClick={detecterScanners}
+                onFocus={detecterScanners}
                 className="border border-slate-300 rounded-lg px-3 py-2 bg-white min-w-64"
-                disabled={scanners.length === 0}
+                disabled={scanDetection === "en-cours"}
               >
-                {scanners.length === 0 && <option>Aucun scanner détecté</option>}
+                {scanDetection === "en-cours" && <option>Détection des scanners…</option>}
+                {scanDetection !== "en-cours" && scanners.length === 0 && (
+                  <option>Aucun scanner détecté</option>
+                )}
                 {scanners.map((s) => (
                   <option key={s} value={s}>
                     {s}

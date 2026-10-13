@@ -210,6 +210,10 @@ export const api = {
     invoke<string>("creer_rdv", { r: { patientId, debut, dureeMin, motif, notes } }),
   changerStatutRdv: (id: string, statut: string) =>
     invoke<void>("changer_statut_rdv", { id, statut }),
+  supprimerRdv: (id: string, token: string) =>
+    invoke<void>("supprimer_rdv", { id, token }),
+  modifierRdv: (id: string, debut: string, dureeMin: number, motif: string | null, token: string) =>
+    invoke<void>("modifier_rdv", { m: { id, debut, dureeMin, motif }, token }),
   rechercheDocuments: (recherche: string, typeDoc: string | null, token: string) =>
     invoke<ResultatDocument[]>("recherche_documents", { recherche, typeDoc, token }),
   listDocuments: (patientId: string | null) =>
