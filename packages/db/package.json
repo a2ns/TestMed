@@ -1,0 +1,12 @@
+{
+  "name": "magicmed-db",
+  "private": true,
+  "scripts": {
+    "migrate": "prisma migrate dev",
+    "generate": "prisma generate",
+    "studio": "prisma studio"
+  },
+  "devDependencies": {
+    "prisma": "^5.18.0"
+  }
+}

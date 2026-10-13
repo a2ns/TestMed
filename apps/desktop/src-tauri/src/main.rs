@@ -1,0 +1,22 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+mod commands;
+mod db;
+mod ia;
+
+fn main() {
+    tauri::Builder::default()
+        .setup(|_app| {
+            let url = std::env::var("DATABASE_URL")
+                .unwrap_or_else(|_| "postgres://magicmed:magicmed@localhost:5432/magicmed".into());
+            tauri::async_runtime::block_on(db::init(&url))?;
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            commands::patients::list_patients,
+            commands::documents::import_document,
+            commands::courriers::generer_courrier_ia,
+        ])
+        .run(tauri::generate_context!())
+        .expect("erreur au lancement de MagicMed");
+}

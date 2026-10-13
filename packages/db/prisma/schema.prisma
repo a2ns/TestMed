@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  MEDECIN
+  SECRETAIRE
+  ADMIN
+}
+
+enum DocType {
+  COURRIER
+  COMPTE_RENDU
+  ORDONNANCE
+  RESULTAT_EXAMEN
+  IMAGERIE
+  CERTIFICAT
+  FACTURE
+  AUTRE
+}
+
+model Praticien {
+  id        String   @id @default(uuid())
+  nom       String
+  prenoms   String
+  rpps      String?   @unique
+  adeli     String?
+  specialite String?
+  roles     Role[]
+  actif     Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Patient {
+  id         String   @id @default(uuid())
+  nom        String
+  prenoms    String
+  dateNaissance DateTime?
+  nirChiffre String?
+  sexe       String?
+  adresse    String?
+  telephone  String?
+  email      String?
+  carteVitale Json?
+  medecinTraitant String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  documents  Document[]
+  courriers  Courrier[]
+  consultations Consultation[]
+}
+
+model Consultation {
+  id        String   @id @default(uuid())
+  patientId String
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  praticienId String?
+  motif     String?
+  notes     String?
+  date      DateTime @default(now())
+
+  @@index([patientId, date])
+}
+
+model Document {
+  id        String   @id @default(uuid())
+  patientId String?
+  patient   Patient? @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  nomFichier String
+  cheminStockage String
+  type      DocType @default(AUTRE)
+  ocrTexte  String?
+  tsv       Unsupported("tsvector")?
+  nbPages   Int      @default(1)
+  version   Int      @default(1)
+  motsCles  String[]
+  createdAt DateTime @default(now())
+  createdBy String?
+
+  @@index([patientId])
+  @@index([type])
+}
+
+model GabaritCourrier {
+  id       String @id @default(uuid())
+  code     String @unique
+  libelle  String
+  contenu  String
+  type     DocType @default(COURRIER)
+}
+
+model Courrier {
+  id         String   @id @default(uuid())
+  patientId  String
+  patient    Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  gabaritId  String?
+  gabarit    GabaritCourrier? @relation(fields: [gabaritId], references: [id])
+  sujet      String?
+  contenu    String
+  aiGenere   Boolean  @default(false)
+  statut     String   @default("BROUILLON") // BROUILLON | VALIDE | IMPRIME
+  date       DateTime @default(now())
+  validePar  String?
+
+  @@index([patientId, date])
+}
+
+model AuditLog {
+  id        BigInt   @id @default(autoincrement())
+  ts        DateTime @default(now())
+  userId    String
+  action    String
+  cibleType String?
+  cibleId   String?
+  detail    Json?
+}
