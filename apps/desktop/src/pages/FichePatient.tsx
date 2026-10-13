@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api, Antecedent, Allergie, Consultation, Traitement } from "../lib/api";
+import { useAuth } from "../lib/auth";
 
 type Onglet = "consultations" | "antecedents" | "traitements" | "allergies";
 
@@ -9,6 +10,7 @@ const GRAVITES = ["SEVERE", "MODEREE", "FAIBLE"];
 
 export default function FichePatient() {
   const { id } = useParams<{ id: string }>();
+  const { token } = useAuth();
   const navigate = useNavigate();
   const [onglet, setOnglet] = useState<Onglet>("consultations");
 
@@ -23,7 +25,7 @@ export default function FichePatient() {
   useEffect(() => {
     if (!id) return;
     setErreur(null);
-    api.getPatient(id).then((p) => setNomPatient(`${p.prenoms} ${p.nom}`)).catch((e) => setErreur(String(e)));
+    api.getPatient(id, token!).then((p) => setNomPatient(`${p.prenoms} ${p.nom}`)).catch((e) => setErreur(String(e)));
     api.listConsultations(id).then(setConsultations).catch((e) => setErreur(String(e)));
     api.listAntecedents(id).then(setAntecedents).catch((e) => setErreur(String(e)));
     api.listTraitements(id).then(setTraitements).catch((e) => setErreur(String(e)));

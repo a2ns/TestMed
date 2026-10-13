@@ -252,6 +252,39 @@ pub async fn get_prescriptions(ordonnance_id: &str) -> Result<Vec<crate::command
     .await
 }
 
+pub async fn insert_audit(
+    user_id: &str,
+    action: &str,
+    cible_type: Option<&str>,
+    cible_id: Option<&str>,
+    detail: Option<serde_json::Value>,
+) -> Result<(), sqlx::Error> {
+    let pool = pool()?;
+    sqlx::query(
+        "INSERT INTO audit_log (ts, user_id, action, cible_type, cible_id, detail) \
+         VALUES (now(), $1, $2, $3, $4, $5)",
+    )
+    .bind(user_id)
+    .bind(action)
+    .bind(cible_type)
+    .bind(cible_id)
+    .bind(detail)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+pub async fn list_audit(limite: i64) -> Result<Vec<crate::audit::EntreeAudit>, sqlx::Error> {
+    let pool = pool()?;
+    sqlx::query_as::<_, crate::audit::EntreeAudit>(
+        "SELECT id, ts, user_id, action, cible_type, cible_id, detail \
+         FROM audit_log ORDER BY id DESC LIMIT $1",
+    )
+    .bind(limite)
+    .fetch_all(pool)
+    .await
+}
+
 pub async fn list_rdv_jour(jour: &str) -> Result<Vec<crate::commands::agenda::RendezVous>, sqlx::Error> {
     let pool = pool()?;
     sqlx::query_as::<_, crate::commands::agenda::RendezVous>(

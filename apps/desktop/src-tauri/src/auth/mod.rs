@@ -69,14 +69,26 @@ pub fn supprimer_session(token: &str) {
 
 #[tauri::command]
 pub fn connexion(identifiants: Identifiants) -> Result<String, String> {
-    let hash = crate::db::hash_mot_de_passe(&identifiants.identifiant)
-        .map_err(|_| "identifiant ou mot de passe incorrect")?;
-    let ok = bcrypt::verify(&identifiants.mot_de_passe, &hash).map_err(|e| e.to_string())?;
+    let hash = crate::db::hash_mot_de_passe(&identifiants.identifiant);
+    let ok = match &hash {
+        Ok(h) => bcrypt::verify(&identifiants.mot_de_passe, h).unwrap_or(false),
+        Err(_) => false,
+    };
     if !ok {
+        crate::audit::journaliser(
+            &identifiants.identifiant,
+            "CONNEXION_ECHEC",
+            None,
+            None,
+            None,
+        );
         return Err("identifiant ou mot de passe incorrect".into());
     }
     let utilisateur = crate::db::charger_utilisateur(&identifiants.identifiant)?;
-    Ok(creer_session(utilisateur))
+    let id = utilisateur.id.clone();
+    let token = creer_session(utilisateur);
+    crate::audit::journaliser(&id, "CONNEXION_OK", None, None, None);
+    Ok(token)
 }
 
 #[tauri::command]

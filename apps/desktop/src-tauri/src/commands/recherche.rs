@@ -17,7 +17,9 @@ pub struct ResultatDocument {
 pub async fn recherche_documents(
     recherche: String,
     type_doc: Option<String>,
+    token: String,
 ) -> Result<Vec<ResultatDocument>, String> {
+    let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
     // Les mots saisis sont combinés en conjonction (mot1 & mot2 …) après
     // nettoyage : aucun opérateur tsquery injectable depuis l'IHM.
     let termes: Vec<String> = recherche
@@ -43,12 +45,20 @@ pub async fn recherche_documents(
          ORDER BY ts_rank(d.tsv, to_tsquery('french', $1)) DESC \
          LIMIT 50"
     );
-    sqlx::query_as::<_, ResultatDocument>(&requete)
+    let resultats = sqlx::query_as::<_, ResultatDocument>(&requete)
         .bind(&tsquery)
         .bind(type_doc)
         .fetch_all(pool)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+    crate::audit::journaliser(
+        &utilisateur.id,
+        "RECHERCHE_GED",
+        None,
+        None,
+        Some(serde_json::json!({ "termes": tsquery, "resultats": resultats.len() })),
+    );
+    Ok(resultats)
 }
 
 /// Liste des documents d'un patient.

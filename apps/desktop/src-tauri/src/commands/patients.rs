@@ -27,7 +27,15 @@ pub struct PatientDetail {
 }
 
 #[tauri::command]
-pub async fn get_patient(id: String) -> Result<PatientDetail, String> {
+pub async fn get_patient(id: String, token: String) -> Result<PatientDetail, String> {
+    let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
+    crate::audit::journaliser(
+        &utilisateur.id,
+        "ACCES_PATIENT",
+        Some("patient"),
+        Some(&id),
+        None,
+    );
     crate::db::get_patient(&id).await.map_err(|e| e.to_string())
 }
 

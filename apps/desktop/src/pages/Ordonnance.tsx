@@ -19,7 +19,7 @@ const LIGNE_VIDE: NouvellePrescription = {
 export default function Ordonnance() {
   const { id: patientId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { utilisateur } = useAuth();
+  const { utilisateur, token } = useAuth();
 
   const [type, setType] = useState<TypeOrdo>("SIMPLE");
   const [lignes, setLignes] = useState<NouvellePrescription[]>([{ ...LIGNE_VIDE }]);
@@ -31,7 +31,7 @@ export default function Ordonnance() {
   useEffect(() => {
     if (patientId)
       api
-        .getPatient(patientId)
+        .getPatient(patientId, token!)
         .then((p) => setNomPatient(`${p.prenoms} ${p.nom}`))
         .catch(() => undefined);
   }, [patientId]);
@@ -86,7 +86,7 @@ export default function Ordonnance() {
     setErreur(null);
     setStatut(null);
     try {
-      const idOrdo = await api.creerOrdonnance(patientId, type, type === "SECURISEE", lignes);
+      const idOrdo = await api.creerOrdonnance(patientId, type, type === "SECURISEE", lignes, token!);
       const dossierGed = await import("@tauri-apps/api/path").then((p) =>
         p.appDataDir().then((d) => `${d}ged`)
       );

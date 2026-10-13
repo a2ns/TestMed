@@ -131,6 +131,16 @@ export type ResultatDocument = {
   createdAt: string;
 };
 
+export type EntreeAudit = {
+  id: number;
+  ts: string;
+  userId: string;
+  action: string;
+  cibleType: string | null;
+  cibleId: string | null;
+  detail: unknown;
+};
+
 export type Scanner = string;
 
 export type ScanResultat = {
@@ -152,7 +162,7 @@ export type CourrierImpression = {
 export const api = {
   listPatients: (recherche: string) =>
     invoke<Patient[]>("list_patients", { recherche }),
-  getPatient: (id: string) => invoke<PatientDetail>("get_patient", { id }),
+  getPatient: (id: string, token: string) => invoke<PatientDetail>("get_patient", { id, token }),
   creerPatient: (p: NouveauPatient) => invoke<string>("creer_patient", { p }),
   listConsultations: (patientId: string) =>
     invoke<Consultation[]>("list_consultations", { patientId }),
@@ -182,10 +192,12 @@ export const api = {
     patientId: string,
     type: string,
     securisee: boolean,
-    lignes: NouvellePrescription[]
+    lignes: NouvellePrescription[],
+    token: string
   ) =>
     invoke<string>("creer_ordonnance", {
       o: { patientId, type, securisee, lignes },
+      token,
     }),
   listOrdonnances: (patientId: string) =>
     invoke<Ordonnance[]>("list_ordonnances", { patientId }),
@@ -196,8 +208,8 @@ export const api = {
     invoke<string>("creer_rdv", { r: { patientId, debut, dureeMin, motif, notes } }),
   changerStatutRdv: (id: string, statut: string) =>
     invoke<void>("changer_statut_rdv", { id, statut }),
-  rechercheDocuments: (recherche: string, typeDoc: string | null) =>
-    invoke<ResultatDocument[]>("recherche_documents", { recherche, typeDoc }),
+  rechercheDocuments: (recherche: string, typeDoc: string | null, token: string) =>
+    invoke<ResultatDocument[]>("recherche_documents", { recherche, typeDoc, token }),
   listDocuments: (patientId: string | null) =>
     invoke<ResultatDocument[]>("list_documents", { patientId }),
   importDocument: (doc: {
@@ -210,10 +222,10 @@ export const api = {
     patientId: string;
     gabarit: string;
     notes: string;
-  }) => invoke<CourrierGenere>("generer_courrier_ia", { req }),
+  }, token: string) => invoke<CourrierGenere>("generer_courrier_ia", { req, token }),
   listerScanners: () => invoke<Scanner[]>("lister_scanners"),
-  scanMasse: (scanner: string, dossierGed: string, patientId: string | null, typeDoc: string) =>
-    invoke<ScanResultat>("scan_masse", { scanner, dossierGed, patientId, typeDoc }),
+  scanMasse: (scanner: string, dossierGed: string, patientId: string | null, typeDoc: string, token: string) =>
+    invoke<ScanResultat>("scan_masse", { scanner, dossierGed, patientId, typeDoc, token }),
   imprimerCourrier: (courrier: CourrierImpression, dossierGed: string, archiverEgalement: boolean) =>
     invoke<string>("imprimer_courrier", { courrier, dossierGed, archiverEgalement }),
   connexion: (identifiant: string, motDePasse: string) =>
@@ -222,4 +234,6 @@ export const api = {
   deconnexion: (token: string) => invoke<void>("deconnexion", { token }),
   creerCompte: (identifiant: string, motDePasse: string, role: string, adminToken: string) =>
     invoke<void>("creer_compte", { identifiants: { identifiant, motDePasse }, role, adminToken }),
+  listAuditLog: (adminToken: string, limite: number) =>
+    invoke<EntreeAudit[]>("list_audit_log", { adminToken, limite }),
 };

@@ -1,6 +1,8 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 
+const MENU_ADMIN = [{ to: "/journal", label: "Journal d'audit", icone: "🛡️", end: false }];
+
 const MENU = [
   { to: "/", label: "Tableau de bord", icone: "📊", end: true },
   { to: "/agenda", label: "Agenda", icone: "📅", end: false },
@@ -37,6 +39,19 @@ export default function Layout() {
             </NavLink>
           ))}
         </nav>
+        {utilisateur?.role === "ADMIN" && (
+          <div className="border-t border-slate-800 px-3 py-2">
+            {MENU_ADMIN.map((m) => (
+              <NavLink
+                key={m.to}
+                to={m.to}
+                className="flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-slate-800 text-slate-400"
+              >
+                <span>{m.icone}</span> {m.label}
+              </NavLink>
+            ))}
+          </div>
+        )}
         <div className="border-t border-slate-800 px-5 py-4">
           <div className="text-sm text-slate-200 font-medium truncate">
             {utilisateur?.prenoms} {utilisateur?.nom}

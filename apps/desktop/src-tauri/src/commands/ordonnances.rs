@@ -45,14 +45,23 @@ pub struct NouvellePrescription {
 }
 
 #[tauri::command]
-pub async fn creer_ordonnance(o: NouvelleOrdonnance) -> Result<String, String> {
+pub async fn creer_ordonnance(o: NouvelleOrdonnance, token: String) -> Result<String, String> {
+    let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
     if o.lignes.is_empty() {
         return Err("une ordonnance exige au moins une prescription".into());
     }
     if o.r#type == "BI_ORDONNANCE" && !o.lignes.iter().any(|l| l.zone == "B") {
         return Err("bi-ordonnance : au moins une ligne en zone B requise".into());
     }
-    crate::db::creer_ordonnance(&o).await.map_err(|e| e.to_string())
+    let id = crate::db::creer_ordonnance(&o).await.map_err(|e| e.to_string())?;
+    crate::audit::journaliser(
+        &utilisateur.id,
+        "ORDONNANCE_CREATION",
+        Some("ordonnance"),
+        Some(&id),
+        Some(serde_json::json!({ "patient_id": o.patient_id, "lignes": o.lignes.len(), "type": o.r#type })),
+    );
+    Ok(id)
 }
 
 #[tauri::command]

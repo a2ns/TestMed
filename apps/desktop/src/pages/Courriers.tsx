@@ -2,6 +2,8 @@ import { useState } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 
+// token exposé via useAuth pour les appels audités
+
 const GABARITS = [
   { code: "adressage", libelle: "Adressement spécialiste" },
   { code: "compte_rendu", libelle: "Compte rendu de consultation" },
@@ -17,7 +19,7 @@ export default function Courriers() {
   const [impressionEnCours, setImpressionEnCours] = useState(false);
   const [statut, setStatut] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
-  const { utilisateur } = useAuth();
+  const { utilisateur, token } = useAuth();
 
   async function dossierGed() {
     const p = await import("@tauri-apps/api/path");
@@ -73,7 +75,7 @@ export default function Courriers() {
     setChargement(true);
     setErreur(null);
     try {
-      const res = await api.genererCourrier({ patientId, gabarit, notes });
+      const res = await api.genererCourrier({ patientId, gabarit, notes }, token!);
       setContenu(res.contenu);
     } catch (e) {
       setErreur(String(e));

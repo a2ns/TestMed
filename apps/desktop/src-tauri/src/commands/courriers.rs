@@ -13,6 +13,14 @@ pub struct CourrierGenere {
 }
 
 #[tauri::command]
-pub async fn generer_courrier_ia(req: CourrierRequest) -> Result<CourrierGenere, String> {
+pub async fn generer_courrier_ia(req: CourrierRequest, token: String) -> Result<CourrierGenere, String> {
+    let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
+    crate::audit::journaliser(
+        &utilisateur.id,
+        "COURRIER_IA",
+        Some("patient"),
+        Some(&req.patient_id),
+        None,
+    );
     crate::db::generer_courrier(&req).await.map_err(|e| e.to_string())
 }

@@ -11,7 +11,9 @@ pub async fn scan_masse(
     dossier_ged: String,
     patient_id: Option<String>,
     type_doc: String,
+    token: String,
 ) -> Result<ScanResultat, String> {
+    let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
     // 1. Scan du lot (ADF) dans un dossier temporaire.
     let dossier_tmp = std::env::temp_dir().join(format!("magicmed-scan-{}", uuid::Uuid::new_v4()));
     let dossier_tmp = dossier_tmp.to_string_lossy().to_string();
@@ -42,6 +44,14 @@ pub async fn scan_masse(
 
     // 4. Nettoyage du dossier temporaire.
     let _ = std::fs::remove_dir_all(&dossier_tmp);
+
+    crate::audit::journaliser(
+        &utilisateur.id,
+        "SCAN_MASSE",
+        Some("document"),
+        Some(&id),
+        Some(serde_json::json!({ "pages": lot.pages.len(), "type": type_doc })),
+    );
 
     Ok(ScanResultat {
         id_document: id,

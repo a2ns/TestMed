@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, ResultatDocument } from "../lib/api";
+import { useAuth } from "../lib/auth";
 
 const TYPES = [
   "COURRIER",
@@ -15,6 +16,7 @@ const TYPES = [
 
 export default function Ged() {
   const navigate = useNavigate();
+  const { token } = useAuth();
   const [patientId, setPatientId] = useState("");
   const [typeDoc, setTypeDoc] = useState("AUTRE");
   const [scanners, setScanners] = useState<string[]>([]);
@@ -45,11 +47,11 @@ export default function Ged() {
     }
     setRechercheEnCours(true);
     api
-      .rechercheDocuments(recherche, filtreType || null)
+      .rechercheDocuments(recherche, filtreType || null, token!)
       .then(setResultats)
       .catch((e) => setErreur(String(e)))
       .finally(() => setRechercheEnCours(false));
-  }, [recherche, filtreType]);
+  }, [recherche, filtreType, token]);
 
   async function importerFichier(e: React.ChangeEvent<HTMLInputElement>) {
     const fichier = e.target.files?.[0];
@@ -82,7 +84,7 @@ export default function Ged() {
       const dossierGed = await import("@tauri-apps/api/path").then((p) =>
         p.appDataDir().then((d) => `${d}ged`)
       );
-      const res = await api.scanMasse(scanner, dossierGed, patientId || null, typeDoc);
+      const res = await api.scanMasse(scanner, dossierGed, patientId || null, typeDoc, token!);
       setStatut(
         `Scan terminé : ${res.nbPages} page(s), document ${res.idDocument.slice(0, 8)}… indexé (OCR)`
       );
