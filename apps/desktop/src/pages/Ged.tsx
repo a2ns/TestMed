@@ -204,6 +204,14 @@ export default function Ged() {
                     </button>
                   )}
                   <button
+                    onClick={() => api.ouvrirDocument(r.id, token!).catch((e) =>
+                      setErreur(String(e))
+                    )}
+                    className="text-xs text-sky-600 hover:text-sky-800"
+                  >
+                    👁 Voir
+                  </button>
+                  <button
                     onClick={async () => {
                       if (window.confirm("Supprimer ce document (fichier inclus) ?")) {
                         await api.supprimerDocument(r.id, token!);

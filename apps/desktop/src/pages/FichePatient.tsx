@@ -435,6 +435,14 @@ function SectionDocuments({ patientId }: { patientId: string }) {
               {d.type}
             </span>
             <button
+              onClick={() => api.ouvrirDocument(d.id, token!).catch((e) =>
+                setErreur(String(e))
+              )}
+              className="text-xs text-sky-600 hover:text-sky-800"
+            >
+              👁 Voir
+            </button>
+            <button
               onClick={() => {
                 if (window.confirm("Supprimer ce document (fichier inclus) ?"))
                   supprimerDoc(d.id);

@@ -51,6 +51,7 @@ fn main() {
             commands::recherche::classer_document,
             commands::documents::import_document,
             commands::documents::supprimer_document,
+            commands::documents::ouvrir_document,
             commands::courriers::generer_courrier_ia,
             commands::scan::lister_scanners,
             commands::scan::scan_masse,

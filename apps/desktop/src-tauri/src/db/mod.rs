@@ -564,6 +564,19 @@ pub async fn supprimer_consultation(id: &str) -> Result<(), sqlx::Error> {
     Ok(())
 }
 
+
+/// Chemin de stockage d'un document (pour ouverture dans l'app native).
+pub async fn chemin_document(id: &str) -> Result<String, sqlx::Error> {
+    let pool = pool()?;
+    let (chemin,): (String,) = sqlx::query_as(
+        "SELECT \"cheminStockage\" FROM \"Document\" WHERE id = $1",
+    )
+    .bind(id)
+    .fetch_one(pool)
+    .await?;
+    Ok(chemin)
+}
+
 pub async fn query_patients(recherche: &str) -> Result<Vec<crate::commands::patients::Patient>, String> {
     let pool = pool().map_err(|e| e.to_string())?;
     let rows = sqlx::query_as::<_, crate::commands::patients::Patient>(

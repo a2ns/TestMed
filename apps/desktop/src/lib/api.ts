@@ -234,6 +234,8 @@ export const api = {
     invoke<void>("classer_document", { documentId, patientId, typeDoc, token }),
   supprimerDocument: (id: string, token: string) =>
     invoke<void>("supprimer_document", { id, token }),
+  ouvrirDocument: (id: string, token: string) =>
+    invoke<void>("ouvrir_document", { id, token }),
   supprimerConsultation: (id: string, token: string) =>
     invoke<void>("supprimer_consultation", { id, token }),
   importDocument: (doc: {
