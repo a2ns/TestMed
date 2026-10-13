@@ -52,6 +52,7 @@ model Patient {
   prenoms    String
   dateNaissance DateTime?
   nirChiffre String?
+  nirEmpreinte String? @unique
   sexe       String?
   adresse    String?
   telephone  String?

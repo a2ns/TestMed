@@ -34,6 +34,7 @@ export type PatientDetail = {
   telephone: string | null;
   email: string | null;
   medecinTraitant: string | null;
+  nir: string | null;
 };
 
 export type NouveauPatient = {
@@ -45,6 +46,7 @@ export type NouveauPatient = {
   telephone: string | null;
   email: string | null;
   medecinTraitant: string | null;
+  nir: string | null;
 };
 
 export type Consultation = {

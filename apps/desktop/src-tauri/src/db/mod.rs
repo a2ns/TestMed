@@ -57,13 +57,18 @@ pub fn creer_utilisateur(identifiant: &str, hash: &str, role: &str) -> Result<()
 
 pub async fn get_patient(id: &str) -> Result<crate::commands::patients::PatientDetail, sqlx::Error> {
     let pool = pool()?;
-    sqlx::query_as::<_, crate::commands::patients::PatientDetail>(
-        "SELECT id, nom, prenoms, \"dateNaissance\"::date as date_naissance, sexe, adresse, telephone, email, medecin_traitant \
+    let mut p = sqlx::query_as::<_, crate::commands::patients::PatientDetail>(
+        "SELECT id, nom, prenoms, \"dateNaissance\"::date as date_naissance, sexe, adresse, telephone, email, medecin_traitant, \"nirChiffre\" as nir \
          FROM patient WHERE id = $1",
     )
     .bind(id)
     .fetch_one(pool)
-    .await
+    .await?;
+    // Le NIR est déchiffré uniquement à la lecture de la fiche.
+    if let Some(nir_chiffre) = p.nir.take() {
+        p.nir = crate::crypto::dechiffrer(&nir_chiffre).ok();
+    }
+    Ok(p)
 }
 
 pub async fn creer_patient(p: &crate::commands::patients::NouveauPatient) -> Result<String, sqlx::Error> {
@@ -73,9 +78,19 @@ pub async fn creer_patient(p: &crate::commands::patients::NouveauPatient) -> Res
         Some(s) if !s.trim().is_empty() => Some(s.parse::<chrono::NaiveDate>().map_err(|_| sqlx::Error::Configuration("date invalide (AAAA-MM-JJ)".into()))?),
         _ => None,
     };
+    // NIR : jamais stocké en clair. Chiffré AES-256-GCM + empreinte
+    // déterministe pour l'unicité/la recherche.
+    let (nir_chiffre, nir_empreinte) = match &p.nir {
+        Some(n) if !n.trim().is_empty() => {
+            let c = crate::crypto::chiffrer(n.trim()).map_err(|e| sqlx::Error::Configuration(e.into()))?;
+            let emp = crate::crypto::empreinte(n.trim());
+            (Some(c), Some(emp))
+        }
+        _ => (None, None),
+    };
     sqlx::query(
-        "INSERT INTO patient (id, nom, prenoms, \"dateNaissance\", sexe, adresse, telephone, email, medecin_traitant) \
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+        "INSERT INTO patient (id, nom, prenoms, \"dateNaissance\", sexe, adresse, telephone, email, medecin_traitant, \"nirChiffre\", \"nirEmpreinte\") \
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
     )
     .bind(&id)
     .bind(&p.nom)
@@ -86,6 +101,8 @@ pub async fn creer_patient(p: &crate::commands::patients::NouveauPatient) -> Res
     .bind(&p.telephone)
     .bind(&p.email)
     .bind(&p.medecin_traitant)
+    .bind(nir_chiffre)
+    .bind(nir_empreinte)
     .execute(pool)
     .await?;
     Ok(id)

@@ -24,6 +24,7 @@ pub struct PatientDetail {
     pub telephone: Option<String>,
     pub email: Option<String>,
     pub medecin_traitant: Option<String>,
+    pub nir: Option<String>,
 }
 
 #[tauri::command]
@@ -49,6 +50,7 @@ pub struct NouveauPatient {
     pub telephone: Option<String>,
     pub email: Option<String>,
     pub medecin_traitant: Option<String>,
+    pub nir: Option<String>,
 }
 
 #[tauri::command]

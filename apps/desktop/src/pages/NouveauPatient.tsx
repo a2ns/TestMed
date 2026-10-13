@@ -13,6 +13,7 @@ export default function NouveauPatient() {
     telephone: "",
     email: "",
     medecinTraitant: "",
+    nir: "",
   });
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
@@ -38,6 +39,7 @@ export default function NouveauPatient() {
         telephone: form.telephone || null,
         email: form.email || null,
         medecinTraitant: form.medecinTraitant || null,
+        nir: form.nir || null,
       });
       navigate(`/patients/${id}`);
     } catch (e) {
@@ -95,6 +97,17 @@ export default function NouveauPatient() {
           <div className="col-span-2">
             <label className="block text-sm text-slate-500 mb-1">Médecin traitant</label>
             <input {...champ("medecinTraitant")} className="w-full border border-slate-300 rounded-lg px-3 py-2" />
+          </div>
+          <div className="col-span-2">
+            <label className="block text-sm text-slate-500 mb-1">
+              N° de sécurité sociale (NIR) — stocké chiffré
+            </label>
+            <input
+              value={form.nir}
+              onChange={(e) => setForm({ ...form, nir: e.target.value.replace(/\D/g, "").slice(0, 15) })}
+              placeholder="1751212123456 78"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2"
+            />
           </div>
         </div>
         {erreur && <p className="text-sm text-red-600">Erreur : {erreur}</p>}

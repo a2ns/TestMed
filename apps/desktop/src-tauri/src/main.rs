@@ -3,6 +3,7 @@
 mod audit;
 mod auth;
 mod commands;
+mod crypto;
 mod db;
 mod ia;
 mod impression;

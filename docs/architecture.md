@@ -64,6 +64,14 @@ Prérequis postes : `sane-backends` (macOS : `brew install sane-backends`),
 - IHM : écran de connexion, garde d'accès (toutes les vues exigent une
   session), nom + rôle affichés en bas de la barre latérale.
 
+### Chiffrement du NIR (implémenté)
+- AES-256-GCM (AAD lié au domaine) : le NIR n'est **jamais stocké en clair**.
+- Empreinte déterministe (SHA-256 clé+donnée) : unicité et recherche sans
+  clair ; déchiffrement uniquement à l'ouverture de la fiche.
+- Clé maîtresse : `MAGICMED_CLE_MASTER` (base64, `openssl rand -base64 32`),
+  obligatoire en production ; clé éphémère de session en développement.
+- Rotation de clé : à documenter avant mise en production (re-chiffrement).
+
 ## 5. Sécurité / RGPD
 
 - Authentification par utilisateur (rôles : médecin, secrétaire, admin).
