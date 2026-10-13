@@ -40,7 +40,26 @@ et **assistant IA d'aide à la rédaction de courriers médicaux**.
 ```
 apps/desktop/        client Tauri (src-tauri Rust + IHM React)
 packages/db/         schéma Prisma + migrations (PostgreSQL)
-docs/               cahier des charges + architecture
+docs/               architecture, conformité, guide de déploiement
+```
+
+## Documentation
+
+- [Architecture](docs/architecture.md) — composants, flux, sécurité
+- [Exigences & conformité](docs/exigences-conformite.md) — couverture réglementaire
+- [Guide de déploiement](docs/deploiement.md) — installation poste par poste
+
+## Démarrage rapide (développement)
+
+```bash
+# Base de données
+docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=magicmed postgres:16
+cd packages/db && npm install && npx prisma db push
+
+# Client lourd
+cd apps/desktop
+npm install
+npm run tauri dev
 ```
 
 ## Modules fonctionnels
