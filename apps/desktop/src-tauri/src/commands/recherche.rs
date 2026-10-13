@@ -37,10 +37,10 @@ pub async fn recherche_documents(
 
     let pool = crate::db::pool().map_err(|e| e.to_string())?;
     let requete = format!(
-        "SELECT d.id, d.patient_id, p.nom as nom_patient, d.nom_fichier, d.type, \
+        "SELECT d.id, d.\"patientId\" as patient_id, p.nom as nom_patient, d.\"nomFichier\" as nom_fichier, d.type, \
          ts_headline('french', d.\"ocrTexte\", to_tsquery('french', $1), 'StartSel=[[, StopSel=]]') as extrait, \
-         d.created_at \
-         FROM document d LEFT JOIN patient p ON p.id = d.patient_id \
+         d.\"createdAt\" as created_at \
+         FROM document d LEFT JOIN patient p ON p.id = d.\"patientId\" \
          WHERE d.tsv @@ to_tsquery('french', $1) AND ($2::text IS NULL OR d.type = $2) \
          ORDER BY ts_rank(d.tsv, to_tsquery('french', $1)) DESC \
          LIMIT 50"
@@ -66,11 +66,11 @@ pub async fn recherche_documents(
 pub async fn list_documents(patient_id: Option<String>) -> Result<Vec<ResultatDocument>, String> {
     let pool = crate::db::pool().map_err(|e| e.to_string())?;
     let requete = format!(
-        "SELECT d.id, d.patient_id, p.nom as nom_patient, d.nom_fichier, d.type, \
-         NULL as extrait, d.created_at \
-         FROM document d LEFT JOIN patient p ON p.id = d.patient_id \
-         WHERE ($1::text IS NULL OR d.patient_id = $1) \
-         ORDER BY d.created_at DESC LIMIT 200"
+        "SELECT d.id, d.\"patientId\" as patient_id, p.nom as nom_patient, d.\"nomFichier\" as nom_fichier, d.type, \
+         NULL as extrait, d.\"createdAt\" as created_at \
+         FROM document d LEFT JOIN patient p ON p.id = d.\"patientId\" \
+         WHERE ($1::text IS NULL OR d.\"patientId\" = $1) \
+         ORDER BY d.\"createdAt\" DESC LIMIT 200"
     );
     sqlx::query_as::<_, ResultatDocument>(&requete)
         .bind(patient_id)
