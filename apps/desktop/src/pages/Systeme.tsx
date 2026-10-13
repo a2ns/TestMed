@@ -35,18 +35,21 @@ export default function Systeme() {
   const [ficheStatut, setFicheStatut] = useState<string | null>(null);
 
   useEffect(() => {
-    if (utilisateur?.role !== "ADMIN") return;
-    api.verifierFsv(token!).then(setEtatFsv).catch((e) => setErreur(String(e)));
-    api.verifierDmp(token!).then(setEtatDmp).catch((e) => setErreur(String(e)));
+    if (!estAdmin) return;
+    api.verifierFsv(token!).then(setEtatFsv).catch(() => undefined);
+    api.verifierDmp(token!).then(setEtatDmp).catch(() => undefined);
   }, [token, utilisateur]);
 
-  if (utilisateur?.role !== "ADMIN") {
+  if (utilisateur?.role !== "ADMIN" && utilisateur?.role !== "MEDECIN") {
     return (
       <div className="p-8">
-        <p className="text-red-600">Page réservée au rôle ADMIN.</p>
+        <p className="text-red-600">
+          Page réservée aux rôles MEDECIN et ADMIN.
+        </p>
       </div>
     );
   }
+  const estAdmin = utilisateur?.role === "ADMIN";
 
   async function sauvegarder() {
     setSauvegardeEnCours(true);
