@@ -13,7 +13,58 @@ export default function Courriers() {
   const [notes, setNotes] = useState("");
   const [contenu, setContenu] = useState("");
   const [chargement, setChargement] = useState(false);
+  const [impressionEnCours, setImpressionEnCours] = useState(false);
+  const [statut, setStatut] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
+
+  async function dossierGed() {
+    const p = await import("@tauri-apps/api/path");
+    return (await p.appDataDir()) + "ged";
+  }
+
+  async function imprimer() {
+    if (!contenu) return;
+    setImpressionEnCours(true);
+    setErreur(null);
+    setStatut(null);
+    try {
+      await api.imprimerCourrier(
+        {
+          praticien: "Dr Praticien", // TODO : praticien connecté
+          cabinet: "Cabinet médical — adresse",
+          patient: patientId,
+          destinataire: "Destinataire",
+          objet: gabarit,
+          corps: contenu,
+          signature: "Signature",
+        },
+        await dossierGed(),
+        true
+      );
+      setStatut("Courrier envoyé à l'imprimante (PDF archivé dans la GED)");
+    } catch (e) {
+      setErreur(String(e));
+    } finally {
+      setImpressionEnCours(false);
+    }
+  }
+
+  async function archiver() {
+    if (!contenu) return;
+    setErreur(null);
+    setStatut(null);
+    try {
+      const id = await api.importDocument({
+        patientId: patientId || null,
+        nomFichier: `courrier-${gabarit}.pdf`,
+        chemin: await dossierGed(),
+        typeDoc: "COURRIER",
+      });
+      setStatut(`Courrier archivé (${id.slice(0, 8)}…)`);
+    } catch (e) {
+      setErreur(String(e));
+    }
+  }
 
   async function generer() {
     if (!patientId || !notes) return;
@@ -92,18 +143,21 @@ export default function Courriers() {
           />
           <div className="flex gap-3 mt-3">
             <button
-              disabled={!contenu}
+              onClick={imprimer}
+              disabled={!contenu || impressionEnCours}
               className="bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-700 disabled:opacity-40"
             >
-              🖨️ Imprimer
+              {impressionEnCours ? "⏳ Impression…" : "🖨️ Imprimer"}
             </button>
             <button
+              onClick={archiver}
               disabled={!contenu}
               className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-100 disabled:opacity-40"
             >
               📁 Archiver dans la GED
             </button>
           </div>
+          {statut && <p className="text-sm text-emerald-600 mt-2">{statut}</p>}
         </div>
       </div>
       {erreur && <p className="mt-4 text-sm text-red-600">Erreur : {erreur}</p>}

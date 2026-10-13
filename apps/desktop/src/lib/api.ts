@@ -21,6 +21,16 @@ export type ScanResultat = {
   texteOcr: string;
 };
 
+export type CourrierImpression = {
+  praticien: string;
+  cabinet: string;
+  patient: string;
+  destinataire: string;
+  objet: string;
+  corps: string;
+  signature: string;
+};
+
 export const api = {
   listPatients: (recherche: string) =>
     invoke<Patient[]>("list_patients", { recherche }),
@@ -38,4 +48,6 @@ export const api = {
   listerScanners: () => invoke<Scanner[]>("lister_scanners"),
   scanMasse: (scanner: string, dossierGed: string, patientId: string | null, typeDoc: string) =>
     invoke<ScanResultat>("scan_masse", { scanner, dossierGed, patientId, typeDoc }),
+  imprimerCourrier: (courrier: CourrierImpression, dossierGed: string, archiverEgalement: boolean) =>
+    invoke<string>("imprimer_courrier", { courrier, dossierGed, archiverEgalement }),
 };

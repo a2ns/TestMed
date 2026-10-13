@@ -50,6 +50,12 @@ Prérequis postes : `sane-backends` (macOS : `brew install sane-backends`),
 2. FFI Rust vers sgpv.dll : lecture CPS, lecture carte Vitale, FSE/FSV.
 3. Pré-requis : poste Windows uniquement.
 
+### Impression des courriers (implémenté)
+1. `imprimer_courrier` : génère un PDF mis en page (en-tête praticien,
+   destinataire, objet, corps, signature) via `genpdf`.
+2. Impression système : `lpr`/CUPS (macOS), `ShellExecuteW` "print" (Windows).
+3. Archivage optionnel du PDF dans la GED.
+
 ## 5. Sécurité / RGPD
 
 - Authentification par utilisateur (rôles : médecin, secrétaire, admin).
