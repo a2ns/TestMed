@@ -112,8 +112,8 @@ pub async fn creer_patient(p: &crate::commands::patients::NouveauPatient) -> Res
         _ => (None, None),
     };
     sqlx::query(
-        "INSERT INTO \"Patient\" (id, nom, prenoms, \"dateNaissance\", sexe, adresse, telephone, email, \"medecinTraitant\", \"nirChiffre\", \"nirEmpreinte\") \
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+        "INSERT INTO \"Patient\" (id, nom, prenoms, \"dateNaissance\", sexe, adresse, telephone, email, \"medecinTraitant\", \"nirChiffre\", \"nirEmpreinte\", \"updatedAt\") \
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now())",
     )
     .bind(&id)
     .bind(&p.nom)
