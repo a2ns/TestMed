@@ -27,16 +27,15 @@ pub async fn scan_masse(
     }
     let texte_complet = crate::ocr::fusionner(&textes);
 
-    // 3. Assemblage PDF du lot + enregistrement en base avec indexation
-    //    plein texte (tsvector mis à jour côté PostgreSQL).
+    // 3. Rangement des pages dans la GED (id-1.png, id-2.png…) +
+    //    enregistrement en base avec indexation plein texte (tsvector).
     let id = uuid::Uuid::new_v4().to_string();
-    let chemin_pdf = crate::ocr::chemin_document(&dossier_ged, &id, "pdf");
-    crate::scan::assembler_pdf(&lot.pages, &chemin_pdf)?;
+    let chemin_ref = crate::scan::ranger_pages(&lot.pages, &dossier_ged, &id)?;
     crate::db::insert_document_ocr(
         &id,
         patient_id.as_deref(),
         &format!("Scan {} pages", lot.pages.len()),
-        &chemin_pdf,
+        &chemin_ref,
         &type_doc,
         &texte_complet,
     )

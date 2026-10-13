@@ -26,16 +26,6 @@ pub trait BackendScan {
     fn scanner_masse(&self, scanner: &str, dossier: &str) -> Result<LotScan, String>;
 }
 
-/// Assemble les pages scannées en un PDF unique (crate `img2pdf`).
-pub fn assembler_pdf(pages: &[PageScannee], chemin_pdf: &str) -> Result<(), String> {
-    let chemins: Vec<&str> = pages.iter().map(|p| p.chemin.as_str()).collect();
-    img2pdf::convert_images(
-        chemins.iter().map(|c| c.as_ref()).collect(),
-        std::fs::File::create(chemin_pdf).map_err(|e| e.to_string())?,
-    )
-    .map_err(|e| e.to_string())
-}
-
 /// Sélectionne le backend selon la plateforme.
 pub fn backend() -> Box<dyn BackendScan> {
     #[cfg(target_os = "windows")]
@@ -46,4 +36,21 @@ pub fn backend() -> Box<dyn BackendScan> {
     {
         Box::new(sane::BackendSane::new())
     }
+}
+
+/// Range les pages scannées dans le dossier GED sous un préfixe unique
+/// (id-1.png, id-2.png…) et retourne le chemin de la première page,
+/// utilisée comme référence du document.
+pub fn ranger_pages(pages: &[PageScannee], dossier_ged: &str, id: &str) -> Result<String, String> {
+    use std::path::Path;
+    std::fs::create_dir_all(dossier_ged).map_err(|e| e.to_string())?;
+    let mut premier: Option<String> = None;
+    for (i, page) in pages.iter().enumerate() {
+        let destination = Path::new(dossier_ged).join(format!("{id}-{}.png", i + 1));
+        std::fs::copy(&page.chemin, &destination).map_err(|e| e.to_string())?;
+        if premier.is_none() {
+            premier = Some(destination.to_string_lossy().to_string());
+        }
+    }
+    premier.ok_or_else(|| "aucune page à ranger".into())
 }
