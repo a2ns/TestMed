@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize)]
 pub struct CourrierRequest {
     pub patient_id: String,
@@ -7,6 +8,7 @@ pub struct CourrierRequest {
     pub notes: String,
 }
 
+#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize)]
 pub struct CourrierGenere {
     pub contenu: String,

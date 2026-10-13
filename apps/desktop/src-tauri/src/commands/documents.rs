@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize)]
 pub struct DocumentImport {
     pub patient_id: Option<String>,

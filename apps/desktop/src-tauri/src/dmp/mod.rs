@@ -11,6 +11,7 @@
 
 use serde::{Deserialize, Serialize};
 
+#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize)]
 pub struct DepotDmp {
     pub patient_id: String,
@@ -20,6 +21,7 @@ pub struct DepotDmp {
     pub chemin_pdf: String,
 }
 
+#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize)]
 pub struct EtatDmp {
     pub configure: bool,

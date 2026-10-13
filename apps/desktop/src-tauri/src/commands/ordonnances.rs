@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
+#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize, FromRow)]
 pub struct PrescriptionLigne {
     pub id: String,
@@ -15,6 +16,7 @@ pub struct PrescriptionLigne {
     pub position: i32,
 }
 
+#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize, FromRow)]
 pub struct Ordonnance {
     pub id: String,
@@ -24,6 +26,7 @@ pub struct Ordonnance {
     pub date: chrono::DateTime<chrono::Utc>,
 }
 
+#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize)]
 pub struct NouvelleOrdonnance {
     pub patient_id: String,
@@ -32,6 +35,7 @@ pub struct NouvelleOrdonnance {
     pub lignes: Vec<NouvellePrescription>,
 }
 
+#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize)]
 pub struct NouvellePrescription {
     pub zone: String,             // A | B

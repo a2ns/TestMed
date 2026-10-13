@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
+#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize, FromRow)]
 pub struct RendezVous {
     pub id: String,
@@ -13,6 +14,7 @@ pub struct RendezVous {
     pub motif: Option<String>,
 }
 
+#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize)]
 pub struct NouveauRendezVous {
     pub patient_id: String,

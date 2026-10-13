@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
+#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize)]
 pub struct ResultatSauvegarde {
     pub chemin: String,
@@ -10,6 +11,7 @@ pub struct ResultatSauvegarde {
     pub tables: usize,
 }
 
+#[serde(rename_all = "camelCase")]
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ConfigSauvegarde {
     pub dossier: String,
