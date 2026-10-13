@@ -404,9 +404,9 @@ pub async fn modifier_rdv(
     let pool = pool()?;
     // Conflit vérifié en excluant le RDV lui-même.
     let conflit: Option<(String,)> = sqlx::query_as(
-        "SELECT id FROM \"RendezVous\" \\
-         WHERE id <> $4 AND debut::date = $1::date AND statut <> 'ANNULE' \\
-         AND ($2::timestamptz, $2::timestamptz + make_interval(mins => $3)) \\
+        "SELECT id FROM \"RendezVous\" \
+         WHERE id <> $4 AND debut::date = $1::date AND statut <> 'ANNULE' \
+         AND ($2::timestamptz, $2::timestamptz + make_interval(mins => $3)) \
          OVERLAPS (debut, debut + make_interval(mins => \"dureeMin\"))",
     )
     .bind(debut)
