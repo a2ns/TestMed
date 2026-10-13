@@ -132,6 +132,7 @@ model Document {
   ocrTexte       String?
   tsv            Unsupported("tsvector")?
   scanOrigine    String?
+  aTrier         Boolean @default(false) // caddie : en attente de rattachement patient
   nbPages        Int                      @default(1)
   version        Int                      @default(1)
   motsCles       String[]

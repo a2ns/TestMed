@@ -37,6 +37,21 @@ export default function Ged() {
   const [resultats, setResultats] = useState<ResultatDocument[]>([]);
   const [rechercheEnCours, setRechercheEnCours] = useState(false);
 
+  // Caddie des documents à trier
+  const [caddie, setCaddie] = useState<ResultatDocument[]>([]);
+
+  function rafraichirCaddie() {
+    api
+      .listDocumentsATrier(token!)
+      .then(setCaddie)
+      .catch(() => undefined);
+  }
+
+  useEffect(() => {
+    rafraichirCaddie();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // La détection des scanners (scanimage) peut être lente : elle ne se
   // lance qu'à la demande, au clic sur le sélecteur, jamais au chargement.
   const [scanDetection, setScanDetection] = useState<
@@ -79,13 +94,20 @@ export default function Ged() {
         d.open({ multiple: false })
       );
       if (!chemin) return;
-      const id = await api.importDocument({
-        patientId: patientId || null,
-        nomFichier: fichier.name,
-        chemin: String(chemin),
+      // Import intelligent : OCR + détection du patient ; caddie si inconnu.
+      const res = await api.importerIntelligent(
+        String(chemin),
+        fichier.name,
         typeDoc,
-      });
-      setStatut(`Document importé (${id.slice(0, 8)}…)`);
+        patientId || null,
+        token!
+      );
+      setStatut(
+        res.aTrier
+          ? `Document placé dans le caddie (patient non identifié par OCR)`
+          : `Document importé et rattaché au patient automatiquement`
+      );
+      rafraichirCaddie();
     } catch (err) {
       setErreur(String(err));
     }
@@ -114,6 +136,23 @@ export default function Ged() {
   return (
     <div className="p-8 max-w-6xl">
       <h1 className="text-2xl font-bold mb-6">GED — MagicGed</h1>
+
+      {/* Caddie : documents en attente de rattachement patient */}
+      {caddie.length > 0 && (
+        <div className="bg-amber-50 rounded-xl border border-amber-300 p-6 mb-6 space-y-4">
+          <h2 className="font-semibold text-amber-800">
+            📥 {caddie.length} document{caddie.length > 1 ? "s" : ""} à trier
+          </h2>
+          {caddie.map((doc) => (
+            <LigneCaddie
+              key={doc.id}
+              doc={doc}
+              token={token!}
+              onClasse={() => rafraichirCaddie()}
+            />
+          ))}
+        </div>
+      )}
 
       <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-4">
         <h2 className="font-semibold">Recherche plein texte</h2>
@@ -255,6 +294,82 @@ export default function Ged() {
         {statut && <p className="text-sm text-emerald-600">{statut}</p>}
         {erreur && <p className="text-sm text-red-600">Erreur : {erreur}</p>}
       </div>
+    </div>
+  );
+}
+
+function LigneCaddie({
+  doc,
+  token,
+  onClasse,
+}: {
+  doc: ResultatDocument;
+  token: string;
+  onClasse: () => void;
+}) {
+  const [patientId, setPatientId] = useState("");
+  const [patientNom, setPatientNom] = useState("");
+  const [typeChoisi, setTypeChoisi] = useState("AUTRE");
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [enCours, setEnCours] = useState(false);
+
+  async function classer() {
+    if (!patientId) return;
+    setEnCours(true);
+    setErreur(null);
+    try {
+      await api.classerDocument(doc.id, patientId, typeChoisi, token);
+      onClasse();
+    } catch (e) {
+      setErreur(String(e));
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-lg border border-amber-200 p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="font-medium text-sm">{doc.nomFichier}</span>
+        <span className="text-xs text-slate-400">
+          {new Date(doc.createdAt).toLocaleString("fr-FR")}
+        </span>
+      </div>
+      {doc.extrait && (
+        <p className="text-xs text-slate-500 line-clamp-2">{doc.extrait}</p>
+      )}
+      <div className="flex flex-wrap gap-3 items-end">
+        <div className="flex-1 min-w-56">
+          <PatientPicker
+            label="Rattacher à"
+            patientId={patientId}
+            patientNom={patientNom}
+            onSelect={(id, nom) => {
+              setPatientId(id);
+              setPatientNom(nom);
+            }}
+          />
+        </div>
+        <select
+          value={typeChoisi}
+          onChange={(e) => setTypeChoisi(e.target.value)}
+          className="border border-slate-300 rounded-lg px-3 py-2 bg-white text-sm"
+        >
+          {TYPES.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </select>
+        <button
+          onClick={classer}
+          disabled={!patientId || enCours}
+          className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 disabled:opacity-40 text-sm"
+        >
+          ✅ Classer
+        </button>
+      </div>
+      {erreur && <p className="text-xs text-red-600">{erreur}</p>}
     </div>
   );
 }

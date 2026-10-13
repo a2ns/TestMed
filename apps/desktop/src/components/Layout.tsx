@@ -1,22 +1,41 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
+import { api } from "../lib/api";
+import { useEffect, useState } from "react";
+
+const MENU = [
+  { to: "/", label: "Tableau de bord", icone: "📊", end: true },
+  { to: "/agenda", label: "Agenda", icone: "📅", end: false },
+  { to: "/patients", label: "Patients", icone: "👤", end: false },
+  { to: "/ged", label: "GED", icone: "🗂️", end: false, badge: true },
+  { to: "/courriers", label: "Courriers", icone: "✉️", end: false },
+];
 
 const MENU_ADMIN = [
   { to: "/journal", label: "Journal d'audit", icone: "🛡️", end: false },
   { to: "/systeme", label: "Système", icone: "⚙️", end: false },
 ];
 
-const MENU = [
-  { to: "/", label: "Tableau de bord", icone: "📊", end: true },
-  { to: "/agenda", label: "Agenda", icone: "📅", end: false },
-  { to: "/patients", label: "Patients", icone: "👤", end: false },
-  { to: "/ged", label: "GED", icone: "🗂️", end: false },
-  { to: "/courriers", label: "Courriers", icone: "✉️", end: false },
-];
-
 export default function Layout() {
-  const { utilisateur, deconnexion } = useAuth();
+  const { utilisateur, token, deconnexion } = useAuth();
   const navigate = useNavigate();
+  const [aTrier, setATrier] = useState(0);
+
+  useEffect(() => {
+    if (!token) return;
+    let actif = true;
+    const rafraichir = () =>
+      api
+        .compterATrier(token)
+        .then((n) => actif && setATrier(n))
+        .catch(() => undefined);
+    rafraichir();
+    const timer = setInterval(rafraichir, 15000);
+    return () => {
+      actif = false;
+      clearInterval(timer);
+    };
+  }, [token]);
 
   return (
     <div className="flex h-screen">
@@ -38,7 +57,13 @@ export default function Layout() {
                 }`
               }
             >
-              <span>{m.icone}</span> {m.label}
+              <span>{m.icone}</span>
+              <span className="flex-1">{m.label}</span>
+              {m.badge && aTrier > 0 && (
+                <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-5 text-center">
+                  {aTrier}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>

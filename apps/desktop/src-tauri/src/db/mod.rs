@@ -430,6 +430,109 @@ pub async fn modifier_rdv(
     Ok(())
 }
 
+
+/// Détecte le patient destinataire d'un document à partir de son texte OCR :
+/// cherche un patient dont nom ET prénom apparaissent dans le texte.
+/// Retourne (patient_id, confiance) ; (None, 0.0) si aucun ne correspond.
+pub async fn detecter_patient(texte_ocr: &str) -> Result<(Option<String>, f64), String> {
+    let pool = pool().map_err(|e| e.to_string())?;
+    let texte = texte_ocr.to_lowercase();
+    // Candidats : tous les patients (cabinet < 10k : charge acceptable).
+    let patients: Vec<(String, String, String)> = sqlx::query_as(
+        "SELECT id, nom, prenoms FROM \"Patient\"",
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    for (id, nom, prenoms) in patients {
+        let nom_l = nom.to_lowercase();
+        let prenoms_l = prenoms.to_lowercase();
+        if texte.contains(&nom_l) && !prenoms_l.is_empty() && texte.contains(&prenoms_l) {
+            return Ok((Some(id), 0.9));
+        }
+    }
+    Ok((None, 0.0))
+}
+
+/// Insertion avec indexation plein texte + flag caddie.
+pub async fn insert_document_ocr_intelligent(
+    id: &str,
+    patient_id: Option<&str>,
+    nom_fichier: &str,
+    chemin: &str,
+    type_doc: &str,
+    ocr_texte: &str,
+    a_trier: bool,
+) -> Result<(), String> {
+    let pool = pool().map_err(|e| e.to_string())?;
+    sqlx::query(
+        "INSERT INTO \"Document\" (id, \"patientId\", \"nomFichier\", \"cheminStockage\", type, \"ocrTexte\", tsv, \"aTrier\") \
+         VALUES ($1, $2, $3, $4, $5::\"DocType\", $6, to_tsvector('french', $6), $7)",
+    )
+    .bind(id)
+    .bind(patient_id)
+    .bind(nom_fichier)
+    .bind(chemin)
+    .bind(type_doc)
+    .bind(ocr_texte)
+    .bind(a_trier)
+    .execute(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Documents en attente de classement (caddie).
+pub async fn list_documents_a_trier() -> Result<Vec<crate::commands::recherche::ResultatDocument>, sqlx::Error> {
+    let pool = pool()?;
+    sqlx::query_as::<_, crate::commands::recherche::ResultatDocument>(
+        "SELECT d.id, d.\"patientId\" as patient_id, p.nom as nom_patient, d.\"nomFichier\" as nom_fichier, d.type::text as type, \
+         LEFT(d.\"ocrTexte\", 200) as extrait, d.\"createdAt\" as created_at \
+         FROM \"Document\" d LEFT JOIN \"Patient\" p ON p.id = d.\"patientId\" \
+         WHERE d.\"aTrier\" = true ORDER BY d.\"createdAt\" DESC LIMIT 100",
+    )
+    .fetch_all(pool)
+    .await
+}
+
+/// Nombre de documents à trier (puce de notification).
+pub async fn compter_a_trier() -> Result<i64, sqlx::Error> {
+    let pool = pool()?;
+    let (n,) = sqlx::query_as::<_, (i64,)>(
+        "SELECT COUNT(*) FROM \"Document\" WHERE \"aTrier\" = true",
+    )
+    .fetch_one(pool)
+    .await?;
+    Ok(n)
+}
+
+/// Classe un document : rattachement patient (+ type) et sortie du caddie.
+pub async fn classer_document(document_id: &str, patient_id: &str, type_doc: Option<&str>) -> Result<(), sqlx::Error> {
+    let pool = pool()?;
+    match type_doc {
+        Some(t) => {
+            sqlx::query(
+                "UPDATE \"Document\" SET \"patientId\" = $2, type = $3::\"DocType\", \"aTrier\" = false WHERE id = $1",
+            )
+            .bind(document_id)
+            .bind(patient_id)
+            .bind(t)
+            .execute(pool)
+            .await?;
+        }
+        None => {
+            sqlx::query(
+                "UPDATE \"Document\" SET \"patientId\" = $2, \"aTrier\" = false WHERE id = $1",
+            )
+            .bind(document_id)
+            .bind(patient_id)
+            .execute(pool)
+            .await?;
+        }
+    }
+    Ok(())
+}
+
 pub async fn query_patients(recherche: &str) -> Result<Vec<crate::commands::patients::Patient>, String> {
     let pool = pool().map_err(|e| e.to_string())?;
     let rows = sqlx::query_as::<_, crate::commands::patients::Patient>(

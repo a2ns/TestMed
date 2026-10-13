@@ -123,6 +123,13 @@ export type RendezVous = {
   motif: string | null;
 };
 
+export type ImportIntelligentResultat = {
+  idDocument: string;
+  patientId: string | null;
+  aTrier: boolean;
+  texteOcr: string;
+};
+
 export type ResultatDocument = {
   id: string;
   patientId: string | null;
@@ -218,6 +225,13 @@ export const api = {
     invoke<ResultatDocument[]>("recherche_documents", { recherche, typeDoc, token }),
   listDocuments: (patientId: string | null) =>
     invoke<ResultatDocument[]>("list_documents", { patientId }),
+  importerIntelligent: (chemin: string, nomFichier: string, typeDoc: string, patientIndice: string | null, token: string) =>
+    invoke<ImportIntelligentResultat>("importer_document_intelligent", { chemin, nomFichier, typeDoc, patientIndice, token }),
+  listDocumentsATrier: (token: string) =>
+    invoke<ResultatDocument[]>("list_documents_a_trier", { token }),
+  compterATrier: (token: string) => invoke<number>("compter_a_trier", { token }),
+  classerDocument: (documentId: string, patientId: string, typeDoc: string | null, token: string) =>
+    invoke<void>("classer_document", { documentId, patientId, typeDoc, token }),
   importDocument: (doc: {
     patientId: string | null;
     nomFichier: string;

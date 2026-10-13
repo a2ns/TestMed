@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { api, Antecedent, Allergie, Consultation, Traitement } from "../lib/api";
+import { api, Antecedent, Allergie, Consultation, Traitement, ResultatDocument } from "../lib/api";
 import { useAuth } from "../lib/auth";
 
-type Onglet = "consultations" | "antecedents" | "traitements" | "allergies";
+type Onglet = "consultations" | "antecedents" | "traitements" | "allergies" | "documents";
 
 const CATEGORIES = ["MEDICAL", "CHIRURGICAL", "FAMILIAL", "OBSTETRIQUE", "TOXIQUE"];
 const GRAVITES = ["SEVERE", "MODEREE", "FAIBLE"];
@@ -80,7 +80,7 @@ export default function FichePatient() {
       {erreur && <p className="text-sm text-red-600 mb-4">Erreur : {erreur}</p>}
 
       <div className="flex gap-2 mb-6 border-b border-slate-200">
-        {(["consultations", "antecedents", "traitements", "allergies"] as Onglet[]).map((o) => (
+        {(["consultations", "antecedents", "traitements", "allergies", "documents"] as Onglet[]).map((o) => (
           <button
             key={o}
             onClick={() => setOnglet(o)}
@@ -113,6 +113,7 @@ export default function FichePatient() {
       {onglet === "allergies" && (
         <SectionAllergies allergies={allergies} ajouter={ajouterAllergie} />
       )}
+      {onglet === "documents" && id && <SectionDocuments patientId={id} />}
     </div>
   );
 }
@@ -368,6 +369,47 @@ function SectionAllergies({
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function SectionDocuments({ patientId }: { patientId: string }) {
+  const [docs, setDocs] = useState<ResultatDocument[]>([]);
+  const [erreur, setErreur] = useState<string | null>(null);
+
+  useEffect(() => {
+    api
+      .listDocuments(patientId)
+      .then(setDocs)
+      .catch((e) => setErreur(String(e)));
+  }, [patientId]);
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-slate-500">
+        Documents de la GED rattachés à ce patient (imports, scans, courriers
+        archivés). L'import se fait depuis la page GED.
+      </p>
+      {erreur && <p className="text-sm text-red-600">Erreur : {erreur}</p>}
+      {docs.length === 0 && !erreur && (
+        <p className="text-sm text-slate-400">Aucun document pour ce patient.</p>
+      )}
+      {docs.map((d) => (
+        <div
+          key={d.id}
+          className="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between"
+        >
+          <div>
+            <div className="font-medium">{d.nomFichier}</div>
+            <div className="text-xs text-slate-400 mt-1">
+              {new Date(d.createdAt).toLocaleString("fr-FR")}
+            </div>
+          </div>
+          <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">
+            {d.type}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
