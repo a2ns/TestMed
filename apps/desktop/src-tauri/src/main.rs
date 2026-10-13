@@ -14,6 +14,8 @@ mod ocr;
 mod scan;
 
 fn main() {
+    // Charge le .env du projet (remonte les dossiers parents jusqu'à la racine).
+    let _ = dotenvy::dotenv();
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|_app| {
