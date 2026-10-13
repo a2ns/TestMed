@@ -31,51 +31,51 @@ enum DocType {
 }
 
 model Praticien {
-  id        String   @id @default(uuid())
-  identifiant String? @unique
-  motDePasse String?
-  nom       String
-  prenoms   String
-  rpps      String?   @unique
-  adeli     String?
-  specialite String?
-  roles     Role[]
-  cabinetNom String?
+  id             String   @id @default(uuid())
+  identifiant    String?  @unique
+  motDePasse     String?
+  nom            String
+  prenoms        String
+  rpps           String?  @unique
+  adeli          String?
+  specialite     String?
+  roles          Role[]
+  cabinetNom     String?
   cabinetAdresse String?
-  actif     Boolean  @default(true)
-  createdAt DateTime @default(now())
+  actif          Boolean  @default(true)
+  createdAt      DateTime @default(now())
 }
 
 model Patient {
-  id         String   @id @default(uuid())
-  nom        String
-  prenoms    String
-  dateNaissance DateTime?
-  nirChiffre String?
-  nirEmpreinte String? @unique
-  sexe       String?
-  adresse    String?
-  telephone  String?
-  email      String?
-  carteVitale Json?
+  id              String         @id @default(uuid())
+  nom             String
+  prenoms         String
+  dateNaissance   DateTime?
+  nirChiffre      String?
+  nirEmpreinte    String?        @unique
+  sexe            String?
+  adresse         String?
+  telephone       String?
+  email           String?
+  carteVitale     Json?
   medecinTraitant String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  documents  Document[]
-  courriers  Courrier[]
-  consultations Consultation[]
-  antecedents Antecedent[]
-  traitements Traitement[]
-  allergies   Allergie[]
-  ordonnances Ordonnance[]
-  rendezVous RendezVous[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  documents       Document[]
+  courriers       Courrier[]
+  consultations   Consultation[]
+  antecedents     Antecedent[]
+  traitements     Traitement[]
+  allergies       Allergie[]
+  ordonnances     Ordonnance[]
+  rendezVous      RendezVous[]
 }
 
 model Antecedent {
   id        String   @id @default(uuid())
   patientId String
   patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  categorie String   // MEDICAL | CHIRURGICAL | FAMILIAL | OBSTETRIQUE | TOXIQUE
+  categorie String // MEDICAL | CHIRURGICAL | FAMILIAL | OBSTETRIQUE | TOXIQUE
   libelle   String
   annee     Int?
   notes     String?
@@ -85,15 +85,15 @@ model Antecedent {
 }
 
 model Traitement {
-  id        String   @id @default(uuid())
-  patientId String
-  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  id         String    @id @default(uuid())
+  patientId  String
+  patient    Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
   medicament String
-  posologie String
-  duree     String?
-  actif     Boolean  @default(true)
-  dateDebut DateTime @default(now())
-  dateFin   DateTime?
+  posologie  String
+  duree      String?
+  actif      Boolean   @default(true)
+  dateDebut  DateTime  @default(now())
+  dateFin    DateTime?
 
   @@index([patientId])
 }
@@ -103,7 +103,7 @@ model Allergie {
   patientId String
   patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
   substance String
-  gravite  String   // FAIBLE | MODEREE | SEVERE
+  gravite   String // FAIBLE | MODEREE | SEVERE
   reactions String?
   createdAt DateTime @default(now())
 
@@ -111,100 +111,101 @@ model Allergie {
 }
 
 model Consultation {
-  id        String   @id @default(uuid())
-  patientId String
-  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  id          String   @id @default(uuid())
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
   praticienId String?
-  motif     String?
-  notes     String?
-  date      DateTime @default(now())
+  motif       String?
+  notes       String?
+  date        DateTime @default(now())
 
   @@index([patientId, date])
 }
 
 model Document {
-  id        String   @id @default(uuid())
-  patientId String?
-  patient   Patient? @relation(fields: [patientId], references: [id], onDelete: SetNull)
-  nomFichier String
+  id             String                   @id @default(uuid())
+  patientId      String?
+  patient        Patient?                 @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  nomFichier     String
   cheminStockage String
-  type      DocType @default(AUTRE)
-  ocrTexte  String?
-  tsv       Unsupported("tsvector")?
-  scanOrigine String?
-  nbPages   Int      @default(1)
-  version   Int      @default(1)
-  motsCles  String[]
-  createdAt DateTime @default(now())
-  createdBy String?
+  type           DocType                  @default(AUTRE)
+  ocrTexte       String?
+  tsv            Unsupported("tsvector")?
+  scanOrigine    String?
+  nbPages        Int                      @default(1)
+  version        Int                      @default(1)
+  motsCles       String[]
+  createdAt      DateTime                 @default(now())
+  createdBy      String?
 
   @@index([patientId])
   @@index([type])
 }
 
 model GabaritCourrier {
-  id       String @id @default(uuid())
-  code     String @unique
-  libelle  String
-  contenu  String
-  type     DocType @default(COURRIER)
+  id        String     @id @default(uuid())
+  code      String     @unique
+  libelle   String
+  contenu   String
+  type      DocType    @default(COURRIER)
+  courriers Courrier[]
 }
 
 model Courrier {
-  id         String   @id @default(uuid())
-  patientId  String
-  patient    Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  gabaritId  String?
-  gabarit    GabaritCourrier? @relation(fields: [gabaritId], references: [id])
-  sujet      String?
-  contenu    String
-  aiGenere   Boolean  @default(false)
-  statut     String   @default("BROUILLON") // BROUILLON | VALIDE | IMPRIME
-  date       DateTime @default(now())
-  validePar  String?
+  id        String           @id @default(uuid())
+  patientId String
+  patient   Patient          @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  gabaritId String?
+  gabarit   GabaritCourrier? @relation(fields: [gabaritId], references: [id])
+  sujet     String?
+  contenu   String
+  aiGenere  Boolean          @default(false)
+  statut    String           @default("BROUILLON") // BROUILLON | VALIDE | IMPRIME
+  date      DateTime         @default(now())
+  validePar String?
 
   @@index([patientId, date])
 }
 
 model Ordonnance {
-  id        String   @id @default(uuid())
-  patientId String
-  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  praticienId String?
-  type      OrdoType @default(SIMPLE)
-  securisee Boolean  @default(false)
-  date      DateTime @default(now())
+  id            String         @id @default(uuid())
+  patientId     String
+  patient       Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  praticienId   String?
+  type          OrdoType       @default(SIMPLE)
+  securisee     Boolean        @default(false)
+  date          DateTime       @default(now())
   prescriptions Prescription[]
 
   @@index([patientId, date])
 }
 
 model Prescription {
-  id           String  @id @default(uuid())
-  ordonnanceId String
-  ordonnance   Ordonnance @relation(fields: [ordonnanceId], references: [id], onDelete: Cascade)
-  zone        String  @default("A") // A | B (bi-ordonnance)
-  medicament   String
-  cip          String?
-  posologie    String
-  duree        String?
-  dureeJours   Int?
-  substitution Boolean @default(false)
-  renouvellements Int  @default(0)
-  position     Int    @default(0)
+  id              String     @id @default(uuid())
+  ordonnanceId    String
+  ordonnance      Ordonnance @relation(fields: [ordonnanceId], references: [id], onDelete: Cascade)
+  zone            String     @default("A") // A | B (bi-ordonnance)
+  medicament      String
+  cip             String?
+  posologie       String
+  duree           String?
+  dureeJours      Int?
+  substitution    Boolean    @default(false)
+  renouvellements Int        @default(0)
+  position        Int        @default(0)
 }
 
 model RendezVous {
-  id        String   @id @default(uuid())
-  patientId String
-  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  id          String   @id @default(uuid())
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
   praticienId String?
-  debut     DateTime
-  dureeMin  Int      @default(20)
-  statut    String   @default("PLANIFIE") // PLANIFIE | ARRIVE | HONORE | ANNULE
-  motif     String?
-  notes     String?
-  createdAt DateTime @default(now())
+  debut       DateTime
+  dureeMin    Int      @default(20)
+  statut      String   @default("PLANIFIE") // PLANIFIE | ARRIVE | HONORE | ANNULE
+  motif       String?
+  notes       String?
+  createdAt   DateTime @default(now())
 
   @@index([debut])
   @@index([patientId])
