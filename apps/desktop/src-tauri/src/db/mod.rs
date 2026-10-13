@@ -44,6 +44,31 @@ pub async fn insert_document(doc: &crate::commands::documents::DocumentImport) -
     Ok(id)
 }
 
+pub async fn insert_document_ocr(
+    id: &str,
+    patient_id: Option<&str>,
+    nom_fichier: &str,
+    chemin: &str,
+    type_doc: &str,
+    ocr_texte: &str,
+) -> Result<(), String> {
+    let pool = pool()?;
+    sqlx::query(
+        "INSERT INTO document (id, patient_id, nom_fichier, chemin_stockage, type, \"ocrTexte\", tsv) \
+         VALUES ($1, $2, $3, $4, $5, $6, to_tsvector('french', $6))",
+    )
+    .bind(id)
+    .bind(patient_id)
+    .bind(nom_fichier)
+    .bind(chemin)
+    .bind(type_doc)
+    .bind(ocr_texte)
+    .execute(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 pub async fn generer_courrier(req: &crate::commands::courriers::CourrierRequest) -> Result<crate::commands::courriers::CourrierGenere, String> {
     // Le contexte patient est chargé depuis la base, puis le module IA
     // (Mistral API ou Ollama local) génère le brouillon de courrier.

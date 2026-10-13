@@ -17,6 +17,7 @@ uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 thiserror = "1"
 reqwest = { version = "0.12", features = ["json"] }
+img2pdf = "0.6"
 
 [features]
 default = []

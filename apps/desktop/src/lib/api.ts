@@ -13,6 +13,14 @@ function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   );
 }
 
+export type Scanner = string;
+
+export type ScanResultat = {
+  idDocument: string;
+  nbPages: number;
+  texteOcr: string;
+};
+
 export const api = {
   listPatients: (recherche: string) =>
     invoke<Patient[]>("list_patients", { recherche }),
@@ -27,4 +35,7 @@ export const api = {
     gabarit: string;
     notes: string;
   }) => invoke<CourrierGenere>("generer_courrier_ia", { req }),
+  listerScanners: () => invoke<Scanner[]>("lister_scanners"),
+  scanMasse: (scanner: string, dossierGed: string, patientId: string | null, typeDoc: string) =>
+    invoke<ScanResultat>("scan_masse", { scanner, dossierGed, patientId, typeDoc }),
 };

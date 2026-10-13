@@ -3,6 +3,8 @@
 mod commands;
 mod db;
 mod ia;
+mod ocr;
+mod scan;
 
 fn main() {
     tauri::Builder::default()
@@ -16,6 +18,8 @@ fn main() {
             commands::patients::list_patients,
             commands::documents::import_document,
             commands::courriers::generer_courrier_ia,
+            commands::scan::lister_scanners,
+            commands::scan::scan_masse,
         ])
         .run(tauri::generate_context!())
         .expect("erreur au lancement de MagicMed");

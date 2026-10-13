@@ -29,11 +29,15 @@ consultation.
 
 ## 4. Flux clés
 
-### Scan de masse → GED
-1. Le scanner alimente en lot (ADF) via TWAIN/SANE.
-2. OCR Tesseract sur chaque page → texte extrait.
-3. Détection automatique : QR code patient / nom détecté par OCR → rattachement.
-4. Classement manuel éventuel, indexation `tsvector`.
+### Scan de masse → GED (implémenté)
+1. `scan_masse` (core Rust) : scan ADF via SANE (`scanimage --batch`) ou TWAIN (Windows).
+2. OCR Tesseract local (pack `fra`) sur chaque page + confiance moyenne.
+3. Assemblage PDF unique (`img2pdf`) stocké dans le dossier GED.
+4. Insertion en base avec `to_tsvector('french', …)` → recherche plein texte.
+5. Nettoyage du dossier temporaire.
+
+Prérequis postes : `sane-backends` (macOS : `brew install sane-backends`),
+`tesseract-ocr` + pack `fra`. TWAIN Windows : FFI SDK constructeur (phase pilote).
 
 ### Rédaction assistée d'un courrier
 1. Le praticien sélectionne le patient + gabarit (adressage, compte rendu…).

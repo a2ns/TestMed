@@ -76,6 +76,7 @@ model Document {
   type      DocType @default(AUTRE)
   ocrTexte  String?
   tsv       Unsupported("tsvector")?
+  scanOrigine String?
   nbPages   Int      @default(1)
   version   Int      @default(1)
   motsCles  String[]
