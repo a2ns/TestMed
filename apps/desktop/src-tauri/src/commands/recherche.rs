@@ -42,7 +42,7 @@ pub async fn recherche_documents(
          ts_headline('french', d.\"ocrTexte\", to_tsquery('french', $1), 'StartSel=[[, StopSel=]]') as extrait, \
          d.\"createdAt\" as created_at \
          FROM \"Document\" d LEFT JOIN \"Patient\" p ON p.id = d.\"patientId\" \
-         WHERE d.tsv @@ to_tsquery('french', $1) AND ($2::text IS NULL OR d.type = $2::"DocType") \
+         WHERE d.tsv @@ to_tsquery('french', $1) AND ($2::text IS NULL OR d.type = $2::\"DocType\") \
          ORDER BY ts_rank(d.tsv, to_tsquery('french', $1)) DESC \
          LIMIT 50"
     );

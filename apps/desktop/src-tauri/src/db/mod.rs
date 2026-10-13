@@ -220,7 +220,7 @@ pub async fn creer_ordonnance(o: &crate::commands::ordonnances::NouvelleOrdonnan
     let id = uuid::Uuid::new_v4().to_string();
     let mut tx = pool.begin().await?;
     sqlx::query(
-        "INSERT INTO \"Ordonnance\" (id, \"patientId\", type, securisee, date) VALUES ($1, $2, $3::"OrdoType", $4, now())",
+        "INSERT INTO \"Ordonnance\" (id, \"patientId\", type, securisee, date) VALUES ($1, $2, $3::\"OrdoType\", $4, now())",
     )
     .bind(&id)
     .bind(&o.patient_id)
@@ -404,7 +404,7 @@ pub async fn insert_document_ocr(
     let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query(
         "INSERT INTO \"Document\" (id, \"patientId\", \"nomFichier\", \"cheminStockage\", type, \"ocrTexte\", tsv) \
-         VALUES ($1, $2, $3, $4, $5::"DocType", $6, to_tsvector('french', $6))",
+         VALUES ($1, $2, $3, $4, $5::\"DocType\", $6, to_tsvector('french', $6))",
     )
     .bind(id)
     .bind(patient_id)
