@@ -13,8 +13,8 @@ pub async fn init(database_url: &str) -> Result<(), sqlx::Error> {
     Ok(())
 }
 
-pub fn pool() -> Result<&'static PgPool, String> {
-    POOL.get().ok_or_else(|| "base non initialisée".to_string())
+pub fn pool() -> Result<&'static PgPool, sqlx::Error> {
+    POOL.get().ok_or_else(|| sqlx::Error::Configuration("base non initialisée".into()))
 }
 
 pub async fn hash_mot_de_passe(identifiant: &str) -> Result<String, String> {
