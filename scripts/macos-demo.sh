@@ -2,7 +2,8 @@
 # MagicMed v2 — démarrage express sur macOS (mode démo/développement)
 # Usage : ./scripts/macos-demo.sh
 set -euo pipefail
-cd "$(dirname "$0")/.."
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$REPO_ROOT"
 
 echo "🩺 MagicMed v2 — démarrage express macOS"
 
@@ -59,6 +60,6 @@ npm run seed
 
 # 5. Lancement de l'application
 echo "🚀 Lancement de MagicMed (première compilation : quelques minutes)…"
-cd ../apps/desktop
+cd "$REPO_ROOT/apps/desktop"
 npm install
 npm run tauri dev
