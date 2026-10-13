@@ -13,6 +13,26 @@ pub async fn init(database_url: &str) -> Result<(), sqlx::Error> {
     Ok(())
 }
 
+/// Analyse une date en AAAA-MM-JJ ou JJ/MM/AAAA (validation réelle du calendrier).
+pub fn parse_date(s: &str) -> Result<chrono::NaiveDate, sqlx::Error> {
+    if let Ok(d) = chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d") {
+        if d <= chrono::Local::now().date_naive() {
+            return Ok(d);
+        }
+        return Err(sqlx::Error::Configuration("date de naissance dans le futur".into()));
+    }
+    let m: Vec<&str> = s.split('/').collect();
+    if m.len() == 3 && m[0].len() == 2 && m[1].len() == 2 && m[2].len() == 4 {
+        if let Ok(d) = chrono::NaiveDate::parse_from_str(s, "%d/%m/%Y") {
+            if d <= chrono::Local::now().date_naive() {
+                return Ok(d);
+            }
+            return Err(sqlx::Error::Configuration("date de naissance dans le futur".into()));
+        }
+    }
+    Err(sqlx::Error::Configuration("date invalide : formats attendus AAAA-MM-JJ ou JJ/MM/AAAA".into()))
+}
+
 pub fn pool() -> Result<&'static PgPool, sqlx::Error> {
     POOL.get().ok_or_else(|| sqlx::Error::Configuration("base non initialisée".into()))
 }
@@ -78,7 +98,7 @@ pub async fn creer_patient(p: &crate::commands::patients::NouveauPatient) -> Res
     let pool = pool()?;
     let id = uuid::Uuid::new_v4().to_string();
     let dn: Option<chrono::NaiveDate> = match &p.date_naissance {
-        Some(s) if !s.trim().is_empty() => Some(s.parse::<chrono::NaiveDate>().map_err(|_| sqlx::Error::Configuration("date invalide (AAAA-MM-JJ)".into()))?),
+        Some(s) if !s.trim().is_empty() => Some(parse_date(s.trim())?),
         _ => None,
     };
     // NIR : jamais stocké en clair. Chiffré AES-256-GCM + empreinte

@@ -18,6 +18,28 @@ export default function NouveauPatient() {
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
 
+  // Masque JJ/MM/AAAA : chiffres uniquement, séparateurs insérés à la volée.
+  function saisirDate(valeurBrute: string) {
+    const chiffres = valeurBrute.replace(/\D/g, "").slice(0, 8);
+    let formate = chiffres;
+    if (chiffres.length > 2) formate = `${chiffres.slice(0, 2)}/${chiffres.slice(2)}`;
+    if (chiffres.length > 4) formate = `${chiffres.slice(0, 2)}/${chiffres.slice(2, 4)}/${chiffres.slice(4)}`;
+    setForm({ ...form, dateNaissance: formate });
+  }
+
+  function validerDate(): string | null {
+    const d = form.dateNaissance;
+    const m = d.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!m) return "date de naissance incomplète (JJ/MM/AAAA)";
+    const [jj, mm, aa] = [parseInt(m[1]), parseInt(m[2]), parseInt(m[3])];
+    if (mm < 1 || mm > 12) return "mois invalide (01-12)";
+    if (jj < 1 || jj > 31) return "jour invalide (01-31)";
+    const date = new Date(aa, mm - 1, jj);
+    if (date.getDate() !== jj || date.getMonth() !== mm - 1) return "date inexistante";
+    if (date > new Date()) return "date de naissance dans le futur";
+    return null;
+  }
+
   function champ(k: keyof typeof form) {
     return {
       value: form[k],
@@ -27,13 +49,20 @@ export default function NouveauPatient() {
   }
 
   async function enregistrer() {
+    if (form.dateNaissance && validerDate()) {
+      setErreur(validerDate());
+      return;
+    }
     setEnCours(true);
     setErreur(null);
     try {
       const id = await api.creerPatient({
         nom: form.nom,
         prenoms: form.prenoms,
-        dateNaissance: form.dateNaissance || null,
+        // Convertit JJ/MM/AAAA → AAAA-MM-JJ pour la base
+        dateNaissance: form.dateNaissance
+          ? form.dateNaissance.split("/").reverse().join("-")
+          : null,
         sexe: form.sexe || null,
         adresse: form.adresse || null,
         telephone: form.telephone || null,
@@ -70,9 +99,15 @@ export default function NouveauPatient() {
           </div>
           <div>
             <label className="block text-sm text-slate-500 mb-1">
-              Date de naissance (AAAA-MM-JJ)
+              Date de naissance (JJ/MM/AAAA)
             </label>
-            <input {...champ("dateNaissance")} className="w-full border border-slate-300 rounded-lg px-3 py-2" />
+            <input
+              value={form.dateNaissance}
+              onChange={(e) => saisirDate(e.target.value)}
+              placeholder="14/03/1978"
+              inputMode="numeric"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2"
+            />
           </div>
           <div>
             <label className="block text-sm text-slate-500 mb-1">Sexe</label>
