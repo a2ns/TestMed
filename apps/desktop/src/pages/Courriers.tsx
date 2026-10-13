@@ -60,6 +60,24 @@ export default function Courriers() {
     }
   }
 
+  async function reformuler() {
+    if (!contenu) return;
+    setChargement(true);
+    setErreur(null);
+    try {
+      const ameliore = await api.reformulerTexte(
+        contenu,
+        "Rends ce courrier plus clair et professionnel, sans rien changer au fond médical.",
+        token!
+      );
+      setContenu(ameliore);
+    } catch (e) {
+      setErreur(String(e));
+    } finally {
+      setChargement(false);
+    }
+  }
+
   async function archiver() {
     if (!contenu) return;
     setErreur(null);
@@ -148,7 +166,15 @@ export default function Courriers() {
             className="flex-1 w-full border border-slate-300 rounded-lg p-4 bg-white font-serif focus:outline-none focus:ring-2 focus:ring-sky-400"
             placeholder="Le brouillon IA apparaîtra ici…"
           />
-          <div className="flex gap-3 mt-3">
+          <div className="flex gap-3 mt-3 flex-wrap">
+            <button
+              onClick={reformuler}
+              disabled={!contenu || chargement}
+              className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-100 disabled:opacity-40 text-sm"
+              title="Améliore la clarté et le style sans changer le sens médical"
+            >
+              ✨ Reformuler
+            </button>
             <button
               onClick={imprimer}
               disabled={!contenu || impressionEnCours}

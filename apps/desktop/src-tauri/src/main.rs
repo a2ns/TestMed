@@ -53,6 +53,8 @@ fn main() {
             commands::documents::supprimer_document,
             commands::documents::ouvrir_document,
             commands::courriers::generer_courrier_ia,
+            ia::tester_ia,
+            ia::reformuler_texte,
             commands::scan::lister_scanners,
             commands::scan::scan_masse,
             impression::commande::imprimer_courrier,

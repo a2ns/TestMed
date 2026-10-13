@@ -168,6 +168,33 @@ export default function Systeme() {
         </p>
       </div>
 
+      <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-2">
+        <h2 className="font-semibold">✨ Assistant IA (courriers)</h2>
+        <p className="text-sm text-slate-500">
+          Génération et reformulation de courriers. Deux configurations :
+          API Mistral (AI_API_KEY dans .env) ou 100 % local avec Ollama
+          (AI_BASE_URL=http://localhost:11434/v1, AI_MODEL=llama3) —
+          aucune donnée ne quitte alors votre Mac.
+        </p>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() =>
+              api
+                .testerIa(token!)
+                .then((r) =>
+                  setResultat(
+                    `IA opérationnelle (${r.modele} @ ${r.baseUrl}) — réponse : ${r.reponse}`
+                  )
+                )
+                .catch((e) => setErreur(String(e)))
+            }
+            className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700"
+          >
+            Tester la connexion IA
+          </button>
+        </div>
+      </div>
+
       {erreur && <p className="text-sm text-red-600">Erreur : {erreur}</p>}
     </div>
   );
