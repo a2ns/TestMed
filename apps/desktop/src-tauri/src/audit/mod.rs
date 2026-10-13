@@ -7,7 +7,7 @@ use sqlx::FromRow;
 #[serde(rename_all = "camelCase")]
 pub struct EntreeAudit {
     pub id: i64,
-    pub ts: chrono::DateTime<chrono::Utc>,
+    pub ts: chrono::NaiveDateTime,
     pub user_id: String,
     pub action: String,
     pub cible_type: Option<String>,

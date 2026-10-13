@@ -10,7 +10,7 @@ pub struct ResultatDocument {
     pub nom_fichier: String,
     pub r#type: String,
     pub extrait: Option<String>,
-    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub created_at: chrono::NaiveDateTime,
 }
 
 /// Import intelligent : détecte le patient destinataire à partir du texte

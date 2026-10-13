@@ -71,7 +71,7 @@ pub struct Consultation {
     pub patient_id: String,
     pub motif: Option<String>,
     pub notes: Option<String>,
-    pub date: chrono::DateTime<chrono::Utc>,
+    pub date: chrono::NaiveDateTime,
 }
 
 #[derive(Serialize, Deserialize)]

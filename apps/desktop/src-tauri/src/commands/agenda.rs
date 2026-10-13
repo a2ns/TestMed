@@ -8,7 +8,7 @@ pub struct RendezVous {
     pub patient_id: String,
     pub nom_patient: String,
     pub prenoms_patient: String,
-    pub debut: chrono::DateTime<chrono::Utc>,
+    pub debut: chrono::NaiveDateTime,
     pub duree_min: i32,
     pub statut: String,
     pub motif: Option<String>,

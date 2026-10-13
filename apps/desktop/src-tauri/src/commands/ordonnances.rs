@@ -23,7 +23,7 @@ pub struct Ordonnance {
     pub patient_id: String,
     pub r#type: String,
     pub securisee: bool,
-    pub date: chrono::DateTime<chrono::Utc>,
+    pub date: chrono::NaiveDateTime,
 }
 
 #[derive(Serialize, Deserialize)]
