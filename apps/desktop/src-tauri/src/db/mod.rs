@@ -32,7 +32,7 @@ pub async fn hash_mot_de_passe(identifiant: &str) -> Result<String, String> {
 pub async fn charger_utilisateur(identifiant: &str) -> Result<crate::auth::Utilisateur, String> {
     let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query_as::<_, crate::auth::Utilisateur>(
-        "SELECT id, identifiant, nom, prenoms, roles[1] as role, rpps, \
+        "SELECT id, identifiant, nom, prenoms, roles[1]::text as role, rpps, \
          \"cabinetNom\", \"cabinetAdresse\" \
          FROM \"Praticien\" WHERE identifiant = $1 AND actif = true",
     )
@@ -220,7 +220,7 @@ pub async fn creer_ordonnance(o: &crate::commands::ordonnances::NouvelleOrdonnan
     let id = uuid::Uuid::new_v4().to_string();
     let mut tx = pool.begin().await?;
     sqlx::query(
-        "INSERT INTO \"Ordonnance\" (id, \"patientId\", type, securisee, date) VALUES ($1, $2, $3, $4, now())",
+        "INSERT INTO \"Ordonnance\" (id, \"patientId\", type, securisee, date) VALUES ($1, $2, $3::"OrdoType", $4, now())",
     )
     .bind(&id)
     .bind(&o.patient_id)
@@ -254,7 +254,7 @@ pub async fn creer_ordonnance(o: &crate::commands::ordonnances::NouvelleOrdonnan
 pub async fn list_ordonnances(patient_id: &str) -> Result<Vec<crate::commands::ordonnances::Ordonnance>, sqlx::Error> {
     let pool = pool()?;
     sqlx::query_as::<_, crate::commands::ordonnances::Ordonnance>(
-        "SELECT id, \"patientId\" as patient_id, type, securisee, date FROM \"Ordonnance\" WHERE \"patientId\" = $1 ORDER BY date DESC",
+        "SELECT id, \"patientId\" as patient_id, type::text as type, securisee, date FROM \"Ordonnance\" WHERE \"patientId\" = $1 ORDER BY date DESC",
     )
     .bind(patient_id)
     .fetch_all(pool)
@@ -381,7 +381,7 @@ pub async fn query_patients(recherche: &str) -> Result<Vec<crate::commands::pati
 pub async fn insert_document(doc: &crate::commands::documents::DocumentImport) -> Result<String, String> {
     let pool = pool().map_err(|e| e.to_string())?;
     let id = uuid::Uuid::new_v4().to_string();
-    sqlx::query("INSERT INTO \"Document\" (id, \"patientId\", \"nomFichier\", \"cheminStockage\", type) VALUES ($1, $2, $3, $4, $5)")
+    sqlx::query("INSERT INTO \"Document\" (id, \"patientId\", \"nomFichier\", \"cheminStockage\", type) VALUES ($1, $2, $3, $4, $5::\"DocType\")")
         .bind(&id)
         .bind(&doc.patient_id)
         .bind(&doc.nom_fichier)
@@ -404,7 +404,7 @@ pub async fn insert_document_ocr(
     let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query(
         "INSERT INTO \"Document\" (id, \"patientId\", \"nomFichier\", \"cheminStockage\", type, \"ocrTexte\", tsv) \
-         VALUES ($1, $2, $3, $4, $5, $6, to_tsvector('french', $6))",
+         VALUES ($1, $2, $3, $4, $5::"DocType", $6, to_tsvector('french', $6))",
     )
     .bind(id)
     .bind(patient_id)
