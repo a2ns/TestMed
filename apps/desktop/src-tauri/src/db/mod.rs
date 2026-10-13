@@ -695,17 +695,21 @@ pub async fn generer_courrier(req: &crate::commands::courriers::CourrierRequest)
     .await
     .map_err(|e| e.to_string())?;
     let age = patient.2;
-    let utilisateur = crate::auth::valider_session(&req.token)
+    // La session garde un snapshot antérieur à la mise à jour de la fiche :
+    // on recharge le praticien frais depuis la base.
+    let session = crate::auth::valider_session(&req.token)
         .ok_or("session expirée")?;
+    let praticien = charger_utilisateur(&session.identifiant).await
+        .unwrap_or(session);
     let contenu = crate::ia::generer(&crate::ia::ContexteCourrier {
         nom_patient: patient.0.clone(),
         prenoms_patient: patient.1.clone(),
         age,
-        nom_praticien: format!("Dr {} {}", utilisateur.prenoms, utilisateur.nom),
-        cabinet: utilisateur.cabinet_nom.clone(),
-        adresse_cabinet: utilisateur.cabinet_adresse.clone(),
-        telephone_praticien: utilisateur.telephone.clone(),
-        email_praticien: utilisateur.email.clone(),
+        nom_praticien: format!("Dr {} {}", praticien.prenoms, praticien.nom),
+        cabinet: praticien.cabinet_nom.clone(),
+        adresse_cabinet: praticien.cabinet_adresse.clone(),
+        telephone_praticien: praticien.telephone.clone(),
+        email_praticien: praticien.email.clone(),
         destinataire: req.destinataire.clone(),
         gabarit: req.gabarit.clone(),
         notes: req.notes.clone(),
