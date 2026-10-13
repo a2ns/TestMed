@@ -7,7 +7,7 @@ pub struct ResultatDocument {
     pub patient_id: Option<String>,
     pub nom_patient: Option<String>,
     pub nom_fichier: String,
-    pub type: String,
+    pub r#type: String,
     pub extrait: Option<String>,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }

@@ -47,7 +47,8 @@ impl BackendScan for BackendSane {
                 "--format", "png",
                 "--resolution", "300",
                 "--batch", &format!("{prefixe}%d.png"),
-                "--batch-print"),
+                "--batch-print",
+            ])
             .output()
             .map_err(|e| e.to_string())?;
         if !sortie.status.success() && pages.is_empty() {
