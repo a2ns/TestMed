@@ -6,6 +6,8 @@ pub struct CourrierRequest {
     pub patient_id: String,
     pub gabarit: String,
     pub notes: String,
+    pub destinataire: Option<String>,
+    pub token: String,
 }
 
 #[derive(Serialize, Deserialize)]

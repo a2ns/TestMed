@@ -22,6 +22,8 @@ export type Utilisateur = {
   rpps: string | null;
   cabinetNom: string | null;
   cabinetAdresse: string | null;
+  telephone: string | null;
+  email: string | null;
 };
 
 export type PatientDetail = {
@@ -254,7 +256,19 @@ export const api = {
     patientId: string;
     gabarit: string;
     notes: string;
-  }, token: string) => invoke<CourrierGenere>("generer_courrier_ia", { req, token }),
+    destinataire: string | null;
+    token: string;
+  }) => invoke<CourrierGenere>("generer_courrier_ia", { req, token: req.token }),
+  majPraticien: (p: {
+    id: string;
+    nom: string;
+    prenoms: string;
+    rpps: string | null;
+    cabinetNom: string | null;
+    cabinetAdresse: string | null;
+    telephone: string | null;
+    email: string | null;
+  }, token: string) => invoke<void>("maj_praticien", { ...p, token }),
   listerScanners: () => invoke<Scanner[]>("lister_scanners"),
   scanMasse: (scanner: string, dossierGed: string, patientId: string | null, typeDoc: string, token: string) =>
     invoke<ScanResultat>("scan_masse", { scanner, dossierGed, patientId, typeDoc, token }),

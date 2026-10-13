@@ -14,6 +14,7 @@ const GABARITS = [
 export default function Courriers() {
   const [patientId, setPatientId] = useState("");
   const [patientNom, setPatientNom] = useState("");
+  const [destinataire, setDestinataire] = useState("");
   const [gabarit, setGabarit] = useState(GABARITS[0].code);
 
   function setPatient(id: string, nom: string) {
@@ -100,7 +101,13 @@ export default function Courriers() {
     setChargement(true);
     setErreur(null);
     try {
-      const res = await api.genererCourrier({ patientId, gabarit, notes }, token!);
+      const res = await api.genererCourrier({
+        patientId,
+        gabarit,
+        notes,
+        destinataire: destinataire || null,
+        token: token!,
+      });
       setContenu(res.contenu);
     } catch (e) {
       setErreur(String(e));
@@ -119,6 +126,17 @@ export default function Courriers() {
               patientId={patientId}
               patientNom={patientNom}
               onSelect={setPatient}
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-500 mb-1">
+              Destinataire (ex. « Dr Martin, urologue, CHU de … »)
+            </label>
+            <input
+              value={destinataire}
+              onChange={(e) => setDestinataire(e.target.value)}
+              placeholder="Optionnel — « Cher Confrère » sinon"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white"
             />
           </div>
           <div>

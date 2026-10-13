@@ -19,6 +19,8 @@ pub struct Utilisateur {
     pub rpps: Option<String>,
     pub cabinet_nom: Option<String>,
     pub cabinet_adresse: Option<String>,
+    pub telephone: Option<String>,
+    pub email: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]

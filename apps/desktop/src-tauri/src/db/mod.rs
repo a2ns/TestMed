@@ -53,7 +53,7 @@ pub async fn charger_utilisateur(identifiant: &str) -> Result<crate::auth::Utili
     let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query_as::<_, crate::auth::Utilisateur>(
         "SELECT id, identifiant, nom, prenoms, roles[1]::text as role, rpps, \
-         \"cabinetNom\" as cabinet_nom, \"cabinetAdresse\" as cabinet_adresse \
+         \"cabinetNom\" as cabinet_nom, \"cabinetAdresse\" as cabinet_adresse, telephone, email \
          FROM \"Praticien\" WHERE identifiant = $1 AND actif = true",
     )
     .bind(identifiant)
@@ -577,6 +577,41 @@ pub async fn chemin_document(id: &str) -> Result<String, sqlx::Error> {
     Ok(chemin)
 }
 
+/// Mise à jour de la fiche praticien (nom, coordonnées, cabinet).
+#[tauri::command]
+pub async fn maj_praticien(
+    id: String,
+    nom: String,
+    prenoms: String,
+    rpps: Option<String>,
+    cabinet_nom: Option<String>,
+    cabinet_adresse: Option<String>,
+    telephone: Option<String>,
+    email: Option<String>,
+    token: String,
+) -> Result<(), String> {
+    let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
+    if utilisateur.id != id && utilisateur.role != "ADMIN" {
+        return Err("on ne peut modifier que sa propre fiche".into());
+    }
+    let pool = pool().map_err(|e| e.to_string())?;
+    sqlx::query(
+        "UPDATE \"Praticien\" SET nom = $2, prenoms = $3, rpps = $4, \"cabinetNom\" = $5, \"cabinetAdresse\" = $6, telephone = $7, email = $8 WHERE id = $1",
+    )
+    .bind(&id)
+    .bind(&nom)
+    .bind(&prenoms)
+    .bind(rpps)
+    .bind(cabinet_nom)
+    .bind(cabinet_adresse)
+    .bind(telephone)
+    .bind(email)
+    .execute(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 pub async fn query_patients(recherche: &str) -> Result<Vec<crate::commands::patients::Patient>, String> {
     let pool = pool().map_err(|e| e.to_string())?;
     let rows = sqlx::query_as::<_, crate::commands::patients::Patient>(
@@ -630,16 +665,32 @@ pub async fn insert_document_ocr(
 }
 
 pub async fn generer_courrier(req: &crate::commands::courriers::CourrierRequest) -> Result<crate::commands::courriers::CourrierGenere, String> {
-    // Le contexte patient est chargé depuis la base, puis le module IA
-    // (Mistral API ou Ollama local) génère le brouillon de courrier.
+    // Contexte complet : patient (avec âge), praticien connecté (coordonnées).
     let pool = pool().map_err(|e| e.to_string())?;
-    let patient: (String, String, String) = sqlx::query_as(
-        "SELECT id, nom, prenoms FROM \"Patient\" WHERE id = $1",
+    // PostgreSQL calcule l'âge directement (EXTRACT de date_diff).
+    let patient: (String, String, Option<i32>) = sqlx::query_as(
+        "SELECT nom, prenoms, DATE_PART('year', AGE(\"dateNaissance\"))::int FROM \"Patient\" WHERE id = $1",
     )
     .bind(&req.patient_id)
     .fetch_one(pool)
     .await
     .map_err(|e| e.to_string())?;
-    let contenu = crate::ia::generer(&patient.1, &patient.2, &req.gabarit, &req.notes).await?;
+    let age = patient.2;
+    let utilisateur = crate::auth::valider_session(&req.token)
+        .ok_or("session expirée")?;
+    let contenu = crate::ia::generer(&crate::ia::ContexteCourrier {
+        nom_patient: patient.0.clone(),
+        prenoms_patient: patient.1.clone(),
+        age,
+        nom_praticien: format!("Dr {} {}", utilisateur.prenoms, utilisateur.nom),
+        cabinet: utilisateur.cabinet_nom.clone(),
+        adresse_cabinet: utilisateur.cabinet_adresse.clone(),
+        telephone_praticien: utilisateur.telephone.clone(),
+        email_praticien: utilisateur.email.clone(),
+        destinataire: req.destinataire.clone(),
+        gabarit: req.gabarit.clone(),
+        notes: req.notes.clone(),
+    })
+    .await?;
     Ok(crate::commands::courriers::CourrierGenere { contenu })
 }

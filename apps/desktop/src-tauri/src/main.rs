@@ -56,6 +56,7 @@ fn main() {
             commands::documents::ouvrir_document,
             commands::courriers::generer_courrier_ia,
             ia::tester_ia,
+            db::maj_praticien,
             ia::reformuler_texte,
             commands::scan::lister_scanners,
             commands::scan::scan_masse,
