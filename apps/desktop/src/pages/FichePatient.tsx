@@ -61,11 +61,19 @@ export default function FichePatient() {
       </button>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">{nomPatient || "…"}</h1>
-        {allergies.length > 0 && (
-          <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-medium">
-            ⚠ {allergies.length} allergie(s)
-          </span>
-        )}
+        <div className="flex gap-3 items-center">
+          {allergies.length > 0 && (
+            <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-medium">
+              ⚠ {allergies.length} allergie(s)
+            </span>
+          )}
+          <button
+            onClick={() => navigate(`/patients/${id}/ordonnance`)}
+            className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 text-sm"
+          >
+            📝 Ordonnance
+          </button>
+        </div>
       </div>
       {erreur && <p className="text-sm text-red-600 mb-4">Erreur : {erreur}</p>}
 

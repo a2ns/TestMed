@@ -7,6 +7,7 @@ import Patients from "./pages/Patients";
 import Ged from "./pages/Ged";
 import Courriers from "./pages/Courriers";
 import FichePatient from "./pages/FichePatient";
+import Ordonnance from "./pages/Ordonnance";
 import NouveauPatient from "./pages/NouveauPatient";
 
 function AppProtegee() {
@@ -19,6 +20,7 @@ function AppProtegee() {
         <Route path="patients" element={<Patients />} />
         <Route path="patients/nouveau" element={<NouveauPatient />} />
         <Route path="patients/:id" element={<FichePatient />} />
+        <Route path="patients/:id/ordonnance" element={<Ordonnance />} />
         <Route path="ged" element={<Ged />} />
         <Route path="courriers" element={<Courriers />} />
         <Route path="*" element={<Navigate to="/" replace />} />

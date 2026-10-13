@@ -195,6 +195,63 @@ pub async fn creer_allergie(a: &crate::commands::patients::NouvelleAllergie) -> 
     Ok(id)
 }
 
+pub async fn creer_ordonnance(o: &crate::commands::ordonnances::NouvelleOrdonnance) -> Result<String, sqlx::Error> {
+    let pool = pool()?;
+    let id = uuid::Uuid::new_v4().to_string();
+    let mut tx = pool.begin().await?;
+    sqlx::query(
+        "INSERT INTO ordonnance (id, patient_id, type, securisee, date) VALUES ($1, $2, $3, $4, now())",
+    )
+    .bind(&id)
+    .bind(&o.patient_id)
+    .bind(&o.r#type)
+    .bind(o.securisee)
+    .execute(&mut *tx)
+    .await?;
+    for (i, l) in o.lignes.iter().enumerate() {
+        sqlx::query(
+            "INSERT INTO prescription (id, ordonnance_id, zone, medicament, cip, posologie, duree, dureeJours, substitution, renouvellements, position) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+        )
+        .bind(uuid::Uuid::new_v4().to_string())
+        .bind(&id)
+        .bind(&l.zone)
+        .bind(&l.medicament)
+        .bind(&l.cip)
+        .bind(&l.posologie)
+        .bind(&l.duree)
+        .bind(l.duree_jours)
+        .bind(l.substitution)
+        .bind(l.renouvellements)
+        .bind(i as i32)
+        .execute(&mut *tx)
+        .await?;
+    }
+    tx.commit().await?;
+    Ok(id)
+}
+
+pub async fn list_ordonnances(patient_id: &str) -> Result<Vec<crate::commands::ordonnances::Ordonnance>, sqlx::Error> {
+    let pool = pool()?;
+    sqlx::query_as::<_, crate::commands::ordonnances::Ordonnance>(
+        "SELECT id, patient_id, type, securisee, date FROM ordonnance WHERE patient_id = $1 ORDER BY date DESC",
+    )
+    .bind(patient_id)
+    .fetch_all(pool)
+    .await
+}
+
+pub async fn get_prescriptions(ordonnance_id: &str) -> Result<Vec<crate::commands::ordonnances::PrescriptionLigne>, sqlx::Error> {
+    let pool = pool()?;
+    sqlx::query_as::<_, crate::commands::ordonnances::PrescriptionLigne>(
+        "SELECT id, zone, medicament, cip, posologie, duree, \"dureeJours\" as duree_jours, substitution, renouvellements, position \
+         FROM prescription WHERE ordonnance_id = $1 ORDER BY position",
+    )
+    .bind(ordonnance_id)
+    .fetch_all(pool)
+    .await
+}
+
 pub async fn query_patients(recherche: &str) -> Result<Vec<crate::commands::patients::Patient>, String> {
     let pool = pool()?;
     let rows = sqlx::query_as::<_, crate::commands::patients::Patient>(

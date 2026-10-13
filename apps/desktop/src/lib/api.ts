@@ -78,6 +78,38 @@ export type Allergie = {
   reactions: string | null;
 };
 
+export type Ordonnance = {
+  id: string;
+  patientId: string;
+  type: "SIMPLE" | "BI_ORDONNANCE" | "SECURISEE";
+  securisee: boolean;
+  date: string;
+};
+
+export type PrescriptionLigne = {
+  id: string;
+  zone: string;
+  medicament: string;
+  cip: string | null;
+  posologie: string;
+  duree: string | null;
+  dureeJours: number | null;
+  substitution: boolean;
+  renouvellements: number;
+  position: number;
+};
+
+export type NouvellePrescription = {
+  zone: string;
+  medicament: string;
+  cip: string | null;
+  posologie: string;
+  duree: string | null;
+  dureeJours: number | null;
+  substitution: boolean;
+  renouvellements: number;
+};
+
 export type Scanner = string;
 
 export type ScanResultat = {
@@ -125,6 +157,19 @@ export const api = {
     invoke<Allergie[]>("list_allergies", { patientId }),
   creerAllergie: (patientId: string, substance: string, gravite: string, reactions: string | null) =>
     invoke<string>("creer_allergie", { a: { patientId, substance, gravite, reactions } }),
+  creerOrdonnance: (
+    patientId: string,
+    type: string,
+    securisee: boolean,
+    lignes: NouvellePrescription[]
+  ) =>
+    invoke<string>("creer_ordonnance", {
+      o: { patientId, type, securisee, lignes },
+    }),
+  listOrdonnances: (patientId: string) =>
+    invoke<Ordonnance[]>("list_ordonnances", { patientId }),
+  getPrescriptions: (ordonnanceId: string) =>
+    invoke<PrescriptionLigne[]>("get_prescriptions", { ordonnanceId }),
   importDocument: (doc: {
     patientId: string | null;
     nomFichier: string;

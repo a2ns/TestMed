@@ -13,6 +13,12 @@ enum Role {
   ADMIN
 }
 
+enum OrdoType {
+  SIMPLE
+  BI_ORDONNANCE
+  SECURISEE
+}
+
 enum DocType {
   COURRIER
   COMPTE_RENDU
@@ -60,6 +66,7 @@ model Patient {
   antecedents Antecedent[]
   traitements Traitement[]
   allergies   Allergie[]
+  ordonnances Ordonnance[]
 }
 
 model Antecedent {
@@ -155,6 +162,34 @@ model Courrier {
   validePar  String?
 
   @@index([patientId, date])
+}
+
+model Ordonnance {
+  id        String   @id @default(uuid())
+  patientId String
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  praticienId String?
+  type      OrdoType @default(SIMPLE)
+  securisee Boolean  @default(false)
+  date      DateTime @default(now())
+  prescriptions Prescription[]
+
+  @@index([patientId, date])
+}
+
+model Prescription {
+  id           String  @id @default(uuid())
+  ordonnanceId String
+  ordonnance   Ordonnance @relation(fields: [ordonnanceId], references: [id], onDelete: Cascade)
+  zone        String  @default("A") // A | B (bi-ordonnance)
+  medicament   String
+  cip          String?
+  posologie    String
+  duree        String?
+  dureeJours   Int?
+  substitution Boolean @default(false)
+  renouvellements Int  @default(0)
+  position     Int    @default(0)
 }
 
 model AuditLog {
