@@ -4,6 +4,9 @@ mod audit;
 mod auth;
 mod commands;
 mod crypto;
+mod dmp;
+mod fsv;
+mod sauvegarde;
 mod db;
 mod ia;
 mod impression;
@@ -48,6 +51,13 @@ fn main() {
             auth::deconnexion,
             auth::creer_compte,
             audit::list_audit_log,
+            sauvegarde::lancer_sauvegarde,
+            sauvegarde::dechiffrer_sauvegarde,
+            fsv::verifier_fsv,
+            fsv::lire_carte_vitale,
+            fsv::creer_fse,
+            dmp::verifier_dmp,
+            dmp::deposer_dmp,
         ])
         .run(tauri::generate_context!())
         .expect("erreur au lancement de MagicMed");

@@ -21,7 +21,7 @@ Statut de couverture du socle actuel (✅ fait, 🟡 partiel, ❌ à faire).
 | Exigence | Statut |
 |---|---|
 | Contrat GIE SESAM-Vitale + lecteur certifié + CPS | ❌ (externe, à fournir par le cabinet) |
-| Lecture carte Vitale (B2), création/modif/suppression FSE | ❌ phase 2 (FFI sgpv.dll, Windows) |
+| Lecture carte Vitale (B2), création/modif/suppression FSE | 🟡 | Ossature FFI + commandes prêtes ; branchement final après contrat GIE |
 | Lots FSE, télétransmission, rejets, DAV/AC | ❌ |
 | DMF (droits et missions en vigueur) | ❌ |
 | ALD, affections longue durée | ❌ |
@@ -34,7 +34,7 @@ GIE, l'environnement FSV et un poste Windows.
 
 | Exigence | Statut |
 |---|---|
-| Inscription DMP, alimentation (CR, ordonnances) | ❌ |
+| Inscription DMP, alimentation (CR, ordonnances) | 🟡 | Client + commandes posées ; habilitation requise |
 | DICT (images) — actuellement Service d'accès aux images (SAI) | ❌ |
 | CCDA / messagerie sécurisée MSSanté | ❌ |
 | Synthèse médicale (contenu minimale) | ❌ |
@@ -49,6 +49,9 @@ GIE, l'environnement FSV et un poste Windows.
 | Chiffrement des échanges | 🟡 | Réseau cabinet à sécuriser (TLS/Tunnel) |
 | Journal d'audit (traçabilité des accès) | 🟡 | Table `AuditLog` en base, alimentation systématique à câbler |
 | Authentification nominative + rôles | ✅ | Login bcrypt + sessions + rôles |
+| Sauvegarde chiffrée | ✅ | pg_dump + gzip + AES-256-GCM, rétention auto, écran admin |
+| Chiffrement NIR au repos | ✅ | AES-256-GCM + empreinte déterministe |
+| Journal d'audit | ✅ | Connexions, accès patients, ordonnances, IA, scan, recherche |
 | Sauvegarde chiffrée testée | ❌ | Stratégie de sauvegarde à documenter et outiller |
 | Conservation / archivage (20 ans DPI patient) | 🟡 | GED versionnée, politique à formaliser |
 | Bloque-pub / antivirus / durcissement poste | ❌ | Guide de sécurisation à écrire |

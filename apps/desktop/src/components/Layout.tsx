@@ -1,7 +1,10 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 
-const MENU_ADMIN = [{ to: "/journal", label: "Journal d'audit", icone: "🛡️", end: false }];
+const MENU_ADMIN = [
+  { to: "/journal", label: "Journal d'audit", icone: "🛡️", end: false },
+  { to: "/systeme", label: "Système", icone: "⚙️", end: false },
+];
 
 const MENU = [
   { to: "/", label: "Tableau de bord", icone: "📊", end: true },

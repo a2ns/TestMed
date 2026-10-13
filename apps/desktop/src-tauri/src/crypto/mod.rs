@@ -71,6 +71,49 @@ pub fn dechiffrer(base64: &str) -> Result<String, String> {
     String::from_utf8(clair).map_err(|_| "donnée illisible".into())
 }
 
+/// Chiffre des octets bruts (sauvegardes) : nonce + ciphertext, sans base64.
+pub fn chiffrer_octets(clair: &[u8]) -> Result<Vec<u8>, String> {
+    let cle = cle();
+    let key = Key::<Aes256Gcm>::from_slice(&cle);
+    let cipher = Aes256Gcm::new(key);
+    let nonce_bytes = Sha256::digest(uuid::Uuid::new_v4().as_bytes());
+    let nonce = Nonce::from_slice(&nonce_bytes[..12]);
+    let chiffre = cipher
+        .encrypt(
+            nonce,
+            Payload {
+                msg: clair,
+                aad: b"magicmed-backup".as_ref(),
+            },
+        )
+        .map_err(|_| "échec du chiffrement")?;
+    let mut sorti = nonce_bytes[..12].to_vec();
+    sorti.extend_from_slice(&chiffre);
+    Ok(sorti)
+}
+
+/// Déchiffre des octets bruts (sauvegardes).
+pub fn dechiffrer_octets(brut: &[u8]) -> Result<String, String> {
+    let cle = cle();
+    if brut.len() < 12 {
+        return Err("donnée chiffrée tronquée".into());
+    }
+    let (nonce_bytes, chiffre) = brut.split_at(12);
+    let key = Key::<Aes256Gcm>::from_slice(&cle);
+    let cipher = Aes256Gcm::new(key);
+    let nonce = Nonce::from_slice(nonce_bytes);
+    let clair = cipher
+        .decrypt(
+            nonce,
+            Payload {
+                msg: chiffre,
+                aad: b"magicmed-backup".as_ref(),
+            },
+        )
+        .map_err(|_| "clé invalide ou archive altérée")?;
+    String::from_utf8(clair).map_err(|_| "archive illisible".into())
+}
+
 /// Empreinte déterministe (HMAC-SHA256-like via SHA256(clé||donnée)) :
 /// permet la recherche/unicité sans stocker le NIR en clair.
 pub fn empreinte(donnee: &str) -> String {

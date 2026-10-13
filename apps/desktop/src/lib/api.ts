@@ -238,4 +238,10 @@ export const api = {
     invoke<void>("creer_compte", { identifiants: { identifiant, motDePasse }, role, adminToken }),
   listAuditLog: (adminToken: string, limite: number) =>
     invoke<EntreeAudit[]>("list_audit_log", { adminToken, limite }),
+  lancerSauvegarde: (token: string) =>
+    invoke<{ chemin: string; tailleOctets: number; tables: number }>("lancer_sauvegarde", { token }),
+  verifierFsv: (token: string) =>
+    invoke<{ disponible: boolean; detail: string }>("verifier_fsv", { token }),
+  verifierDmp: (token: string) =>
+    invoke<{ configure: boolean; detail: string }>("verifier_dmp", { token }),
 };
