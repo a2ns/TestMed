@@ -33,7 +33,7 @@ pub async fn charger_utilisateur(identifiant: &str) -> Result<crate::auth::Utili
     let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query_as::<_, crate::auth::Utilisateur>(
         "SELECT id, identifiant, nom, prenoms, roles[1]::text as role, rpps, \
-         \"cabinetNom\", \"cabinetAdresse\" \
+         \"cabinetNom\" as cabinet_nom, \"cabinetAdresse\" as cabinet_adresse \
          FROM \"Praticien\" WHERE identifiant = $1 AND actif = true",
     )
     .bind(identifiant)
@@ -61,7 +61,7 @@ pub async fn creer_utilisateur(identifiant: &str, hash: &str, role: &str) -> Res
 pub async fn get_patient(id: &str) -> Result<crate::commands::patients::PatientDetail, sqlx::Error> {
     let pool = pool()?;
     let mut p = sqlx::query_as::<_, crate::commands::patients::PatientDetail>(
-        "SELECT id, nom, prenoms, \"dateNaissance\"::date as date_naissance, sexe, adresse, telephone, email, \"medecinTraitant\", \"nirChiffre\" as nir \
+        "SELECT id, nom, prenoms, \"dateNaissance\"::date as date_naissance, sexe, adresse, telephone, email, \"medecinTraitant\" as medecin_traitant, \"nirChiffre\" as nir \
          FROM \"Patient\" WHERE id = $1",
     )
     .bind(id)
