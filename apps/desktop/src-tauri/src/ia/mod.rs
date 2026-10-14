@@ -173,8 +173,20 @@ pub async fn reformuler_texte(texte: String, consigne: String, token: String) ->
 /// Assistante IA générique pour les tâches du dossier patient.
 /// tache : "consultation" (structurer des notes) | "ordonnance" (proposer
 /// des lignes de prescription). Le médecin valide toujours le résultat.
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContextePatientIa {
+    pub allergies: Vec<String>,
+    pub traitements: Vec<String>,
+}
+
 #[tauri::command]
-pub async fn assister_ia(tache: String, entree: String, token: String) -> Result<String, String> {
+pub async fn assister_ia(
+    tache: String,
+    entree: String,
+    contexte_patient: Option<ContextePatientIa>,
+    token: String,
+) -> Result<String, String> {
     let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
     let (systeme, consigne) = match tache.as_str() {
         "consultation" => (
@@ -184,7 +196,24 @@ pub async fn assister_ia(tache: String, entree: String, token: String) -> Result
         ),
         "ordonnance" => (
             "Tu es un assistant de prescription pour un médecin généraliste. À partir d'une description libre, propose des lignes d'ordonnance au format strict : « Médicament | posologie | durée » une par ligne. Ne propose QUE des médicaments courants de médecine générale adaptés à la description. Rappelle en fin de réponse : « À vérifier et valider par le médecin ».",
-            format!("Propose des lignes de prescription pour : {entree}"),
+            {
+                let mut c = format!("Propose des lignes de prescription pour : {entree}\n");
+                if let Some(ctx) = &contexte_patient {
+                    if !ctx.allergies.is_empty() {
+                        c.push_str(&format!(
+                            "\nALLERGIES DU PATIENT (ne JAMAIS proposer ces substances ni médicaments de la même famille) : {}\n",
+                            ctx.allergies.join(", ")
+                        ));
+                    }
+                    if !ctx.traitements.is_empty() {
+                        c.push_str(&format!(
+                            "\nTraitements en cours (vérifier les interactions) : {}\n",
+                            ctx.traitements.join(", ")
+                        ));
+                    }
+                }
+                c
+            }
         ),
         _ => return Err("tache inconnue".into()),
     };

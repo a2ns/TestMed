@@ -250,8 +250,8 @@ export const api = {
     ),
   reformulerTexte: (texte: string, consigne: string, token: string) =>
     invoke<string>("reformuler_texte", { texte, consigne, token }),
-  assisterIa: (tache: string, entree: string, token: string) =>
-    invoke<string>("assister_ia", { tache, entree, token }),
+  assisterIa: (tache: string, entree: string, contextePatient: { allergies: string[]; traitements: string[] } | null, token: string) =>
+    invoke<string>("assister_ia", { tache, entree, contextePatient, token }),
   supprimerConsultation: (id: string, token: string) =>
     invoke<void>("supprimer_consultation", { id, token }),
   importDocument: (doc: {

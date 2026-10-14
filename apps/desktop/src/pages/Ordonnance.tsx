@@ -27,6 +27,10 @@ export default function Ordonnance() {
   const [erreur, setErreur] = useState<string | null>(null);
   const [statut, setStatut] = useState<string | null>(null);
   const [description, setDescription] = useState("");
+  const [contextePatient, setContextePatient] = useState<{
+    allergies: string[];
+    traitements: string[];
+  }>({ allergies: [], traitements: [] });
   const [propositions, setPropositions] = useState<NouvellePrescription[]>([]);
   const [propositionsEnCours, setPropositionsEnCours] = useState(false);
   const [enCours, setEnCours] = useState(false);
@@ -38,6 +42,22 @@ export default function Ordonnance() {
         .getPatient(patientId, token!)
         .then((p) => setNomPatient(`${p.prenoms} ${p.nom}`))
         .catch(() => undefined);
+  }, [patientId]);
+
+  // Contexte médical du patient (allergies, traitements actifs) pour l'IA.
+  useEffect(() => {
+    if (!patientId) return;
+    Promise.all([
+      api.listAllergies(patientId),
+      api.listTraitements(patientId),
+    ])
+      .then(([al, tr]) =>
+        setContextePatient({
+          allergies: al.map((a) => a.substance),
+          traitements: tr.filter((t) => t.actif).map((t) => t.medicament),
+        })
+      )
+      .catch(() => undefined);
   }, [patientId]);
 
   function majLigne(i: number, patch: Partial<NouvellePrescription>) {
@@ -84,7 +104,7 @@ export default function Ordonnance() {
     setPropositionsEnCours(true);
     setErreur(null);
     try {
-      const reponse = await api.assisterIa("ordonnance", description, token!);
+      const reponse = await api.assisterIa("ordonnance", description, contextePatient.allergies.length || contextePatient.traitements.length ? contextePatient : null, token!);
       // Format attendu : « Médicament | posologie | durée » par ligne
       const lignes = reponse
         .split("\n")
@@ -153,7 +173,13 @@ export default function Ordonnance() {
         ← Retour à la fiche patient
       </button>
       <h1 className="text-2xl font-bold mb-1">Ordonnance</h1>
-      <p className="text-slate-500 mb-6">{nomPatient || "…"}</p>
+      <p className="text-slate-500 mb-2">{nomPatient || "…"}</p>
+      {contextePatient.allergies.length > 0 && (
+        <p className="text-sm text-red-600 font-medium mb-6">
+          ⚠ Allergies : {contextePatient.allergies.join(", ")} — l'assistant en tient compte
+        </p>
+      )}
+      {contextePatient.allergies.length === 0 && <div className="mb-6" />}
 
       <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-5">
         <div>

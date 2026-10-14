@@ -631,6 +631,30 @@ pub async fn maj_praticien(
     Ok(())
 }
 
+
+/// Contexte médical du patient pour l'IA : allergies + traitements actifs.
+pub async fn contexte_patient_ia(patient_id: &str) -> Result<(Vec<String>, Vec<String>), String> {
+    let pool = pool().map_err(|e| e.to_string())?;
+    let allergies: Vec<(String,)> = sqlx::query_as(
+        "SELECT substance FROM \"Allergie\" WHERE \"patientId\" = $1",
+    )
+    .bind(patient_id)
+    .fetch_all(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    let traitements: Vec<(String,)> = sqlx::query_as(
+        "SELECT medicament FROM \"Traitement\" WHERE \"patientId\" = $1 AND actif = true",
+    )
+    .bind(patient_id)
+    .fetch_all(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok((
+        allergies.into_iter().map(|a| a.0).collect(),
+        traitements.into_iter().map(|t| t.0).collect(),
+    ))
+}
+
 pub async fn query_patients(recherche: &str) -> Result<Vec<crate::commands::patients::Patient>, String> {
     let pool = pool().map_err(|e| e.to_string())?;
     let rows = sqlx::query_as::<_, crate::commands::patients::Patient>(

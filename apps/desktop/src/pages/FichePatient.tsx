@@ -41,7 +41,7 @@ export default function FichePatient() {
   async function structurerNotes(motif: string, notes: string): Promise<{motif: string, notes: string} | null> {
     if (!notes.trim()) return null;
     try {
-      const structure = await api.assisterIa("consultation", notes, token!);
+      const structure = await api.assisterIa("consultation", notes, null, token!);
       return { motif, notes: structure };
     } catch (e) {
       setErreur(String(e));
