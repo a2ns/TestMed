@@ -1,8 +1,11 @@
-# MagicMed — Refonte (client lourd Tauri)
+# Primeia
 
-Refonte moderne de **MagicMed / MagicGed** : client lourd multiplateforme (Windows/macOS)
-pour cabinet médical, avec GED, scan de masse + OCR, impression, Sesam-Vitale (Windows)
-et **assistant IA d'aide à la rédaction de courriers médicaux**.
+**Primeia** : client lourd multiplateforme (Windows/macOS) pour cabinet médical,
+avec GED, scan de masse + OCR, impression, Sesam-Vitale (Windows) et
+**assistant IA d'aide à la rédaction de courriers médicaux**.
+
+> Refonte moderne sur technologies actuelles du logiciel de cabinet historique,
+> avec une IHM au goût du jour.
 
 ## Stack
 
@@ -21,14 +24,14 @@ et **assistant IA d'aide à la rédaction de courriers médicaux**.
 ## Architecture
 
 ```
-┌── Client lourd (Tauri v2 : Rust + React) ──┐
+┌── Client lourd (Tauri v2 : Rust + React) ─┐
 │  IHM React/Tailwind                        │
 │  Core Rust :                                │
 │   - Sesam-Vitale (CPS + carte Vitale, FSV)  │
 │   - Scan de masse + OCR Tesseract           │
 │   - Impression (courriers, étiquettes)      │
 │   - Cache local / fichiers documents        │
-└───────────────┬─────────────────────────────┘
+└─────────────────────────────────────────────┘
                 │ HTTPS / TCP (réseau cabinet)
         PostgreSQL (serveur central)
                 │
@@ -40,25 +43,26 @@ et **assistant IA d'aide à la rédaction de courriers médicaux**.
 ```
 apps/desktop/        client Tauri (src-tauri Rust + IHM React)
 packages/db/         schéma Prisma + migrations (PostgreSQL)
-docs/               cahier des charges + architecture
+docs/                cahier des charges + architecture
 ```
 
 ## Modules fonctionnels
 
-- **Patients** : fiches complètes, historique, identité Vitale.
-- **GED (MagicGed)** : scan de masse, OCR automatique, classement par
-  patient/type, recherche plein texte (tsvector), versions.
-- **Courriers** : rédaction assistée par IA (génération, reformulation,
-  relecture), gabarits, impression.
+- **Patients** : fiches complètes, historique, identité Vitale, création.
+- **GED** : import avec stockage centralisé, scan de masse, OCR automatique,
+  classement par patient/type, recherche plein texte (tsvector), versions.
+- **Courriers** : rédaction assistée par IA (génération avec contexte patient,
+  reformulation par instruction, relecture), gabarits, impression, validation.
 - **Sesam-Vitale** : lecture carte Vitale + CPS, facturation (phase 2,
   nécessite le contrat GIE et FSV — Windows).
 - **Paramètres / utilisateurs** : rôles médecin / secrétaire / admin.
+- **Tableau de bord** : statistiques du cabinet (patients, documents, courriers).
 
 ## Démarrage (développement)
 
 ```bash
 # Base de données
-docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=magicmed postgres:16
+docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=primeia postgres:16
 cd packages/db && npm install && npx prisma migrate dev
 
 # Client lourd
@@ -66,6 +70,9 @@ cd apps/desktop
 npm install
 npm run tauri dev
 ```
+
+Variables d'environnement (voir `.env.example`) : `DATABASE_URL`,
+`AI_BASE_URL`, `AI_MODEL`, `AI_API_KEY`, `MAGICMED_DOCS_DIR` (stockage documents).
 
 ## Conformité
 
