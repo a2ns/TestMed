@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { Users, DatabaseBackup, Link2, Stethoscope, Sparkles, MessageSquare } from "lucide-react";
 
 const ROLES = [
   { code: "MEDECIN", libelle: "Médecin" },
@@ -85,7 +86,7 @@ export default function Systeme() {
       <h1 className="text-2xl font-bold">Système &amp; administration</h1>
 
       <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-3">
-        <h2 className="font-semibold">👥 Comptes utilisateurs</h2>
+        <h2 className="font-semibold flex items-center gap-2"><Users size={18} /> Comptes utilisateurs</h2>
         <p className="text-sm text-slate-500">
           Créez les comptes du cabinet. Le praticien devrait ensuite compléter
           sa fiche (nom, RPPS, cabinet) pour l'en-tête des courriers.
@@ -137,7 +138,7 @@ export default function Systeme() {
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-3">
-        <h2 className="font-semibold">💾 Sauvegarde chiffrée</h2>
+        <h2 className="font-semibold flex items-center gap-2"><DatabaseBackup size={18} /> Sauvegarde chiffrée</h2>
         <p className="text-sm text-slate-500">
           Sauvegarde complète de la base (pg_dump), compressée puis chiffrée
           AES-256-GCM avec la clé maîtresse. Rétention automatique (30 par défaut,
@@ -154,7 +155,7 @@ export default function Systeme() {
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-2">
-        <h2 className="font-semibold">🪪 Sesam-Vitale (FSV)</h2>
+        <h2 className="font-semibold flex items-center gap-2"><MessageSquare size={18} /> Sesam-Vitale (FSV)</h2>
         <p
           className={`text-sm font-medium ${
             etatFsv?.disponible ? "text-emerald-600" : "text-amber-600"
@@ -169,7 +170,7 @@ export default function Systeme() {
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-2">
-        <h2 className="font-semibold">🔗 DMP / téléservices</h2>
+        <h2 className="font-semibold flex items-center gap-2"><Link2 size={18} /> DMP / téléservices</h2>
         <p
           className={`text-sm font-medium ${
             etatDmp?.configure ? "text-emerald-600" : "text-amber-600"
@@ -184,7 +185,7 @@ export default function Systeme() {
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-3">
-        <h2 className="font-semibold">🩺 Ma fiche praticien</h2>
+        <h2 className="font-semibold flex items-center gap-2"><Stethoscope size={18} /> Ma fiche praticien</h2>
         <p className="text-sm text-slate-500">
           Ces informations remplissent l'en-tête des courriers générés par
           l'IA (nom, cabinet, coordonnées) — plus aucun champ à compléter.
@@ -276,7 +277,7 @@ export default function Systeme() {
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-2">
-        <h2 className="font-semibold">✨ Assistant IA (courriers)</h2>
+        <h2 className="font-semibold flex items-center gap-2"><Sparkles size={18} /> Assistant IA (courriers)</h2>
         <p className="text-sm text-slate-500">
           Génération et reformulation de courriers. Deux configurations :
           API Mistral (AI_API_KEY dans .env) ou 100 % local avec Ollama

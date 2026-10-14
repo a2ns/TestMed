@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, Patient, RendezVous } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { Pencil, Trash2 } from "lucide-react";
 
 const DEB = 8;
 const FIN = 19;
@@ -367,13 +368,13 @@ export default function Agenda() {
                       onClick={() => ouvrirModification(rdv)}
                       className="bg-white border border-slate-300 px-3 py-1 rounded-full hover:bg-nuit-100"
                     >
-                      ✏️ Modifier
+                      <Pencil size={13} className="inline" /> Modifier
                     </button>
                     <button
                       onClick={() => setRdvSuppression(rdv)}
                       className="bg-white border border-red-300 text-red-600 px-3 py-1 rounded-full hover:bg-red-50"
                     >
-                      🗑 Supprimer
+                      <Trash2 size={13} className="inline" /> Supprimer
                     </button>
                   </div>
                 </div>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { Sparkles, FolderOpen } from "lucide-react";
 
 const GABARITS = [
   { code: "adressage", libelle: "Adressement spécialiste" },
@@ -165,7 +166,7 @@ export default function CourrierPatient({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] overflow-auto p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold">
-            ✉️ Courrier — {patientNom}
+            Courrier — {patientNom}
           </h2>
           <button
             onClick={onFerme}
@@ -220,7 +221,7 @@ export default function CourrierPatient({
               disabled={chargement || !notes}
               className="bg-lavande-600 text-white px-4 py-2 rounded-lg hover:bg-lavande-700 disabled:opacity-40 w-full"
             >
-              {chargement ? "Génération…" : "✨ Générer le courrier"}
+              {chargement ? "Génération…" : "Générer le courrier"}
             </button>
           </div>
 
@@ -242,21 +243,21 @@ export default function CourrierPatient({
                 disabled={!contenu || chargement}
                 className="bg-white border border-slate-300 px-3 py-2 rounded-lg hover:bg-nuit-100 disabled:opacity-40 text-sm"
               >
-                ✨ Reformuler
+                <Sparkles size={14} className="inline" /> Reformuler
               </button>
               <button
                 onClick={archiverSeul}
                 disabled={!contenu || impressionEnCours}
                 className="bg-white border border-slate-300 px-3 py-2 rounded-lg hover:bg-nuit-100 disabled:opacity-40 text-sm"
               >
-                📁 Archiver
+                <FolderOpen size={14} className="inline" /> Archiver
               </button>
               <button
                 onClick={archiverEtImprimer}
                 disabled={!contenu || impressionEnCours}
                 className="bg-nuit-950 text-white px-4 py-2 rounded-lg hover:bg-nuit-700 disabled:opacity-40 text-sm"
               >
-                {impressionEnCours ? "…" : "🖨️ Imprimer + archiver"}
+                {impressionEnCours ? "…" : "Imprimer + archiver"}
               </button>
             </div>
           </div>

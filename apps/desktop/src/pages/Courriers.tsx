@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import PatientPicker from "../components/PatientPicker";
+import { Sparkles, FolderOpen } from "lucide-react";
 
 // token exposé via useAuth pour les appels audités
 
@@ -247,7 +248,7 @@ export default function Courriers() {
             disabled={chargement || !patientId || !notes}
             className="bg-lavande-600 text-white px-4 py-2 rounded-lg hover:bg-lavande-700 disabled:opacity-40"
           >
-            {chargement ? "Génération…" : "✨ Générer le courrier"}
+            {chargement ? "Génération…" : "Générer le courrier"}
           </button>
         </div>
         <div className="flex flex-col">
@@ -268,21 +269,21 @@ export default function Courriers() {
               className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-nuit-100 disabled:opacity-40 text-sm"
               title="Améliore la clarté et le style sans changer le sens médical"
             >
-              ✨ Reformuler
+              <Sparkles size={14} className="inline" /> Reformuler
             </button>
             <button
               onClick={imprimer}
               disabled={!contenu || impressionEnCours}
               className="bg-nuit-950 text-white px-4 py-2 rounded-lg hover:bg-nuit-700 disabled:opacity-40"
             >
-              {impressionEnCours ? "⏳ Impression…" : "🖨️ Imprimer"}
+              {impressionEnCours ? "Impression…" : "Imprimer"}
             </button>
             <button
               onClick={archiver}
               disabled={!contenu}
               className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-nuit-100 disabled:opacity-40"
             >
-              📁 Archiver dans la GED
+              <FolderOpen size={15} className="inline" /> Archiver dans la GED
             </button>
           </div>
           {statut && <p className="text-sm text-emerald-600 mt-2">{statut}</p>}

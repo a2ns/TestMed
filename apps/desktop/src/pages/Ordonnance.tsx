@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { api, NouvellePrescription } from "../lib/api";
 import { useNavigate as _nav } from "react-router-dom";
 import { useAuth } from "../lib/auth";
+import { AlertTriangle, Plus } from "lucide-react";
 
 type TypeOrdo = "SIMPLE" | "BI_ORDONNANCE" | "SECURISEE";
 
@@ -176,7 +177,7 @@ export default function Ordonnance() {
       <p className="text-slate-500 mb-2">{nomPatient || "…"}</p>
       {contextePatient.allergies.length > 0 && (
         <p className="text-sm text-red-600 font-medium mb-6">
-          ⚠ Allergies : {contextePatient.allergies.join(", ")} — l'assistant en tient compte
+          <AlertTriangle size={14} className="inline" /> Allergies : {contextePatient.allergies.join(", ")} — l'assistant en tient compte
         </p>
       )}
       {contextePatient.allergies.length === 0 && <div className="mb-6" />}
@@ -306,7 +307,7 @@ export default function Ordonnance() {
               disabled={!description.trim() || propositionsEnCours}
               className="bg-nuit-950 text-white px-4 py-2 rounded-lg hover:bg-nuit-700 disabled:opacity-40 text-sm whitespace-nowrap"
             >
-              {propositionsEnCours ? "…" : "✨ Proposer"}
+              {propositionsEnCours ? "…" : "Proposer"}
             </button>
           </div>
           {propositions.length > 0 && (
@@ -323,7 +324,7 @@ export default function Ordonnance() {
                   }}
                   className="block w-full text-left px-3 py-2 rounded-lg hover:bg-lavande-50 text-sm border border-nuit-100"
                 >
-                  ➕ {l.medicament} — {l.posologie}
+                  <Plus size={12} className="inline" /> {l.medicament} — {l.posologie}
                   {l.duree ? ` (${l.duree})` : ""}
                 </button>
               ))}
@@ -340,7 +341,7 @@ export default function Ordonnance() {
             disabled={enCours}
             className="bg-lavande-600 text-white px-4 py-2 rounded-lg hover:bg-lavande-700 disabled:opacity-40"
           >
-            {enCours ? "Traitement…" : "💾 Enregistrer et imprimer"}
+            {enCours ? "Traitement…" : "Enregistrer et imprimer"}
           </button>
         </div>
       </div>

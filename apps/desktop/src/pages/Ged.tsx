@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api, ResultatDocument } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import PatientPicker from "../components/PatientPicker";
+import { Eye, Trash2, FileUp, CheckCircle2, Inbox } from "lucide-react";
 
 const TYPES = [
   "COURRIER",
@@ -141,7 +142,7 @@ export default function Ged() {
       {caddie.length > 0 && (
         <div className="bg-amber-50 rounded-xl border border-amber-300 p-6 mb-6 space-y-4">
           <h2 className="font-semibold text-amber-800">
-            📥 {caddie.length} document{caddie.length > 1 ? "s" : ""} à trier
+            <Inbox size={16} className="inline" /> {caddie.length} document{caddie.length > 1 ? "s" : ""} à trier
           </h2>
           {caddie.map((doc) => (
             <LigneCaddie
@@ -209,7 +210,7 @@ export default function Ged() {
                     )}
                     className="text-xs text-lavande-600 hover:text-lavande-800"
                   >
-                    👁 Voir
+                    <Eye size={14} className="inline" /> Voir
                   </button>
                   <button
                     onClick={async () => {
@@ -220,7 +221,7 @@ export default function Ged() {
                     }}
                     className="text-xs text-red-500 hover:text-red-700"
                   >
-                    🗑 Supprimer
+                    <Trash2 size={14} className="inline" /> Supprimer
                   </button>
                 </div>
                 {r.extrait && (
@@ -269,7 +270,7 @@ export default function Ged() {
             </select>
           </div>
           <label className="bg-lavande-600 text-white px-4 py-2 rounded-lg hover:bg-lavande-700 cursor-pointer">
-            📥 Importer un fichier
+            <FileUp size={16} className="inline" /> Importer un fichier
             <input type="file" className="hidden" onChange={importerFichier} />
           </label>
         </div>
@@ -303,7 +304,7 @@ export default function Ged() {
               disabled={scanEnCours || !scanner}
               className="bg-nuit-950 text-white px-4 py-2 rounded-lg hover:bg-nuit-700 disabled:opacity-40"
             >
-              {scanEnCours ? "⏳ Scan + OCR en cours…" : "📄 Scanner en masse"}
+              {scanEnCours ? "Scan + OCR en cours…" : "Scanner en masse"}
             </button>
           </div>
           <p className="mt-2 text-xs text-slate-400">
@@ -387,7 +388,7 @@ function LigneCaddie({
           disabled={!patientId || enCours}
           className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 disabled:opacity-40 text-sm"
         >
-          ✅ Classer
+          <CheckCircle2 size={14} className="inline" /> Classer
         </button>
       </div>
       {erreur && <p className="text-xs text-red-600">{erreur}</p>}
