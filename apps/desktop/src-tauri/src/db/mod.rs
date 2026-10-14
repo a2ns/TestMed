@@ -683,6 +683,19 @@ pub async fn insert_document_ocr(
     Ok(())
 }
 
+
+/// Extrait la ville d'une adresse : dernier segment non vide, en retirant
+/// le code postal s'il est collé (« 75000 Paris » → « Paris »).
+fn extraire_ville(adresse: Option<&str>) -> Option<String> {
+    let adr = adresse?.trim();
+    let dernier = adr.rsplit(',').next()?.trim();
+    let ville = dernier
+        .split_whitespace()
+        .skip_while(|m| m.chars().all(|c| c.is_ascii_digit()))
+        .collect::<Vec<_>>()
+        .join(" ");
+    if ville.is_empty() { None } else { Some(ville) }
+}
 pub async fn generer_courrier(req: &crate::commands::courriers::CourrierRequest) -> Result<crate::commands::courriers::CourrierGenere, String> {
     // Contexte complet : patient (avec âge), praticien connecté (coordonnées).
     let pool = pool().map_err(|e| e.to_string())?;
@@ -710,6 +723,8 @@ pub async fn generer_courrier(req: &crate::commands::courriers::CourrierRequest)
         adresse_cabinet: praticien.cabinet_adresse.clone(),
         telephone_praticien: praticien.telephone.clone(),
         email_praticien: praticien.email.clone(),
+        ville: extraire_ville(praticien.cabinet_adresse.as_deref()),
+        date_jour: chrono::Local::now().format("%d/%m/%Y").to_string(),
         destinataire: req.destinataire.clone(),
         gabarit: req.gabarit.clone(),
         notes: req.notes.clone(),

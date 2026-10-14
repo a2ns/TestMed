@@ -9,6 +9,8 @@ pub struct ContexteCourrier {
     pub nom_patient: String,
     pub prenoms_patient: String,
     pub age: Option<i32>,
+    pub ville: Option<String>,
+    pub date_jour: String,
     pub nom_praticien: String,
     pub cabinet: Option<String>,
     pub adresse_cabinet: Option<String>,
@@ -25,7 +27,14 @@ N'invente aucun diagnostic ni traitement non mentionné dans les notes. \
 Règle absolue : ne laisse AUCUN champ à compléter, aucun [crochet], aucun placeholder. \
 Utilise uniquement les informations fournies dans le contexte ; s'il manque une information (coordonnées \
 du praticien ou du destinataire), compose le courrier sans cette ligne plutôt que d'insérer un champ vide. \
-Le courrier doit être prêt à imprimer tel quel.";
+Le courrier doit être prêt à imprimer tel quel.
+
+MISE EN PAGE EXIGÉE (courrier postal français) :
+- En-tête expéditeur en HAUT À GAUCHE : nom du médecin, cabinet, adresse, téléphone, email (fournis dans le contexte).
+- Destinataire en HAUT À DROITE (sous l'expéditeur) : nom et adresse du destinataire fournis.
+- Date et ville du jour, alignées à DROITE, sous le destinataire : « [Ville], le [date du jour] » (fournies dans le contexte).
+- Puis l'objet, le corps, la formule de politesse et la signature.
+Utilise un texte brut structuré par des lignes et des lignes vides (pas de tableaux, pas de markdown **gras**)";
 
 fn base_url() -> String {
     std::env::var("AI_BASE_URL").unwrap_or_else(|_| "https://api.mistral.ai/v1".into())
@@ -68,6 +77,11 @@ fn prompt_contexte(c: &ContexteCourrier) -> String {
         _ => p.push_str("Destinataire : général, utilise « Cher Confrère »\n"),
     }
     p.push_str(&format!("\nNotes de consultation :\n{}\n", c.notes));
+    p.push_str(&format!("\nDate du jour : {}\n", c.date_jour));
+    match &c.ville {
+        Some(v) if !v.trim().is_empty() => p.push_str(&format!("Ville d'émission : {v}\n")),
+        _ => p.push_str("Ville d'émission : inconnue (écris seulement la date, sans ville)\n"),
+    }
     p.push_str("\nRédige le courrier complet, prêt à imprimer, avec en-tête du praticien, destinataire, objet, corps et signature. Aucun placeholder.");
     p
 }
