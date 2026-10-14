@@ -86,6 +86,45 @@ fn prompt_contexte(c: &ContexteCourrier) -> String {
     p
 }
 
+/// Épure les artefacts courants des modèles de langue : séparateurs
+/// décoratifs (----, ====, ____), markdown résiduel (**gras**, ## titres),
+/// bordures de code, séquences de symboles.
+pub fn epurer_texte(brut: &str) -> String {
+    let lignes: Vec<String> = brut
+        .lines()
+        .map(|l| {
+            let mut l = l.trim().to_string();
+            // markdown résiduel
+            while l.contains("**") {
+                l = l.replace("**", "");
+            }
+            l = l.trim_start_matches('#').trim().to_string();
+            l = l.trim_start_matches("```").trim().to_string();
+            // séparateurs décoratifs : lignes de 3+ tirets/égaux/underscores
+            let sans_decor = l.trim_start_matches(['-', '=', '_', '*', '~', '—']);
+            if sans_decor.is_empty() && l.len() >= 3 {
+                return String::new(); // ligne purement décorative : supprimée
+            }
+            l
+        })
+        .collect();
+    // lignes vides consécutives max 2 (paragraphes aérés)
+    let mut resultat: Vec<String> = Vec::new();
+    let mut vides_consecutives = 0;
+    for l in lignes {
+        if l.is_empty() {
+            vides_consecutives += 1;
+            if vides_consecutives <= 2 {
+                resultat.push(l);
+            }
+        } else {
+            vides_consecutives = 0;
+            resultat.push(l);
+        }
+    }
+    resultat.join("\n").trim().to_string()
+}
+
 /// Génère un courrier à partir du contexte complet.
 pub async fn generer(c: &ContexteCourrier) -> Result<String, String> {
     let corps = serde_json::json!({
@@ -97,7 +136,7 @@ pub async fn generer(c: &ContexteCourrier) -> Result<String, String> {
         "temperature": 0.3
     });
     let reponse = appel_ia(&corps).await?;
-    Ok(reponse)
+    Ok(epurer_texte(&reponse))
 }
 
 /// Appel IA commun (avec clé si présente — Ollama n'en exige pas).
@@ -164,7 +203,7 @@ Rends uniquement le texte corrigé, sans commentaire."},
         ],
         "temperature": 0.3
     });
-    let resultat = appel_ia(&corps).await?;
+    let resultat = epurer_texte(&appel_ia(&corps).await?);
     crate::audit::journaliser(
         &utilisateur.id,
         "IA_REFORMULATION",
@@ -234,7 +273,7 @@ pub async fn assister_ia(
         ],
         "temperature": 0.3
     });
-    let resultat = appel_ia(&corps).await?;
+    let resultat = epurer_texte(&appel_ia(&corps).await?);
     crate::audit::journaliser(
         &utilisateur.id,
         "IA_ASSISTANCE",
