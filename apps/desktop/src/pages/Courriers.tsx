@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import PatientPicker from "../components/PatientPicker";
+import IndicateurIa from "../components/IndicateurIa";
 import { Sparkles, FolderOpen } from "lucide-react";
 
 // token exposé via useAuth pour les appels audités
@@ -250,6 +251,7 @@ export default function Courriers() {
           >
             {chargement ? "Génération…" : "Générer le courrier"}
           </button>
+          <IndicateurIa actif={chargement} tache="courrier" />
         </div>
         <div className="flex flex-col">
           <label className="text-sm text-slate-500 mb-1">
@@ -262,6 +264,7 @@ export default function Courriers() {
             className="flex-1 w-full border border-slate-300 rounded-lg p-4 bg-white font-serif focus:outline-none focus:ring-2 focus:ring-lavande-400"
             placeholder="Le brouillon IA apparaîtra ici…"
           />
+          <IndicateurIa actif={chargement && !contenu} tache="reformulation" />
           <div className="flex gap-3 mt-3 flex-wrap">
             <button
               onClick={reformuler}
