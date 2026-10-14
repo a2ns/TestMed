@@ -14,8 +14,16 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::patients::list_patients,
+            commands::patients::creer_patient,
             commands::documents::import_document,
+            commands::documents::list_documents,
             commands::courriers::generer_courrier_ia,
+            commands::courriers::reformuler_courrier_ia,
+            commands::courriers::relire_courrier_ia,
+            commands::courriers::enregistrer_courrier,
+            commands::courriers::list_courriers,
+            commands::courriers::valider_courrier,
+            commands::dashboard::statistiques,
         ])
         .run(tauri::generate_context!())
         .expect("erreur au lancement de MagicMed");

@@ -17,6 +17,8 @@ fn pool() -> Result<&'static PgPool, String> {
     POOL.get().ok_or_else(|| "base non initialisée".to_string())
 }
 
+// ---------- Patients ----------
+
 pub async fn query_patients(recherche: &str) -> Result<Vec<crate::commands::patients::Patient>, String> {
     let pool = pool()?;
     let rows = sqlx::query_as::<_, crate::commands::patients::Patient>(
@@ -29,10 +31,71 @@ pub async fn query_patients(recherche: &str) -> Result<Vec<crate::commands::pati
     Ok(rows)
 }
 
+pub async fn creer_patient(req: &crate::commands::patients::PatientNouveau) -> Result<crate::commands::patients::Patient, String> {
+    let pool = pool()?;
+    let id = uuid::Uuid::new_v4().to_string();
+    sqlx::query_as::<_, crate::commands::patients::Patient>(
+        "INSERT INTO patient (id, nom, prenoms, \"dateNaissance\", sexe, telephone, email, \"medecinTraitant\")
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         RETURNING id, nom, prenoms",
+    )
+    .bind(&id)
+    .bind(&req.nom)
+    .bind(&req.prenoms)
+    .bind(
+        req.date_naissance
+            .as_deref()
+            .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok()),
+    )
+    .bind(&req.sexe)
+    .bind(&req.telephone)
+    .bind(&req.email)
+    .bind(&req.medecin_traitant)
+    .fetch_one(pool)
+    .await
+    .map_err(|e| e.to_string())
+}
+
+pub async fn contexte_patient(patient_id: &str) -> Result<crate::ia::ContextePatient, String> {
+    let pool = pool()?;
+    let p: (String, String, Option<chrono::NaiveDate>, Option<String>, Option<String>) =
+        sqlx::query_as(
+            "SELECT nom, prenoms, \"dateNaissance\", sexe, \"medecinTraitant\" FROM patient WHERE id = $1",
+        )
+        .bind(patient_id)
+        .fetch_one(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    let consultations: Vec<(chrono::NaiveDateTime, Option<String>, Option<String>)> = sqlx::query_as(
+        "SELECT date, motif, notes FROM consultation WHERE \"patientId\" = $1 ORDER BY date DESC LIMIT 5",
+    )
+    .bind(patient_id)
+    .fetch_all(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(crate::ia::ContextePatient {
+        nom: p.0,
+        prenoms: p.1,
+        date_naissance: p.2.map(|d| d.format("%d/%m/%Y").to_string()),
+        sexe: p.3,
+        medecin_traitant: p.4,
+        dernieres_consultations: consultations
+            .into_iter()
+            .map(|c| crate::ia::ConsultationResume {
+                date: c.0.format("%d/%m/%Y").to_string(),
+                motif: c.1,
+                notes: c.2,
+            })
+            .collect(),
+    })
+}
+
+// ---------- Documents (GED) ----------
+
 pub async fn insert_document(doc: &crate::commands::documents::DocumentImport) -> Result<String, String> {
     let pool = pool()?;
     let id = uuid::Uuid::new_v4().to_string();
-    sqlx::query("INSERT INTO document (id, patient_id, nom_fichier, chemin_stockage, type) VALUES ($1, $2, $3, $4, $5)")
+    sqlx::query("INSERT INTO document (id, \"patientId\", \"nomFichier\", \"cheminStockage\", type) VALUES ($1, $2, $3, $4, $5)")
         .bind(&id)
         .bind(&doc.patient_id)
         .bind(&doc.nom_fichier)
@@ -44,17 +107,89 @@ pub async fn insert_document(doc: &crate::commands::documents::DocumentImport) -
     Ok(id)
 }
 
-pub async fn generer_courrier(req: &crate::commands::courriers::CourrierRequest) -> Result<crate::commands::courriers::CourrierGenere, String> {
-    // Le contexte patient est chargé depuis la base, puis le module IA
-    // (Mistral API ou Ollama local) génère le brouillon de courrier.
+pub async fn list_documents(patient_id: Option<&str>) -> Result<Vec<crate::commands::documents::DocumentRow>, String> {
     let pool = pool()?;
-    let patient: (String, String, String) = sqlx::query_as(
-        "SELECT id, nom, prenoms FROM patient WHERE id = $1",
+    let rows = sqlx::query_as::<_, crate::commands::documents::DocumentRow>(
+        "SELECT id, \"patientId\", \"nomFichier\", type, \"createdAt\" FROM document
+         WHERE ($1::text IS NULL OR \"patientId\" = $1) ORDER BY \"createdAt\" DESC LIMIT 200",
     )
+    .bind(patient_id)
+    .fetch_all(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(rows)
+}
+
+// ---------- Courriers ----------
+
+pub async fn enregistrer_courrier(req: &crate::commands::courriers::CourrierSauvegarde) -> Result<crate::commands::courriers::CourrierRow, String> {
+    let pool = pool()?;
+    let row = sqlx::query_as::<_, crate::commands::courriers::CourrierRow>(
+        "INSERT INTO courrier (id, \"patientId\", sujet, contenu, \"aiGenere\", statut, date)
+         VALUES ($1, $2, $3, $4, $5, $6, now())
+         RETURNING id, \"patientId\", sujet, contenu, \"aiGenere\", statut, date",
+    )
+    .bind(uuid::Uuid::new_v4().to_string())
     .bind(&req.patient_id)
+    .bind(&req.sujet)
+    .bind(&req.contenu)
+    .bind(req.ai_genere)
+    .bind(if req.valide { "VALIDE" } else { "BROUILLON" })
     .fetch_one(pool)
     .await
     .map_err(|e| e.to_string())?;
-    let contenu = crate::ia::generer(&patient.1, &patient.2, &req.gabarit, &req.notes).await?;
-    Ok(crate::commands::courriers::CourrierGenere { contenu })
+    Ok(row)
+}
+
+pub async fn list_courriers(patient_id: Option<&str>) -> Result<Vec<crate::commands::courriers::CourrierRow>, String> {
+    let pool = pool()?;
+    let rows = sqlx::query_as::<_, crate::commands::courriers::CourrierRow>(
+        "SELECT id, \"patientId\", sujet, contenu, \"aiGenere\", statut, date FROM courrier
+         WHERE ($1::text IS NULL OR \"patientId\" = $1) ORDER BY date DESC LIMIT 200",
+    )
+    .bind(patient_id)
+    .fetch_all(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(rows)
+}
+
+pub async fn valider_courrier(id: &str) -> Result<(), String> {
+    let pool = pool()?;
+    sqlx::query("UPDATE courrier SET statut = 'VALIDE' WHERE id = $1")
+        .bind(id)
+        .execute(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+// ---------- Statistiques tableau de bord ----------
+
+pub async fn statistiques() -> Result<crate::commands::dashboard::Stats, String> {
+    let pool = pool()?;
+    let (patients_total,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM patient")
+        .fetch_one(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    let (documents_total,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM document")
+        .fetch_one(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    let (courriers_brouillons,): (i64,) =
+        sqlx::query_as("SELECT COUNT(*) FROM courrier WHERE statut = 'BROUILLON'")
+            .fetch_one(pool)
+            .await
+            .map_err(|e| e.to_string())?;
+    let (courriers_valides,): (i64,) =
+        sqlx::query_as("SELECT COUNT(*) FROM courrier WHERE statut = 'VALIDE'")
+            .fetch_one(pool)
+            .await
+            .map_err(|e| e.to_string())?;
+    Ok(crate::commands::dashboard::Stats {
+        patients_total,
+        documents_total,
+        courriers_brouillons,
+        courriers_valides,
+    })
 }
