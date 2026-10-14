@@ -36,6 +36,10 @@ export default function Ged() {
 
   const [recherche, setRecherche] = useState("");
   const [filtreType, setFiltreType] = useState("");
+  const [filtreDateDebut, setFiltreDateDebut] = useState("");
+  const [filtreDateFin, setFiltreDateFin] = useState("");
+  const [patientFiltre, setPatientFiltre] = useState("");
+  const [patientFiltreNom, setPatientFiltreNom] = useState("");
   const [resultats, setResultats] = useState<ResultatDocument[]>([]);
   const [rechercheEnCours, setRechercheEnCours] = useState(false);
 
@@ -73,18 +77,37 @@ export default function Ged() {
       .finally(() => setScanDetection("termine"));
   }
 
+  // Recherche multi-critères : combinée, 300 ms de délai anti-frein.
   useEffect(() => {
-    if (recherche.trim().length < 2) {
-      setResultats([]);
-      return;
-    }
-    setRechercheEnCours(true);
-    api
-      .rechercheDocuments(recherche, filtreType || null, token!)
-      .then(setResultats)
-      .catch((e) => setErreur(String(e)))
-      .finally(() => setRechercheEnCours(false));
-  }, [recherche, filtreType, token]);
+    const t = setTimeout(() => {
+      const aucunCritere =
+        recherche.trim().length < 2 &&
+        !filtreType &&
+        !filtreDateDebut &&
+        !filtreDateFin &&
+        !patientFiltre;
+      if (aucunCritere) {
+        setResultats([]);
+        return;
+      }
+      setRechercheEnCours(true);
+      api
+        .rechercheMulti(
+          {
+            texte: recherche.trim().length >= 2 ? recherche : null,
+            patientId: patientFiltre || null,
+            typeDoc: filtreType || null,
+            dateDebut: filtreDateDebut || null,
+            dateFin: filtreDateFin || null,
+          },
+          token!
+        )
+        .then(setResultats)
+        .catch((e) => setErreur(String(e)))
+        .finally(() => setRechercheEnCours(false));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [recherche, filtreType, filtreDateDebut, filtreDateFin, patientFiltre, token]);
 
   async function importerFichier(e: React.ChangeEvent<HTMLInputElement>) {
     const fichier = e.target.files?.[0];
@@ -158,12 +181,12 @@ export default function Ged() {
 
       <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-4">
         <h2 className="font-semibold">Recherche plein texte</h2>
-        <div className="flex flex-wrap gap-4 items-center">
+        <div className="grid grid-cols-2 gap-3">
           <input
             value={recherche}
             onChange={(e) => setRecherche(e.target.value)}
-            placeholder="Rechercher dans le contenu des documents (OCR)…"
-            className="flex-1 min-w-72 border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-lavande-400"
+            placeholder="Texte (contenu des documents, OCR)…"
+            className="border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-lavande-400"
           />
           <select
             value={filtreType}
@@ -177,6 +200,37 @@ export default function Ged() {
               </option>
             ))}
           </select>
+          <div>
+            <PatientPicker
+              label="Patient (optionnel)"
+              patientId={patientFiltre}
+              patientNom={patientFiltreNom}
+              onSelect={(id, nom) => {
+                setPatientFiltre(id);
+                setPatientFiltreNom(nom);
+              }}
+            />
+          </div>
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="block text-xs text-slate-500 mb-1">Du</label>
+              <input
+                type="date"
+                value={filtreDateDebut}
+                onChange={(e) => setFiltreDateDebut(e.target.value)}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs text-slate-500 mb-1">Au</label>
+              <input
+                type="date"
+                value={filtreDateFin}
+                onChange={(e) => setFiltreDateFin(e.target.value)}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white"
+              />
+            </div>
+          </div>
         </div>
         {rechercheEnCours && (
           <p className="text-sm text-slate-500">Recherche…</p>
@@ -241,9 +295,17 @@ export default function Ged() {
             ))}
           </div>
         )}
-        {recherche.trim().length >= 2 && !rechercheEnCours && resultats.length === 0 && (
-          <p className="text-sm text-slate-500">Aucun document trouvé.</p>
-        )}
+        {!rechercheEnCours &&
+          (recherche.trim().length >= 2 ||
+            filtreType ||
+            filtreDateDebut ||
+            filtreDateFin ||
+            patientFiltre) &&
+          resultats.length === 0 && (
+            <p className="text-sm text-slate-500">
+              Aucun document ne correspond à ces critères.
+            </p>
+          )}
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-4 mt-6">

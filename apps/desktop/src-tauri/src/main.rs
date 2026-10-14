@@ -46,6 +46,7 @@ fn main() {
             commands::agenda::supprimer_rdv,
             commands::agenda::modifier_rdv,
             commands::recherche::recherche_documents,
+            commands::recherche::recherche_multi,
             commands::recherche::list_documents,
             commands::recherche::importer_document_intelligent,
             commands::recherche::list_documents_a_trier,

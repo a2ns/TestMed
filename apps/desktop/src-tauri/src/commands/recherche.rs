@@ -78,6 +78,98 @@ pub struct ImportIntelligentResultat {
     pub texte_ocr: String,
 }
 
+/// Recherche multi-critères dans la GED : texte (plein texte OCR),
+/// patient, type de document, période. Tous les critères sont
+/// combinés (ET) et tous optionnels.
+#[tauri::command]
+pub async fn recherche_multi(
+    texte: Option<String>,
+    patient_id: Option<String>,
+    type_doc: Option<String>,
+    date_debut: Option<String>,
+    date_fin: Option<String>,
+    token: String,
+) -> Result<Vec<ResultatDocument>, String> {
+    crate::auth::valider_session(&token).ok_or("session expirée")?;
+
+    // Construction dynamique : chaque critère présent ajoute sa clause.
+    let mut clauses: Vec<String> = Vec::new();
+    let mut params: Vec<String> = Vec::new();
+
+    // Texte : plein texte sur le tsvector (termes en conjonction).
+    if let Some(t) = &texte {
+        if !t.trim().is_empty() {
+            let termes: Vec<String> = t
+                .split_whitespace()
+                .map(|m| {
+                    m.trim_matches(|c: char| !(c.is_alphanumeric() || c == '-'))
+                        .to_lowercase()
+                })
+                .filter(|m| !m.is_empty())
+                .collect();
+            if !termes.is_empty() {
+                let tsquery = termes.join(" & ");
+                params.push(tsquery);
+                clauses.push(format!(
+                    "d.tsv @@ to_tsquery('french', ${})",
+                    params.len()
+                ));
+            }
+        }
+    }
+    if let Some(p) = &patient_id {
+        if !p.trim().is_empty() {
+            params.push(p.clone());
+            clauses.push(format!("d.\"patientId\" = ${}", params.len()));
+        }
+    }
+    if let Some(t) = &type_doc {
+        if !t.trim().is_empty() {
+            params.push(t.clone());
+            clauses.push(format!("d.type = ${}::\"DocType\"", params.len()));
+        }
+    }
+    if let Some(d) = &date_debut {
+        if !d.trim().is_empty() {
+            params.push(d.clone());
+            clauses.push(format!(
+                "d.\"createdAt\" >= ${}::date",
+                params.len()
+            ));
+        }
+    }
+    if let Some(f) = &date_fin {
+        if !f.trim().is_empty() {
+            params.push(f.clone());
+            clauses.push(format!(
+                "d.\"createdAt\" < (${}::date + interval '1 day')",
+                params.len()
+            ));
+        }
+    }
+
+    let mut requete = format!(
+        "SELECT d.id, d.\"patientId\" as patient_id, p.nom as nom_patient, \
+         d.\"nomFichier\" as nom_fichier, d.type::text as type, \
+         CASE WHEN d.tsv IS NULL THEN NULL ELSE LEFT(d.\"ocrTexte\", 200) END as extrait, \
+         d.\"createdAt\" as created_at \
+         FROM \"Document\" d LEFT JOIN \"Patient\" p ON p.id = d.\"patientId\""
+    );
+    if !clauses.is_empty() {
+        requete.push_str(" WHERE ");
+        requete.push_str(&clauses.join(" AND "));
+    }
+    requete.push_str(" ORDER BY d.\"createdAt\" DESC LIMIT 200");
+
+    let pool = crate::db::pool().map_err(|e| e.to_string())?;
+    let mut q = sqlx::query_as::<_, ResultatDocument>(&requete);
+    for p in &params {
+        q = q.bind(p);
+    }
+    let resultats = q.fetch_all(pool).await.map_err(|e| e.to_string())?;
+    Ok(resultats)
+}
+
 /// Documents du caddie (à trier par le praticien).
 #[tauri::command]
 pub async fn list_documents_a_trier(token: String) -> Result<Vec<ResultatDocument>, String> {

@@ -225,6 +225,21 @@ export const api = {
     invoke<void>("modifier_rdv", { m: { id, debut, dureeMin, motif }, token }),
   rechercheDocuments: (recherche: string, typeDoc: string | null, token: string) =>
     invoke<ResultatDocument[]>("recherche_documents", { recherche, typeDoc, token }),
+  rechercheMulti: (criteres: {
+    texte: string | null;
+    patientId: string | null;
+    typeDoc: string | null;
+    dateDebut: string | null;
+    dateFin: string | null;
+  }, token: string) =>
+    invoke<ResultatDocument[]>("recherche_multi", {
+      texte: criteres.texte,
+      patientId: criteres.patientId,
+      typeDoc: criteres.typeDoc,
+      dateDebut: criteres.dateDebut,
+      dateFin: criteres.dateFin,
+      token,
+    }),
   listDocuments: (patientId: string | null) =>
     invoke<ResultatDocument[]>("list_documents", { patientId }),
   importerIntelligent: (chemin: string, nomFichier: string, typeDoc: string, patientIndice: string | null, token: string) =>
