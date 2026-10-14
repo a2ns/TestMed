@@ -129,9 +129,10 @@ pub async fn importer_arret_amelie(
     let motif = at["motif"].as_str().unwrap_or("");
 
     // 1. Rattachement patient : par NIR (empreinte), puis par nom+prénoms.
-    let patient_id = crate::db::trouver_patient_par_nir(nir).await
-        .or_else(|| crate::db::trouver_patient_par_identite(nom, prenoms))
-        .await;
+    let patient_id = match crate::db::trouver_patient_par_nir(nir).await {
+        Some(id) => Some(id),
+        None => crate::db::trouver_patient_par_identite(nom, prenoms).await,
+    };
 
     let resultat = match patient_id {
         Some(id) => {
