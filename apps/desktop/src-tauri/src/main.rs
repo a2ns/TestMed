@@ -54,6 +54,7 @@ fn main() {
             commands::documents::import_document,
             commands::documents::supprimer_document,
             commands::documents::ouvrir_document,
+            commands::documents::enregistrer_courrier_ged,
             commands::courriers::generer_courrier_ia,
             ia::tester_ia,
             db::maj_praticien,

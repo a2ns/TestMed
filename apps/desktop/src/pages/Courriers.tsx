@@ -81,18 +81,44 @@ export default function Courriers() {
 
   async function archiver() {
     if (!contenu) return;
+    setImpressionEnCours(true);
     setErreur(null);
     setStatut(null);
     try {
-      const id = await api.importDocument({
-        patientId: patientId || null,
-        nomFichier: `courrier-${gabarit}.pdf`,
-        chemin: await dossierGed(),
-        typeDoc: "COURRIER",
-      });
-      setStatut(`Courrier archivé (${id.slice(0, 8)}…)`);
+      // 1. PDF mis en page, enregistré dans la GED (chemin retourné).
+      const cheminPdf = await api.imprimerCourrier(
+        {
+          praticien: `Dr ${utilisateur?.prenoms ?? ""} ${utilisateur?.nom ?? ""}`.trim(),
+          cabinet: `${utilisateur?.cabinetNom ?? ""}\n${utilisateur?.cabinetAdresse ?? ""}\n${utilisateur?.telephone ?? ""}`.trim(),
+          patient: patientNom,
+          destinataire: destinataire || "Cher Confrère",
+          objet: `Courrier — ${gabarit}`,
+          corps: contenu,
+          signature: `Dr ${utilisateur?.nom ?? ""}`,
+        },
+        await dossierGed(),
+        false // pas d'envoi imprimante : archivage seul
+      );
+      // 2. Enregistrement en base, rattaché au patient, avec le texte
+      //    pour la recherche plein texte (l'"OCR" du courrier = son contenu).
+      if (patientId) {
+        const id = await api.enregistrerCourrierGed(
+          {
+            patientId,
+            nomFichier: `courrier-${gabarit}-${new Date().toISOString().slice(0, 10)}.pdf`,
+            chemin: cheminPdf,
+            contenu,
+          },
+          token!
+        );
+        setStatut(`Courrier archivé dans le dossier du patient (${id.slice(0, 8)}…) — visible dans son onglet Documents`);
+      } else {
+        setStatut("PDF généré — sélectionnez un patient pour l'archiver dans son dossier");
+      }
     } catch (e) {
       setErreur(String(e));
+    } finally {
+      setImpressionEnCours(false);
     }
   }
 

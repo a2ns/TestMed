@@ -238,6 +238,12 @@ export const api = {
     invoke<void>("supprimer_document", { id, token }),
   ouvrirDocument: (id: string, token: string) =>
     invoke<void>("ouvrir_document", { id, token }),
+  enregistrerCourrierGed: (c: {
+    patientId: string;
+    nomFichier: string;
+    chemin: string;
+    contenu: string;
+  }, token: string) => invoke<string>("enregistrer_courrier_ged", { c, token }),
   testerIa: (token: string) =>
     invoke<{ operationnel: boolean; baseUrl: string; modele: string; reponse: string }>(
       "tester_ia", { token }

@@ -71,3 +71,41 @@ pub async fn ouvrir_document(id: String, token: String) -> Result<(), String> {
     );
     Ok(())
 }
+
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CourrierGed {
+    pub patient_id: String,
+    pub nom_fichier: String,
+    pub chemin: String,
+    pub contenu: String,
+}
+
+/// Enregistre un courrier généré dans la GED du patient : le texte du
+/// courrier sert d'index de recherche plein texte (comme l'OCR).
+#[tauri::command]
+pub async fn enregistrer_courrier_ged(
+    c: CourrierGed,
+    token: String,
+) -> Result<String, String> {
+    let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
+    let id = uuid::Uuid::new_v4().to_string();
+    crate::db::insert_document_ocr_intelligent(
+        &id,
+        Some(&c.patient_id),
+        &c.nom_fichier,
+        &c.chemin,
+        "COURRIER",
+        &c.contenu,
+        false,
+    )
+    .await?;
+    crate::audit::journaliser(
+        &utilisateur.id,
+        "COURRIER_ARCHIVE",
+        Some("patient"),
+        Some(&c.patient_id),
+        Some(serde_json::json!({ "document": id })),
+    );
+    Ok(id)
+}
