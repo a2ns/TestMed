@@ -3,6 +3,7 @@
 mod commands;
 mod db;
 mod ia;
+mod sesam_vitale;
 
 fn main() {
     tauri::Builder::default()
@@ -24,6 +25,8 @@ fn main() {
             commands::courriers::list_courriers,
             commands::courriers::valider_courrier,
             commands::dashboard::statistiques,
+            commands::vitale::lire_carte_vitale,
+            commands::vitale::lire_cps,
         ])
         .run(tauri::generate_context!())
         .expect("erreur au lancement de MagicMed");

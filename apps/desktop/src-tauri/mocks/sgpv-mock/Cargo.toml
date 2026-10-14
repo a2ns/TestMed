@@ -1,0 +1,9 @@
+[package]
+name = "sgpv-mock"
+version = "0.1.0"
+edition = "2021"
+description = "Mock sgpv.dll (FSV) pour développement/test MagicMed sans matériel SESAM-Vitale"
+
+[lib]
+name = "sgpv"
+crate-type = ["cdylib"]
