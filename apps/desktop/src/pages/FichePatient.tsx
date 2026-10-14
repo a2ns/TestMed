@@ -38,6 +38,17 @@ export default function FichePatient() {
     setConsultations(await api.listConsultations(id));
   }
 
+  async function structurerNotes(motif: string, notes: string): Promise<{motif: string, notes: string} | null> {
+    if (!notes.trim()) return null;
+    try {
+      const structure = await api.assisterIa("consultation", notes, token!);
+      return { motif, notes: structure };
+    } catch (e) {
+      setErreur(String(e));
+      return null;
+    }
+  }
+
   async function supprimerUneConsultation(idCons: string) {
     await api.supprimerConsultation(idCons, token!);
     if (id) setConsultations(await api.listConsultations(id));
@@ -105,6 +116,7 @@ export default function FichePatient() {
           consultations={consultations}
           ajouter={ajouterConsultation}
           supprimer={supprimerUneConsultation}
+          structurer={structurerNotes}
         />
       )}
       {onglet === "antecedents" && (
@@ -128,10 +140,12 @@ function SectionConsultations({
   consultations,
   ajouter,
   supprimer,
+  structurer,
 }: {
   consultations: Consultation[];
   ajouter: (motif: string, notes: string) => Promise<void>;
   supprimer: (id: string) => Promise<void>;
+  structurer: (motif: string, notes: string) => Promise<{ motif: string; notes: string } | null>;
 }) {
   const [motif, setMotif] = useState("");
   const [notes, setNotes] = useState("");
@@ -152,13 +166,26 @@ function SectionConsultations({
           placeholder="Notes : examen, diagnostic, conduite à tenir…"
           className="w-full border border-slate-300 rounded-lg p-3"
         />
-        <button
-          onClick={() => ajouter(motif, notes).then(() => { setMotif(""); setNotes(""); })}
-          disabled={!motif}
-          className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 disabled:opacity-40"
-        >
-          Enregistrer
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => ajouter(motif, notes).then(() => { setMotif(""); setNotes(""); })}
+            disabled={!motif}
+            className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 disabled:opacity-40"
+          >
+            Enregistrer
+          </button>
+          <button
+            onClick={async () => {
+              const r = await structurer(motif, notes);
+              if (r) setNotes(r.notes);
+            }}
+            disabled={!notes.trim()}
+            className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-100 disabled:opacity-40"
+            title="Structure les notes prises à la hâte en observation claire (motif, examen, conduite à tenir)"
+          >
+            ✨ Structurer
+          </button>
+        </div>
       </div>
       {consultations.map((c) => (
         <div key={c.id} className="bg-white rounded-xl border border-slate-200 p-5">

@@ -59,6 +59,7 @@ fn main() {
             ia::tester_ia,
             db::maj_praticien,
             ia::reformuler_texte,
+            ia::assister_ia,
             commands::scan::lister_scanners,
             commands::scan::scan_masse,
             impression::commande::imprimer_courrier,

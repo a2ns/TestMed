@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api, NouvellePrescription } from "../lib/api";
+import { useNavigate as _nav } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 
 type TypeOrdo = "SIMPLE" | "BI_ORDONNANCE" | "SECURISEE";
@@ -25,6 +26,9 @@ export default function Ordonnance() {
   const [lignes, setLignes] = useState<NouvellePrescription[]>([{ ...LIGNE_VIDE }]);
   const [erreur, setErreur] = useState<string | null>(null);
   const [statut, setStatut] = useState<string | null>(null);
+  const [description, setDescription] = useState("");
+  const [propositions, setPropositions] = useState<NouvellePrescription[]>([]);
+  const [propositionsEnCours, setPropositionsEnCours] = useState(false);
   const [enCours, setEnCours] = useState(false);
   const [nomPatient, setNomPatient] = useState("");
 
@@ -73,6 +77,29 @@ export default function Ordonnance() {
       });
     }
     return texte;
+  }
+
+  async function proposerPrescription() {
+    if (!description.trim()) return;
+    setPropositionsEnCours(true);
+    setErreur(null);
+    try {
+      const reponse = await api.assisterIa("ordonnance", description, token!);
+      // Format attendu : « Médicament | posologie | durée » par ligne
+      const lignes = reponse
+        .split("\n")
+        .map((l) => l.trim())
+        .filter((l) => l.includes("|") && !l.toLowerCase().includes("valider"))
+        .map((l) => {
+          const [medicament, posologie, duree] = l.split("|").map((x) => x.trim());
+          return { ...LIGNE_VIDE, medicament, posologie, duree: duree || null };
+        });
+      setPropositions(lignes);
+    } catch (e) {
+      setErreur(String(e));
+    } finally {
+      setPropositionsEnCours(false);
+    }
   }
 
   async function enregistrerEtImprimer() {
@@ -238,6 +265,45 @@ export default function Ordonnance() {
         >
           + Ajouter une ligne
         </button>
+
+        <div className="border-t border-slate-100 pt-4">
+          <h3 className="font-semibold text-sm mb-2">Assistant prescription</h3>
+          <div className="flex gap-3">
+            <input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Décrire la situation en une phrase (ex. « angine bactérienne, pas d'allergie »)"
+              className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm"
+            />
+            <button
+              onClick={proposerPrescription}
+              disabled={!description.trim() || propositionsEnCours}
+              className="bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-700 disabled:opacity-40 text-sm whitespace-nowrap"
+            >
+              {propositionsEnCours ? "…" : "✨ Proposer"}
+            </button>
+          </div>
+          {propositions.length > 0 && (
+            <div className="mt-3 bg-white rounded-lg border border-slate-200 p-3 space-y-2">
+              <p className="text-xs text-slate-500">
+                Suggestions IA — vérifiez et cliquez pour ajouter à l'ordonnance :
+              </p>
+              {propositions.map((l, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    setLignes([...lignes, l]);
+                    setPropositions(propositions.filter((_, j) => j !== i));
+                  }}
+                  className="block w-full text-left px-3 py-2 rounded-lg hover:bg-sky-50 text-sm border border-slate-100"
+                >
+                  ➕ {l.medicament} — {l.posologie}
+                  {l.duree ? ` (${l.duree})` : ""}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         {erreur && <p className="text-sm text-red-600">Erreur : {erreur}</p>}
         {statut && <p className="text-sm text-emerald-600">{statut}</p>}

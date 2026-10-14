@@ -169,3 +169,40 @@ pub async fn reformuler_texte(texte: String, consigne: String, token: String) ->
     );
     Ok(resultat)
 }
+
+/// Assistante IA générique pour les tâches du dossier patient.
+/// tache : "consultation" (structurer des notes) | "ordonnance" (proposer
+/// des lignes de prescription). Le médecin valide toujours le résultat.
+#[tauri::command]
+pub async fn assister_ia(tache: String, entree: String, token: String) -> Result<String, String> {
+    let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
+    let (systeme, consigne) = match tache.as_str() {
+        "consultation" => (
+            "Tu es un assistant pour un médecin généraliste. Structure et clarifie des notes de consultation prises à la hâte, en une observation médicale claire et ordonnée : motif, examen, diagnostic, conduite à tenir. Ne JAMAIS inventer d'information clinique absente des notes, ne pas inventer de diagnostic. Texte brut, sans markdown.",
+            format!("Structure ces notes de consultation en observation claire :
+{entree}"),
+        ),
+        "ordonnance" => (
+            "Tu es un assistant de prescription pour un médecin généraliste. À partir d'une description libre, propose des lignes d'ordonnance au format strict : « Médicament | posologie | durée » une par ligne. Ne propose QUE des médicaments courants de médecine générale adaptés à la description. Rappelle en fin de réponse : « À vérifier et valider par le médecin ».",
+            format!("Propose des lignes de prescription pour : {entree}"),
+        ),
+        _ => return Err("tache inconnue".into()),
+    };
+    let corps = serde_json::json!({
+        "model": model(),
+        "messages": [
+            {"role": "system", "content": systeme},
+            {"role": "user", "content": consigne}
+        ],
+        "temperature": 0.3
+    });
+    let resultat = appel_ia(&corps).await?;
+    crate::audit::journaliser(
+        &utilisateur.id,
+        "IA_ASSISTANCE",
+        Some("dossier"),
+        Some(&tache),
+        Some(serde_json::json!({ "taille": entree.len() })),
+    );
+    Ok(resultat)
+}
