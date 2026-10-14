@@ -82,5 +82,5 @@ fn main() {
             dmp::deposer_dmp,
         ])
         .run(tauri::generate_context!())
-        .expect("erreur au lancement de MagicMed");
+        .expect("erreur au lancement de Primia");
 }

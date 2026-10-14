@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# MagicMed v2 — démarrage express sur macOS (mode démo/développement)
+# Primia — démarrage express sur macOS (mode démo/développement)
 # Usage : ./scripts/macos-demo.sh
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
 
-echo "🩺 MagicMed v2 — démarrage express macOS"
+echo "🩺 Primia — démarrage express macOS"
 
 # 1. Homebrew
 if ! command -v brew >/dev/null; then
@@ -40,7 +40,7 @@ AI_BASE_URL=https://api.mistral.ai/v1
 AI_MODEL=mistral-small-latest
 AI_API_KEY=
 MAGICMED_CLE_MASTER=$(openssl rand -base64 32)
-MAGICMED_SAUVEGARDE_DOSSIER=$HOME/MagicMed-backups
+MAGICMED_SAUVEGARDE_DOSSIER=$HOME/Primia-backups
 MAGICMED_SAUVEGARDE_RETENTION=30
 EOF
   # Prisma lit packages/db/.env ; Tauri lit .env à la racine → les deux.

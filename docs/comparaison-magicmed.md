@@ -1,8 +1,8 @@
-# Comparaison MagicMed original → MagicMed v2
+# Comparaison Primia original → Primia
 
 Source : softin.fr/magicmed, Quotidien du Médecin (05/12/2006).
 
-| Fonctionnalité MagicMed original | Statut v2 | Notes |
+| Fonctionnalité Primia original | Statut v2 | Notes |
 |---|---|---|
 | Ouverture simultanée de plusieurs dossiers | ❌ | V2 : un dossier à la fois (fenêtre unique). Multifenêtrage possible en phase 2 |
 | Multifenêtrage ajustable/escamotable | ❌ | Idem — v2 privilégie une vue dense unique écran large |
@@ -20,7 +20,7 @@ Source : softin.fr/magicmed, Quotidien du Médecin (05/12/2006).
 
 ## Priorités issues de la comparaison
 
-1. **Carnet de correspondants** : destinataires enregistrés, proposés dans courriers/ordonnances — gain de temps direct (chaque formulaire MagicMed original l'avait)
+1. **Carnet de correspondants** : destinataires enregistrés, proposés dans courriers/ordonnances — gain de temps direct (chaque formulaire Primia original l'avait)
 2. **Constantes biologiques** : saisie rapide + historique (TA, poids, glycémie)
 3. **Annotations rapides** : note libre horodatée sans structure de consultation
 

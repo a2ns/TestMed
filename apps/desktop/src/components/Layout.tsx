@@ -50,7 +50,7 @@ export default function Layout() {
     <div className="flex h-screen">
       <aside className="w-60 bg-nuit-950 text-slate-200 flex flex-col">
         <div className="px-5 py-5 text-xl font-bold text-white tracking-tight">
-          Magic<span className="text-lavande-400">Med</span>
+          Primi<span className="text-lavande-400">a</span>
         </div>
         <nav className="flex-1 px-3 space-y-1">
           {MENU.map((m) => (

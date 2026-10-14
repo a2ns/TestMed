@@ -8,9 +8,9 @@ export default function Dashboard() {
         <Carte titre="Courriers en attente" valeur="—" />
       </div>
       <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-        <h2 className="font-semibold mb-2">Bienvenue dans MagicMed v2</h2>
+        <h2 className="font-semibold mb-2">Bienvenue dans Primia</h2>
         <p className="text-sm text-slate-500 leading-relaxed">
-          Refonte de MagicMed / MagicGed : client lourd Tauri (Rust), PostgreSQL
+          Primia — client lourd Tauri (Rust), PostgreSQL
           central, GED avec scan de masse et OCR, courriers assistés par IA.
         </p>
       </div>

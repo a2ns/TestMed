@@ -1,7 +1,7 @@
 [package]
-name = "magicmed-desktop"
+name = "primia-desktop"
 version = "0.1.0"
-description = "MagicMed v2 - client lourd cabinet médical"
+description = "Primia — logiciel cabinet médecine générale"
 edition = "2021"
 
 [build-dependencies]

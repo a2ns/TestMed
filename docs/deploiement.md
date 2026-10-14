@@ -1,4 +1,4 @@
-# Guide de déploiement — MagicMed v2
+# Guide de déploiement — Primia
 
 Procédure d'installation poste par poste pour un cabinet médical.
 
@@ -63,7 +63,7 @@ Ce poste porte la facturation Vitale :
 3. Brancher le **lecteur de carte certifié** (ex. SprinTUSB) + installer la **CPS**
    du praticien (carte professionnelle).
 4. `.env` du poste : `FSV_DLL=C:\Program Files\FSV\sgpv.dll`
-5. Dans MagicMed : *Système* → l'état « Sesam-Vitale (FSV) » doit passer au vert.
+5. Dans Primia : *Système* → l'état « Sesam-Vitale (FSV) » doit passer au vert.
    Les commandes de lecture Vitale/FSE seront activées en phase 2 avec la
    spécification GIE du cabinet.
 

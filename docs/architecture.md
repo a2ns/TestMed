@@ -1,4 +1,4 @@
-# Architecture — MagicMed v2
+# Architecture — Primia
 
 ## 1. Vue d'ensemble
 

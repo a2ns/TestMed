@@ -39,7 +39,7 @@ pub fn chiffrer(clair: &str) -> Result<String, String> {
             nonce,
             Payload {
                 msg: clair.as_bytes(),
-                aad: b"magicmed-nir".as_ref(),
+                aad: b"primia-nir".as_ref(),
             },
         )
         .map_err(|_| "échec du chiffrement")?;
@@ -64,7 +64,7 @@ pub fn dechiffrer(base64: &str) -> Result<String, String> {
             nonce,
             Payload {
                 msg: chiffre,
-                aad: b"magicmed-nir".as_ref(),
+                aad: b"primia-nir".as_ref(),
             },
         )
         .map_err(|_| "clé de chiffrement invalide ou donnée altérée")?;
@@ -83,7 +83,7 @@ pub fn chiffrer_octets(clair: &[u8]) -> Result<Vec<u8>, String> {
             nonce,
             Payload {
                 msg: clair,
-                aad: b"magicmed-backup".as_ref(),
+                aad: b"primia-backup".as_ref(),
             },
         )
         .map_err(|_| "échec du chiffrement")?;
@@ -107,7 +107,7 @@ pub fn dechiffrer_octets(brut: &[u8]) -> Result<String, String> {
             nonce,
             Payload {
                 msg: chiffre,
-                aad: b"magicmed-backup".as_ref(),
+                aad: b"primia-backup".as_ref(),
             },
         )
         .map_err(|_| "clé invalide ou archive altérée")?;

@@ -16,7 +16,7 @@ type AuthContexte = {
 
 const Ctx = createContext<AuthContexte | null>(null);
 
-const CLE_TOKEN = "magicmed-token";
+const CLE_TOKEN = "primia-token";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);

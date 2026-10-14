@@ -1,4 +1,4 @@
-# MagicMed v2 — Refonte de MagicMed / MagicGed
+# Primia — refonte de MagicMed / MagicGed
 
 Client lourd multiplateforme (Windows + macOS) pour cabinet de médecine
 générale, avec GED, scan de masse + OCR, courriers assistés par IA et
