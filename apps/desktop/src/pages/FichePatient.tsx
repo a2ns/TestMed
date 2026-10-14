@@ -10,6 +10,7 @@ import {
 } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import CourrierPatient from "../components/CourrierPatient";
+import IndicateurIa from "../components/IndicateurIa";
 import {
   Stethoscope,
   Pill,
@@ -365,6 +366,7 @@ function SectionConsultations({
 }) {
   const [motif, setMotif] = useState("");
   const [notes, setNotes] = useState("");
+  const [structureEnCours, setStructureEnCours] = useState(false);
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
@@ -397,8 +399,13 @@ function SectionConsultations({
           </button>
           <button
             onClick={async () => {
-              const r = await structurer(motif, notes);
-              if (r) setNotes(r.notes);
+              setStructureEnCours(true);
+              try {
+                const r = await structurer(motif, notes);
+                if (r) setNotes(r.notes);
+              } finally {
+                setStructureEnCours(false);
+              }
             }}
             disabled={!notes.trim()}
             className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-nuit-100 disabled:opacity-40"
@@ -407,6 +414,7 @@ function SectionConsultations({
             <Sparkles size={14} className="inline" /> Structurer
           </button>
         </div>
+        <IndicateurIa actif={structureEnCours} tache="structuration" />
       </div>
       {consultations.map((c) => (
         <div key={c.id} className="bg-white rounded-xl border border-slate-200 p-5">

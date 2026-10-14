@@ -4,6 +4,7 @@ import { api, NouvellePrescription } from "../lib/api";
 import { useNavigate as _nav } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { AlertTriangle, Plus } from "lucide-react";
+import IndicateurIa from "../components/IndicateurIa";
 
 type TypeOrdo = "SIMPLE" | "BI_ORDONNANCE" | "SECURISEE";
 
@@ -309,6 +310,9 @@ export default function Ordonnance() {
             >
               {propositionsEnCours ? "…" : "Proposer"}
             </button>
+          </div>
+          <div className="mt-2">
+            <IndicateurIa actif={propositionsEnCours} tache="prescription" />
           </div>
           {propositions.length > 0 && (
             <div className="mt-3 bg-white rounded-lg border border-slate-200 p-3 space-y-2">

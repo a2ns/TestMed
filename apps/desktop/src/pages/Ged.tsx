@@ -4,6 +4,7 @@ import { api, ResultatDocument } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import PatientPicker from "../components/PatientPicker";
 import { Eye, Trash2, FileUp, CheckCircle2, Inbox, Sparkles } from "lucide-react";
+import IndicateurIa from "../components/IndicateurIa";
 
 const TYPES = [
   "COURRIER",
@@ -335,10 +336,12 @@ function LigneCaddie({
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
   const [analyseIa, setAnalyseIa] = useState<string | null>(null);
+  const [analyseEnCours, setAnalyseEnCours] = useState(false);
 
   async function analyser() {
     setAnalyseIa(null);
     setErreur(null);
+    setAnalyseEnCours(true);
     try {
       const a = await api.analyserDocumentIa(doc.extrait ?? "", token);
       // Pré-sélection du type proposé
@@ -360,6 +363,8 @@ function LigneCaddie({
       );
     } catch (e) {
       setErreur(String(e));
+    } finally {
+      setAnalyseEnCours(false);
     }
   }
 
@@ -426,6 +431,7 @@ function LigneCaddie({
           <CheckCircle2 size={14} /> Classer
         </button>
       </div>
+      <IndicateurIa actif={analyseEnCours} tache="analyse" />
       {analyseIa && (
         <p className="text-xs text-lavande-700 bg-lavande-50 border border-lavande-200 rounded-lg px-3 py-2">
           {analyseIa}

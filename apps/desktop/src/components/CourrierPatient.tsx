@@ -2,6 +2,7 @@ import { useState } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { Sparkles, FolderOpen } from "lucide-react";
+import IndicateurIa from "./IndicateurIa";
 
 const GABARITS = [
   { code: "adressage", libelle: "Adressement spécialiste" },
@@ -223,6 +224,7 @@ export default function CourrierPatient({
             >
               {chargement ? "Génération…" : "Générer le courrier"}
             </button>
+            <IndicateurIa actif={chargement} tache="courrier" />
           </div>
 
           {/* Aperçu */}
@@ -237,6 +239,7 @@ export default function CourrierPatient({
               className="flex-1 w-full border border-slate-300 rounded-lg p-4 font-serif focus:outline-none focus:ring-2 focus:ring-lavande-400"
               placeholder="Le brouillon IA apparaîtra ici…"
             />
+            <IndicateurIa actif={chargement && !contenu} tache="reformulation" />
             <div className="flex gap-2 mt-3 flex-wrap">
               <button
                 onClick={reformuler}
