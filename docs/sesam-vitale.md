@@ -20,23 +20,43 @@ sesam_vitale::ffi → FFI Rust → sgpv.dll (FSV du GIE SESAM-Vitale)
 - `scripts/utm/` : création de la VM Windows (UTM/macOS Apple Silicon) et
   configuration du poste.
 
-## VM Windows (UTM, Apple Silicon)
+## VM Windows « Core » (WinPE, UTM)
 
-1. `scripts/utm/creer-vm-windows.sh <chemin/Win11_ARM64.iso>` : guide la création
-   de la VM (Windows 11 ARM64, 4 vCPU, 4 Go, USB activé).
-2. Installer Windows, puis les Guest Tools UTM.
-3. Brancher le lecteur de carte Vitale et le cocher dans la barre USB de la VM.
-4. Dans la VM, PowerShell administrateur :
+La VM cible est une image **WinPE** (Windows Preinstallation Environment) : un
+Windows minimaliste sans installation, dédié au lecteur de carte Vitale et à
+la DLL FSV.
+
+1. Sur un hôte Windows avec **Windows ADK + WinPE add-on**, générer l'ISO :
 
    ```powershell
-   powershell -ExecutionPolicy Bypass -File scripts\utm\configurer-poste-windows.ps1 -FsvInstalleur C:\chemin\fsv-installeur.exe
-   # ou, sans matériel (dev) :
-   powershell -ExecutionPolicy Bypass -File scripts\utm\configurer-poste-windows.ps1 -Dev -DllMock C:\chemin\sgpv.dll
+   powershell -ExecutionPolicy Bypass -File scripts\winpe\build-winpe.ps1 -Arch amd64 -SgpvDll C:\chemin\sgpv.dll
+   # -SgpvDll : DLL FSV réelle (production) ou mock sgpv-mock (dev)
+   # Driver du lecteur : déposer le .inf/.sys dans scripts\winpe\driver-lecteur\
    ```
 
-Le script vérifie le lecteur (PC/SC), démarre le service `SCardSvr`, installe
-la FSV (ou le mock), et crée les variables `MAGICMED_DOCS_DIR` /
-`MAGICMED_SGPV_PATH`.
+   L'image embarque : support PC/SC (SCardSvr, WinSCard), PowerShell, réseau,
+   la DLL `sgpv.dll` dans `X:\MagicMed\`, et un `startnet.cmd` qui lance la
+   configuration automatiquement au boot.
+
+2. Créer la VM UTM : `scripts/winpe/creer-vm-winpe-utm.sh winpe-magicmed.iso`
+   — VM *Emulate*, x86_64 (ou ARM64), 2 vCPU / 2 Go, pas de disque (WinPE vit
+   en RAM), ISO en disque de démarrage.
+
+3. Démarrer la VM, brancher le lecteur Vitale, le cocher dans la barre USB
+   d'UTM. La configuration (`configurer-poste-winpe.ps1`) s'exécute au boot.
+
+4. Test manuel dans le shell WinPE :
+
+   ```powershell
+   powershell -File X:\MagicMed\test-lecteur.ps1
+   ```
+
+### Alternative VM Windows complète
+
+Un script de création de VM Windows 11 ARM64 complète reste disponible :
+`scripts/utm/creer-vm-windows.sh`, avec configuration du poste via
+`scripts/utm/configurer-poste-windows.ps1` (installeur FSV ou mock, variables
+d'env MagicMed).
 
 ## Mock sgpv.dll (développement)
 
