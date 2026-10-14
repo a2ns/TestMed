@@ -137,7 +137,7 @@ export default function Ged() {
 
   return (
     <div className="p-8 max-w-6xl">
-      <h1 className="text-2xl font-bold mb-6">GED — MagicGed</h1>
+      <h1 className="text-2xl font-bold mb-6">GED — Primia</h1>
 
       {/* Caddie : documents en attente de rattachement patient */}
       {caddie.length > 0 && (
