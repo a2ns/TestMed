@@ -122,7 +122,7 @@ pub async fn importer_piece_dicos(
     crate::commands::recherche::importer_document_intelligent(
         fichier.to_string_lossy().to_string(),
         format!("DICOS {message_id}-{piece_index}"),
-        "RESULTAT_EXAMEN",
+        "RESULTAT_EXAMEN".to_string(),
         None,
         token,
     )
