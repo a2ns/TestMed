@@ -86,6 +86,20 @@ export default function Courriers() {
     }
   }
 
+  async function corriger() {
+    if (!contenu) return;
+    setChargement(true);
+    setErreur(null);
+    try {
+      const corrige = await api.assisterIa("correction", contenu, null, token!);
+      setContenu(corrige);
+    } catch (e) {
+      setErreur(String(e));
+    } finally {
+      setChargement(false);
+    }
+  }
+
   async function reformuler() {
     if (!contenu) return;
     setChargement(true);
@@ -273,6 +287,14 @@ export default function Courriers() {
               title="Améliore la clarté et le style sans changer le sens médical"
             >
               <Sparkles size={14} className="inline" /> Reformuler
+            </button>
+            <button
+              onClick={corriger}
+              disabled={!contenu || chargement}
+              className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-nuit-100 disabled:opacity-40 text-sm"
+              title="Corrige uniquement l'orthographe et la grammaire — ne touche pas au style ni au fond"
+            >
+              Corriger l'orthographe
             </button>
             <button
               onClick={imprimer}

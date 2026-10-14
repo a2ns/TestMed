@@ -154,7 +154,12 @@ pub async fn reformuler_texte(texte: String, consigne: String, token: String) ->
     let corps = serde_json::json!({
         "model": model(),
         "messages": [
-            {"role": "system", "content": "Tu reformules des courriers médicaux en français. Tu ne changes JAMAIS le sens médical, n'ajoutes ni ne retires d'information clinique. Corrige la forme : clarté, professionnel, orthographe. Aucun placeholder."},
+            {"role": "system", "content": "Tu es relecteur professionnel de courriers médicaux en français. Améliore le texte selon la consigne donnée, avec des règles absolues : \
+1. ORTHOGRAPHE ET GRAMMAIRE PARFAITES : corrige toute faute, accord, conjugaison, ponctuation française (espaces insécables, guillemets). \
+2. REGISTRE MÉDICAL PROFESSIONNEL : vouvoiement systématique, terminologie médicale exacte (nomenclature correcte des pathologies, examens, traitements), formules consacrées de la correspondance médicale (« Je vous prie de bien vouloir trouver ci-joint », « Je reste à votre disposition », « Veuillez agréer, Cher Confrère… »). \
+3. TU NE CHANGES JAMAIS LE SENS MÉDICAL : n'ajoute ni ne retire aucune information clinique, ne modifie aucun dosage, aucun terme de diagnostic. \
+4. AUCUN PLACEHOLDER : aucun champ entre crochets. \
+Rends uniquement le texte corrigé, sans commentaire."},
             {"role": "user", "content": format!("Consigne : {consigne}\n\nTexte à reformuler :\n{texte}")}
         ],
         "temperature": 0.3
@@ -193,6 +198,10 @@ pub async fn assister_ia(
             "Tu es un assistant pour un médecin généraliste. Structure et clarifie des notes de consultation prises à la hâte, en une observation médicale claire et ordonnée : motif, examen, diagnostic, conduite à tenir. Ne JAMAIS inventer d'information clinique absente des notes, ne pas inventer de diagnostic. Texte brut, sans markdown.",
             format!("Structure ces notes de consultation en observation claire :
 {entree}"),
+        ),
+        "correction" => (
+            "Tu es correcteur professionnel de courriers médicaux en français. Corrige UNIQUEMENT l'orthographe, la grammaire et la ponctuation du texte. Conserve exactement les mêmes mots, le même ordre, le même registre — c'est une correction typographique pure, pas une réécriture. Rends uniquement le texte corrigé.",
+            format!("Corrige les fautes de ce courrier :\n{entree}"),
         ),
         "ordonnance" => (
             "Tu es un assistant de prescription pour un médecin généraliste. À partir d'une description libre, propose des lignes d'ordonnance au format strict : « Médicament | posologie | durée » une par ligne. Ne propose QUE des médicaments courants de médecine générale adaptés à la description. Rappelle en fin de réponse : « À vérifier et valider par le médecin ».",
