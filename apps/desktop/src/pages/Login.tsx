@@ -28,7 +28,7 @@ export default function Login() {
         className="bg-white rounded-2xl shadow-xl p-8 w-96 space-y-4"
       >
         <h1 className="text-2xl font-bold text-center">
-          Magic<span className="text-lavande-600">Med</span>
+          Primi<span className="text-lavande-600">a</span>
         </h1>
         <div>
           <label className="block text-sm text-slate-500 mb-1">Identifiant</label>
