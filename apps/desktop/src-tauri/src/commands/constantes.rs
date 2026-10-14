@@ -18,7 +18,7 @@ pub async fn list_constantes(patient_id: String, token: String) -> Result<Vec<Co
     crate::auth::valider_session(&token).ok_or("session expirée")?;
     let pool = crate::db::pool().map_err(|e| e.to_string())?;
     sqlx::query_as::<_, ConstanteBio>(
-        "SELECT id, \"patientId\" as patient_id, type, valeur, unite, date FROM \"ConstanteBio\" \\
+        "SELECT id, \"patientId\" as patient_id, type, valeur, unite, date FROM \"ConstanteBio\" \
          WHERE \"patientId\" = $1 ORDER BY date DESC LIMIT 100",
     )
     .bind(patient_id)
@@ -43,7 +43,7 @@ pub async fn creer_constante(
     let pool = crate::db::pool().map_err(|e| e.to_string())?;
     let id = uuid::Uuid::new_v4().to_string();
     sqlx::query(
-        "INSERT INTO \"ConstanteBio\" (id, \"patientId\", type, valeur, unite, date) \\
+        "INSERT INTO \"ConstanteBio\" (id, \"patientId\", type, valeur, unite, date) \
          VALUES ($1, $2, $3, $4, $5, now())",
     )
     .bind(&id)

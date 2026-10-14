@@ -42,8 +42,8 @@ pub async fn creer_correspondant(
     let pool = crate::db::pool().map_err(|e| e.to_string())?;
     let id = uuid::Uuid::new_v4().to_string();
     sqlx::query(
-        "INSERT INTO \"Correspondant\" (id, nom, specialite, adresse, email, telephone) \\
-         VALUES ($1, $2, $3, $4, $5, $6) \\
+        "INSERT INTO \"Correspondant\" (id, nom, specialite, adresse, email, telephone) \
+         VALUES ($1, $2, $3, $4, $5, $6) \
          ON CONFLICT (nom, specialite) DO NOTHING",
     )
     .bind(&id)
