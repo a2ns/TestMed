@@ -39,6 +39,19 @@ export default function FichePatient() {
     prenoms: string;
     dateNaissance: string | null;
   } | null>(null);
+  const [editionOuverte, setEditionOuverte] = useState(false);
+  const [patientComplet, setPatientComplet] = useState<{
+    id: string;
+    nom: string;
+    prenoms: string;
+    dateNaissance: string | null;
+    sexe: string | null;
+    adresse: string | null;
+    telephone: string | null;
+    email: string | null;
+    medecinTraitant: string | null;
+    nir: string | null;
+  } | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -52,6 +65,7 @@ export default function FichePatient() {
       api.listConstantes(id, token!),
     ])
       .then(([p, c, a, t, al, cb]) => {
+        setPatientComplet(p);
         setIdentite({ nom: p.nom, prenoms: p.prenoms, dateNaissance: p.dateNaissance });
         setConsultations(c);
         setAntecedents(a);
@@ -124,9 +138,18 @@ export default function FichePatient() {
           >
             ← Recherche
           </button>
-          <h1 className="text-xl font-bold">
-            {identite ? `${identite.prenoms} ${identite.nom}` : "…"}
-          </h1>
+          <div className="flex items-start justify-between">
+            <h1 className="text-xl font-bold">
+              {identite ? `${identite.prenoms} ${identite.nom}` : "…"}
+            </h1>
+            <button
+              onClick={() => setEditionOuverte(true)}
+              className="text-slate-400 hover:text-sky-600"
+              title="Modifier la fiche patient"
+            >
+              ✏️
+            </button>
+          </div>
           <p className="text-sm text-slate-500">
             {age}
             {identite?.dateNaissance
@@ -280,6 +303,24 @@ export default function FichePatient() {
           <SectionDocuments patientId={id} cle={cleDocuments} />
         )}
       </div>
+
+      {/* Édition de la fiche patient */}
+      {editionOuverte && patientComplet && id && (
+        <EditionPatient
+          patient={patientComplet}
+          onFerme={() => setEditionOuverte(false)}
+          onEnregistre={async () => {
+            const p = await api.getPatient(id, token!);
+            setPatientComplet(p);
+            setIdentite({
+              nom: p.nom,
+              prenoms: p.prenoms,
+              dateNaissance: p.dateNaissance,
+            });
+            setEditionOuverte(false);
+          }}
+        />
+      )}
 
       {/* Module courrier intégré : patient verrouillé, archivage GED direct */}
       {courrierOuvert && id && identite && (
@@ -721,6 +762,205 @@ function SaisieConstantes({
       >
         ✓
       </button>
+    </div>
+  );
+}
+
+function EditionPatient({
+  patient,
+  onFerme,
+  onEnregistre,
+}: {
+  patient: {
+    id: string;
+    nom: string;
+    prenoms: string;
+    dateNaissance: string | null;
+    sexe: string | null;
+    adresse: string | null;
+    telephone: string | null;
+    email: string | null;
+    medecinTraitant: string | null;
+    nir: string | null;
+  };
+  onFerme: () => void;
+  onEnregistre: () => Promise<void>;
+}) {
+  const { token } = useAuth();
+  const [form, setForm] = useState({
+    nom: patient.nom,
+    prenoms: patient.prenoms,
+    // AAAA-MM-JJ → JJ/MM/AAAA pour l'édition
+    dateNaissance: patient.dateNaissance
+      ? patient.dateNaissance.split("-").reverse().join("/")
+      : "",
+    sexe: patient.sexe ?? "",
+    adresse: patient.adresse ?? "",
+    telephone: patient.telephone ?? "",
+    email: patient.email ?? "",
+    medecinTraitant: patient.medecinTraitant ?? "",
+    nir: patient.nir ?? "",
+  });
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [enCours, setEnCours] = useState(false);
+
+  function maj(k: keyof typeof form, v: string) {
+    setForm({ ...form, [k]: v });
+  }
+
+  // Masque JJ/MM/AAAA (identique à la création)
+  function saisirDate(valeurBrute: string) {
+    const chiffres = valeurBrute.replace(/\D/g, "").slice(0, 8);
+    let formate = chiffres;
+    if (chiffres.length > 2) formate = `${chiffres.slice(0, 2)}/${chiffres.slice(2)}`;
+    if (chiffres.length > 4)
+      formate = `${chiffres.slice(0, 2)}/${chiffres.slice(2, 4)}/${chiffres.slice(4)}`;
+    maj("dateNaissance", formate);
+  }
+
+  async function enregistrer() {
+    if (!form.nom.trim()) {
+      setErreur("le nom est obligatoire");
+      return;
+    }
+    setEnCours(true);
+    setErreur(null);
+    try {
+      await api.majPatient(
+        {
+          id: patient.id,
+          nom: form.nom,
+          prenoms: form.prenoms,
+          dateNaissance: form.dateNaissance
+            ? form.dateNaissance.split("/").reverse().join("-")
+            : null,
+          sexe: form.sexe || null,
+          adresse: form.adresse || null,
+          telephone: form.telephone || null,
+          email: form.email || null,
+          medecinTraitant: form.medecinTraitant || null,
+          nir: form.nir || null,
+        },
+        token!
+      );
+      await onEnregistre();
+    } catch (e) {
+      setErreur(String(e));
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/50 z-40 flex items-center justify-center p-6">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-auto p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold">Modifier la fiche patient</h2>
+          <button onClick={onFerme} className="text-slate-400 hover:text-slate-700 text-xl">
+            ✕
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm text-slate-500 mb-1">Nom *</label>
+            <input
+              value={form.nom}
+              onChange={(e) => maj("nom", e.target.value)}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-500 mb-1">Prénoms *</label>
+            <input
+              value={form.prenoms}
+              onChange={(e) => maj("prenoms", e.target.value)}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-500 mb-1">
+              Date de naissance (JJ/MM/AAAA)
+            </label>
+            <input
+              value={form.dateNaissance}
+              onChange={(e) => saisirDate(e.target.value)}
+              inputMode="numeric"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-500 mb-1">Sexe</label>
+            <select
+              value={form.sexe}
+              onChange={(e) => maj("sexe", e.target.value)}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white"
+            >
+              <option value="">—</option>
+              <option value="F">Féminin</option>
+              <option value="M">Masculin</option>
+            </select>
+          </div>
+          <div className="col-span-2">
+            <label className="block text-sm text-slate-500 mb-1">Adresse</label>
+            <input
+              value={form.adresse}
+              onChange={(e) => maj("adresse", e.target.value)}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-500 mb-1">Téléphone</label>
+            <input
+              value={form.telephone}
+              onChange={(e) => maj("telephone", e.target.value)}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-500 mb-1">Email</label>
+            <input
+              value={form.email}
+              onChange={(e) => maj("email", e.target.value)}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-500 mb-1">Médecin traitant</label>
+            <input
+              value={form.medecinTraitant}
+              onChange={(e) => maj("medecinTraitant", e.target.value)}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-500 mb-1">
+              NIR (stocké chiffré)
+            </label>
+            <input
+              value={form.nir}
+              onChange={(e) => maj("nir", e.target.value.replace(/\D/g, "").slice(0, 15))}
+              inputMode="numeric"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2"
+            />
+          </div>
+        </div>
+        {erreur && <p className="text-sm text-red-600 mt-3">Erreur : {erreur}</p>}
+        <div className="flex gap-3 mt-5">
+          <button
+            onClick={enregistrer}
+            disabled={enCours}
+            className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 disabled:opacity-40"
+          >
+            {enCours ? "Enregistrement…" : "Enregistrer"}
+          </button>
+          <button
+            onClick={onFerme}
+            className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-100"
+          >
+            Annuler
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

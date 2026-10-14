@@ -666,6 +666,62 @@ pub async fn contexte_patient_ia(patient_id: &str) -> Result<(Vec<String>, Vec<S
     ))
 }
 
+/// Mise à jour de la fiche patient (identité, coordonnées, NIR).
+#[tauri::command]
+pub async fn maj_patient(
+    id: String,
+    nom: String,
+    prenoms: String,
+    date_naissance: Option<String>,
+    sexe: Option<String>,
+    adresse: Option<String>,
+    telephone: Option<String>,
+    email: Option<String>,
+    medecin_traitant: Option<String>,
+    nir: Option<String>,
+    token: String,
+) -> Result<(), String> {
+    let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
+    if nom.trim().is_empty() {
+        return Err("le nom est obligatoire".into());
+    }
+    let dn = match &date_naissance {
+        Some(s) if !s.trim().is_empty() => Some(parse_date(s.trim()).map_err(|e| e.to_string())?),
+        _ => None,
+    };
+    // NIR : chiffré + empreinte, jamais en clair.
+    let (nir_chiffre, nir_empreinte) = match &nir {
+        Some(n) if !n.trim().is_empty() => {
+            let c = crate::crypto::chiffrer(n.trim())?;
+            let emp = crate::crypto::empreinte(n.trim());
+            (Some(c), Some(emp))
+        }
+        _ => (None, None),
+    };
+    let pool = pool().map_err(|e| e.to_string())?;
+    sqlx::query(
+        "UPDATE \"Patient\" SET nom = $2, prenoms = $3, \"dateNaissance\" = $4, sexe = $5, \
+         adresse = $6, telephone = $7, email = $8, \"medecinTraitant\" = $9, \"nirChiffre\" = $10, \"nirEmpreinte\" = $11, \"updatedAt\" = now() \
+         WHERE id = $1",
+    )
+    .bind(&id)
+    .bind(nom.trim())
+    .bind(prenoms.trim())
+    .bind(dn)
+    .bind(sexe)
+    .bind(adresse)
+    .bind(telephone)
+    .bind(email)
+    .bind(medecin_traitant)
+    .bind(nir_chiffre)
+    .bind(nir_empreinte)
+    .execute(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    crate::audit::journaliser(&utilisateur.id, "PATIENT_MODIFICATION", Some("patient"), Some(&id), None);
+    Ok(())
+}
+
 pub async fn query_patients(recherche: &str) -> Result<Vec<crate::commands::patients::Patient>, String> {
     let pool = pool().map_err(|e| e.to_string())?;
     let rows = sqlx::query_as::<_, crate::commands::patients::Patient>(

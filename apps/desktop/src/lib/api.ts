@@ -263,6 +263,18 @@ export const api = {
     email: string | null;
     telephone: string | null;
   }, token: string) => invoke<string>("creer_correspondant", { ...c, token }),
+  majPatient: (p: {
+    id: string;
+    nom: string;
+    prenoms: string;
+    dateNaissance: string | null;
+    sexe: string | null;
+    adresse: string | null;
+    telephone: string | null;
+    email: string | null;
+    medecinTraitant: string | null;
+    nir: string | null;
+  }, token: string) => invoke<void>("maj_patient", { ...p, token }),
   listConstantes: (patientId: string, token: string) =>
     invoke<{ id: string; patientId: string; type: string; valeur: string; unite: string | null; date: string }[]>(
       "list_constantes", { patientId, token }

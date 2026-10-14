@@ -62,6 +62,7 @@ fn main() {
             commands::courriers::generer_courrier_ia,
             ia::tester_ia,
             db::maj_praticien,
+            db::maj_patient,
             ia::reformuler_texte,
             ia::assister_ia,
             commands::scan::lister_scanners,
