@@ -43,7 +43,7 @@ avec GED, scan de masse + OCR, impression, Sesam-Vitale (Windows) et
 ```
 apps/desktop/        client Tauri (src-tauri Rust + IHM React)
 packages/db/         schéma Prisma + migrations (PostgreSQL)
-docs/                cahier des charges + architecture
+docs/                cahier des charges + architecture + Sesam-Vitale
 ```
 
 ## Modules fonctionnels
