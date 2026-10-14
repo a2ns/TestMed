@@ -44,6 +44,17 @@ pub async fn init(database_url: &str) -> Result<(), sqlx::Error> {
     )
     .execute(&pool)
     .await;
+    // FSE : feuilles de soins électroniques (structure facturation).
+    let _ = sqlx::query(
+        "CREATE TABLE IF NOT EXISTS \"Fse\" (id TEXT PRIMARY KEY, \"patientId\" TEXT NOT NULL REFERENCES \"Patient\"(id) ON DELETE CASCADE, \"praticienId\" TEXT, date TIMESTAMP NOT NULL DEFAULT now(), statut TEXT NOT NULL DEFAULT 'BROUILLON', \"montantTotal\" REAL NOT NULL DEFAULT 0)",
+    )
+    .execute(&pool)
+    .await;
+    let _ = sqlx::query(
+        "CREATE TABLE IF NOT EXISTS \"ActeFse\" (id TEXT PRIMARY KEY, \"fseId\" TEXT NOT NULL REFERENCES \"Fse\"(id) ON DELETE CASCADE, code TEXT NOT NULL, libelle TEXT, montant REAL NOT NULL DEFAULT 0)",
+    )
+    .execute(&pool)
+    .await;
 
     let _ = POOL.set(pool);
     Ok(())
@@ -794,6 +805,60 @@ pub async fn creer_constante_amelie(
     .await?;
     crate::audit::journaliser(utilisateur_id, "CONSTANTE_AMELIE", Some("patient"), Some(patient_id), None);
     Ok(id)
+}
+
+
+/// Cre une FSE en brouillon (structure pose pour la facturation).
+pub async fn creer_fse_brouillon(patient_id: &str, praticien_id: &str) -> Result<String, String> {
+    let pool = pool().map_err(|e| e.to_string())?;
+    let id = uuid::Uuid::new_v4().to_string();
+    sqlx::query(
+        "INSERT INTO \"Fse\" (id, \"patientId\", \"praticienId\", date, statut, \"montantTotal\") \
+         VALUES ($1, $2, $3, now(), 'BROUILLON', 0)",
+    )
+    .bind(&id)
+    .bind(patient_id)
+    .bind(praticien_id)
+    .execute(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(id)
+}
+
+/// Ajoute un acte  une FSE et met  jour le total.
+pub async fn ajouter_acte_fse(fse_id: &str, code: &str, libelle: &str, montant: f64) -> Result<(), String> {
+    let pool = pool().map_err(|e| e.to_string())?;
+    sqlx::query(
+        "INSERT INTO \"ActeFse\" (id, \"fseId\", code, libelle, montant) \
+         VALUES ($1, $2, $3, $4, $5)",
+    )
+    .bind(uuid::Uuid::new_v4().to_string())
+    .bind(fse_id)
+    .bind(code)
+    .bind(libelle)
+    .bind(montant)
+    .execute(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    sqlx::query("UPDATE \"Fse\" SET \"montantTotal\" = \"montantTotal\" + $2 WHERE id = $1")
+        .bind(fse_id)
+        .bind(montant)
+        .execute(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Change le statut d'une FSE (PRETE, ENVOYEE, REJETEE...).
+pub async fn changer_statut_fse(fse_id: &str, statut: &str) -> Result<(), String> {
+    let pool = pool().map_err(|e| e.to_string())?;
+    sqlx::query("UPDATE \"Fse\" SET statut = $2 WHERE id = $1")
+        .bind(fse_id)
+        .bind(statut)
+        .execute(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 pub async fn query_patients(recherche: &str) -> Result<Vec<crate::commands::patients::Patient>, String> {

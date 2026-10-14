@@ -93,6 +93,8 @@ fn main() {
             fsv::verifier_fsv,
             fsv::lire_carte_vitale,
             fsv::creer_fse,
+            fsv::ajouter_acte_fse,
+            fsv::valider_fse,
             dmp::verifier_dmp,
             dmp::deposer_dmp,
         ])
