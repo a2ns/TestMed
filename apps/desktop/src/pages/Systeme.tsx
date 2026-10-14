@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import { Users, DatabaseBackup, Link2, Stethoscope, Sparkles, MessageSquare } from "lucide-react";
+import { Users, DatabaseBackup, Link2, Stethoscope, Sparkles, MessageSquare, Inbox } from "lucide-react";
 
 const ROLES = [
   { code: "MEDECIN", libelle: "Médecin" },
@@ -17,6 +17,23 @@ export default function Systeme() {
 
   const [etatFsv, setEtatFsv] = useState<{ disponible: boolean; detail: string } | null>(null);
   const [etatDmp, setEtatDmp] = useState<{ configure: boolean; detail: string } | null>(null);
+  const [etatDicos, setEtatDicos] = useState<{ configure: boolean; detail: string } | null>(null);
+  const [messagesDicos, setMessagesDicos] = useState<
+    { id: string; sujet: string; emetteur: string; nbPieces: number }[]
+  >([]);
+  const [etatAmelie, setEtatAmelie] = useState<{ configure: boolean; detail: string } | null>(null);
+  const [arretsAmelie, setArretsAmelie] = useState<
+    {
+      id: string;
+      nomPatient: string;
+      prenomsPatient: string;
+      nir: string;
+      dateDebut: string;
+      dateFin: string;
+      motif: string;
+    }[]
+  >([]);
+  const [resultatConnecteur, setResultatConnecteur] = useState<string | null>(null);
 
   const [identifiant, setIdentifiant] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
@@ -39,6 +56,8 @@ export default function Systeme() {
     if (!estAdmin) return;
     api.verifierFsv(token!).then(setEtatFsv).catch(() => undefined);
     api.verifierDmp(token!).then(setEtatDmp).catch(() => undefined);
+    api.verifierDicos(token!).then(setEtatDicos).catch(() => undefined);
+    api.verifierAmelie(token!).then(setEtatAmelie).catch(() => undefined);
   }, [token, utilisateur]);
 
   if (utilisateur?.role !== "ADMIN" && utilisateur?.role !== "MEDECIN") {
@@ -168,6 +187,100 @@ export default function Systeme() {
           lecteur certifié et CPS. Branchement FFI sgpv.dll en phase 2.
         </p>
       </div>
+
+      <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-3">
+        <h2 className="font-semibold flex items-center gap-2"><Inbox size={18} /> DICOS (résultats laboratoire)</h2>
+        <p className={`text-sm font-medium ${etatDicos?.configure ? "text-emerald-600" : "text-amber-600"}`}>
+          {etatDicos ? etatDicos.detail : "vérification…"}
+        </p>
+        <button
+          onClick={() =>
+            api
+              .listerMessagesDicos(token!)
+              .then(setMessagesDicos)
+              .catch((e) => setErreur(String(e)))
+          }
+          className="bg-white border border-slate-300 px-3 py-2 rounded-lg hover:bg-nuit-100 text-sm"
+        >
+          Vérifier les nouveaux messages
+        </button>
+        {messagesDicos.length > 0 && (
+          <div className="space-y-2">
+            {messagesDicos.map((m) => (
+              <div key={m.id} className="bg-nuit-50 rounded-lg p-3 flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">{m.sujet}</div>
+                  <div className="text-xs text-slate-500">{m.emetteur} — {m.nbPieces} pièce(s)</div>
+                </div>
+                <button
+                  onClick={() =>
+                    api
+                      .importerPieceDicos(m.id, 0, token!)
+                      .then((r) =>
+                        setResultatConnecteur(
+                          r.aTrier
+                            ? `Pièce importée → caddie GED (patient non identifié)`
+                            : `Pièce importée et rattachée au patient`
+                        )
+                      )
+                      .catch((e) => setErreur(String(e)))
+                  }
+                  className="bg-lavande-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-lavande-700"
+                >
+                  Importer
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-3">
+        <h2 className="font-semibold flex items-center gap-2"><MessageSquare size={18} /> Amélie (arrêts de travail)</h2>
+        <p className={`text-sm font-medium ${etatAmelie?.configure ? "text-emerald-600" : "text-amber-600"}`}>
+          {etatAmelie ? etatAmelie.detail : "vérification…"}
+        </p>
+        <button
+          onClick={() =>
+            api
+              .listerArretsAmelie(token!)
+              .then(setArretsAmelie)
+              .catch((e) => setErreur(String(e)))
+          }
+          className="bg-white border border-slate-300 px-3 py-2 rounded-lg hover:bg-nuit-100 text-sm"
+        >
+          Vérifier les arrêts de travail
+        </button>
+        {arretsAmelie.length > 0 && (
+          <div className="space-y-2">
+            {arretsAmelie.map((a) => (
+              <div key={a.id} className="bg-nuit-50 rounded-lg p-3 flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">{a.prenomsPatient} {a.nomPatient}</div>
+                  <div className="text-xs text-slate-500">
+                    AT {a.dateDebut} → {a.dateFin} — {a.motif}
+                  </div>
+                </div>
+                <button
+                  onClick={() =>
+                    api
+                      .importerArretAmelie(a.id, token!)
+                      .then((r) => setResultatConnecteur(r.detail))
+                      .catch((e) => setErreur(String(e)))
+                  }
+                  className="bg-lavande-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-lavande-700"
+                >
+                  Importer au dossier
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {resultatConnecteur && (
+        <p className="text-sm text-emerald-600">{resultatConnecteur}</p>
+      )}
 
       <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-2">
         <h2 className="font-semibold flex items-center gap-2"><Link2 size={18} /> DMP / téléservices</h2>

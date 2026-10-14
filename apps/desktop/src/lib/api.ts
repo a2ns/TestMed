@@ -348,4 +348,33 @@ export const api = {
     invoke<{ configure: boolean; detail: string }>("verifier_dmp", { token }),
   creerCompte: (identifiant: string, motDePasse: string, role: string, adminToken: string) =>
     invoke<void>("creer_compte", { identifiants: { identifiant, motDePasse }, role, adminToken }),
+  verifierDicos: (token: string) =>
+    invoke<{ configure: boolean; detail: string }>("verifier_dicos", { token }),
+  listerMessagesDicos: (token: string) =>
+    invoke<{ id: string; sujet: string; emetteur: string; nbPieces: number }[]>(
+      "lister_messages_dicos", { token }
+    ),
+  importerPieceDicos: (messageId: string, pieceIndex: number, token: string) =>
+    invoke<{ idDocument: string; patientId: string | null; aTrier: boolean; texteOcr: string }>(
+      "importer_piece_dicos", { messageId, pieceIndex, token }
+    ),
+  verifierAmelie: (token: string) =>
+    invoke<{ configure: boolean; detail: string }>("verifier_amelie", { token }),
+  listerArretsAmelie: (token: string) =>
+    invoke<
+      {
+        id: string;
+        nomPatient: string;
+        prenomsPatient: string;
+        nir: string;
+        dateDebut: string;
+        dateFin: string;
+        motif: string;
+        extension: boolean;
+      }[]
+    >("lister_arrets_amelie", { token }),
+  importerArretAmelie: (arretId: string, token: string) =>
+    invoke<{ rattache: boolean; patientId: string | null; detail: string }>(
+      "importer_arret_amelie", { arretId, token }
+    ),
 };
