@@ -221,3 +221,25 @@ model AuditLog {
   cibleId   String?
   detail    Json?
 }
+
+model Correspondant {
+  id        String   @id @default(uuid())
+  nom       String
+  specialite String?
+  adresse   String?
+  email     String?
+  telephone String?
+  createdAt DateTime @default(now())
+  @@unique([nom, specialite])
+}
+
+model ConstanteBio {
+  id        String   @id @default(uuid())
+  patientId String
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  type      String   // POIDS | TENSION_SYST | TENSION_DIAST | GLYCEMIE | ...
+  valeur    String
+  unite     String?
+  date      DateTime @default(now())
+  @@index([patientId, date])
+}

@@ -27,6 +27,17 @@ pub async fn init(database_url: &str) -> Result<(), sqlx::Error> {
     )
     .execute(&pool)
     .await;
+    // Tables des évolutions récentes (créées si absentes).
+    let _ = sqlx::query(
+        "CREATE TABLE IF NOT EXISTS \"Correspondant\" (id TEXT PRIMARY KEY, nom TEXT NOT NULL, specialite TEXT, adresse TEXT, email TEXT, telephone TEXT, \"createdAt\" TIMESTAMP NOT NULL DEFAULT now())",
+    )
+    .execute(&pool)
+    .await;
+    let _ = sqlx::query(
+        "CREATE TABLE IF NOT EXISTS \"ConstanteBio\" (id TEXT PRIMARY KEY, \"patientId\" TEXT NOT NULL REFERENCES \"Patient\"(id) ON DELETE CASCADE, type TEXT NOT NULL, valeur TEXT NOT NULL, unite TEXT, date TIMESTAMP NOT NULL DEFAULT now())",
+    )
+    .execute(&pool)
+    .await;
 
     let _ = POOL.set(pool);
     Ok(())

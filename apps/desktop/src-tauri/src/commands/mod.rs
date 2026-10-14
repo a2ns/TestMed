@@ -5,3 +5,5 @@ pub mod ordonnances;
 pub mod patients;
 pub mod recherche;
 pub mod scan;
+pub mod constantes;
+pub mod correspondants;

@@ -27,6 +27,9 @@ export default function FichePatient() {
   const [antecedents, setAntecedents] = useState<Antecedent[]>([]);
   const [traitements, setTraitements] = useState<Traitement[]>([]);
   const [allergies, setAllergies] = useState<Allergie[]>([]);
+  const [constantes, setConstantes] = useState<
+    { id: string; type: string; valeur: string; unite: string | null; date: string }[]
+  >([]);
   const [erreur, setErreur] = useState<string | null>(null);
   const [identite, setIdentite] = useState<{
     nom: string;
@@ -43,13 +46,15 @@ export default function FichePatient() {
       api.listAntecedents(id),
       api.listTraitements(id),
       api.listAllergies(id),
+      api.listConstantes(id, token!),
     ])
-      .then(([p, c, a, t, al]) => {
+      .then(([p, c, a, t, al, cb]) => {
         setIdentite({ nom: p.nom, prenoms: p.prenoms, dateNaissance: p.dateNaissance });
         setConsultations(c);
         setAntecedents(a);
         setTraitements(t);
         setAllergies(al);
+        setConstantes(cb);
       })
       .catch((e) => setErreur(String(e)));
   }, [id, token]);
@@ -156,6 +161,32 @@ export default function FichePatient() {
               <span className="text-slate-500"> — {t.posologie}</span>
             </div>
           ))}
+        </div>
+
+        {/* Constantes biologiques : saisie rapide */}
+        <div>
+          <h2 className="text-xs font-bold text-slate-400 uppercase mb-2">
+            Constantes
+          </h2>
+          <SaisieConstantes
+            patientId={id ?? ""}
+            onAjoute={async () => {
+              if (id) setConstantes(await api.listConstantes(id, token!));
+            }}
+          />
+          {constantes.length > 0 && (
+            <div className="mt-3 text-sm">
+              {constantes.slice(0, 6).map((c) => (
+                <div key={c.id} className="flex justify-between text-slate-600">
+                  <span>{c.type}</span>
+                  <span className="font-medium">
+                    {c.valeur}
+                    {c.unite ? ` ${c.unite}` : ""}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {derniereConsultation && (
@@ -608,6 +639,64 @@ function SectionDocuments({ patientId }: { patientId: string }) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+const TYPES_CONSTANTES = [
+  { code: "TENSION", libelle: "Tension (ex. 12/8)", unite: null },
+  { code: "POIDS", libelle: "Poids", unite: "kg" },
+  { code: "GLYCEMIE", libelle: "Glycémie", unite: "g/L" },
+  { code: "TEMPERATURE", libelle: "Température", unite: "°C" },
+  { code: "SATURATION", libelle: "Saturation", unite: "%" },
+];
+
+function SaisieConstantes({
+  patientId,
+  onAjoute,
+}: {
+  patientId: string;
+  onAjoute: () => Promise<void>;
+}) {
+  const { token } = useAuth();
+  const [type, setType] = useState(TYPES_CONSTANTES[0].code);
+  const [valeur, setValeur] = useState("");
+
+  async function enregistrer() {
+    if (!valeur.trim()) return;
+    const tc = TYPES_CONSTANTES.find((t) => t.code === type)!;
+    await api.creerConstante(patientId, type, valeur, tc.unite, token!);
+    setValeur("");
+    await onAjoute();
+  }
+
+  return (
+    <div className="flex gap-1">
+      <select
+        value={type}
+        onChange={(e) => setType(e.target.value)}
+        className="text-xs border border-slate-300 rounded-lg px-2 py-1.5 bg-white"
+      >
+        {TYPES_CONSTANTES.map((t) => (
+          <option key={t.code} value={t.code}>
+            {t.libelle}
+          </option>
+        ))}
+      </select>
+      <input
+        value={valeur}
+        onChange={(e) => setValeur(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && enregistrer()}
+        placeholder="Valeur"
+        className="text-xs border border-slate-300 rounded-lg px-2 py-1.5 w-20"
+      />
+      <button
+        onClick={enregistrer}
+        disabled={!valeur.trim() || !patientId}
+        className="text-xs bg-sky-600 text-white px-2 py-1.5 rounded-lg hover:bg-sky-700 disabled:opacity-40"
+      >
+        ✓
+      </button>
     </div>
   );
 }

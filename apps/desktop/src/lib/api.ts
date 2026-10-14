@@ -252,6 +252,23 @@ export const api = {
     invoke<string>("reformuler_texte", { texte, consigne, token }),
   assisterIa: (tache: string, entree: string, contextePatient: { allergies: string[]; traitements: string[] } | null, token: string) =>
     invoke<string>("assister_ia", { tache, entree, contextePatient, token }),
+  listCorrespondants: (token: string) =>
+    invoke<{ id: string; nom: string; specialite: string | null; adresse: string | null; email: string | null; telephone: string | null }[]>(
+      "list_correspondants", { token }
+    ),
+  creerCorrespondant: (c: {
+    nom: string;
+    specialite: string | null;
+    adresse: string | null;
+    email: string | null;
+    telephone: string | null;
+  }, token: string) => invoke<string>("creer_correspondant", { ...c, token }),
+  listConstantes: (patientId: string, token: string) =>
+    invoke<{ id: string; patientId: string; type: string; valeur: string; unite: string | null; date: string }[]>(
+      "list_constantes", { patientId, token }
+    ),
+  creerConstante: (patientId: string, typeConstante: string, valeur: string, unite: string | null, token: string) =>
+    invoke<string>("creer_constante", { patientId, typeConstante, valeur, unite, token }),
   supprimerConsultation: (id: string, token: string) =>
     invoke<void>("supprimer_consultation", { id, token }),
   importDocument: (doc: {

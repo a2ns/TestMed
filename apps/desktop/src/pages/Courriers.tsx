@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import PatientPicker from "../components/PatientPicker";
@@ -14,6 +15,12 @@ const GABARITS = [
 export default function Courriers() {
   const [patientId, setPatientId] = useState("");
   const [patientNom, setPatientNom] = useState("");
+  const [params] = useSearchParams();
+
+  // Carnet de correspondants
+  const [correspondants, setCorrespondants] = useState<
+    { id: string; nom: string; specialite: string | null }[]
+  >([]);
   const [destinataire, setDestinataire] = useState("");
   const [gabarit, setGabarit] = useState(GABARITS[0].code);
 
@@ -28,6 +35,22 @@ export default function Courriers() {
   const [statut, setStatut] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const { utilisateur, token } = useAuth();
+
+  // Carnet de correspondants
+  useEffect(() => {
+    api.listCorrespondants(token!).then(setCorrespondants).catch(() => undefined);
+  }, [token]);
+
+  // Pré-remplissage depuis la fiche patient (?patient=id)
+  useEffect(() => {
+    const p = params.get("patient");
+    if (!p) return;
+    setPatientId(p);
+    api
+      .getPatient(p, token!)
+      .then((d) => setPatientNom(`${d.prenoms} ${d.nom}`))
+      .catch(() => undefined);
+  }, [params, token]);
 
   async function dossierGed() {
     const p = await import("@tauri-apps/api/path");
@@ -134,6 +157,25 @@ export default function Courriers() {
         destinataire: destinataire || null,
         token: token!,
       });
+      // Enrichit le carnet de correspondants (silencieux, dédupliqué).
+      if (destinataire.trim()) {
+        const morceaux = destinataire.split(",").map((x) => x.trim());
+        api
+          .creerCorrespondant(
+            {
+              nom: morceaux[0],
+              specialite: morceaux[1] ?? null,
+              adresse: null,
+              email: null,
+              telephone: null,
+            },
+            token!
+          )
+          .then(() =>
+            api.listCorrespondants(token!).then(setCorrespondants)
+          )
+          .catch(() => undefined);
+      }
       setContenu(res.contenu);
     } catch (e) {
       setErreur(String(e));
@@ -161,9 +203,18 @@ export default function Courriers() {
             <input
               value={destinataire}
               onChange={(e) => setDestinataire(e.target.value)}
-              placeholder="Optionnel — « Cher Confrère » sinon"
+              list="correspondants"
+              placeholder="Dr Martin, cardiologue… (le carnet s'enrichit à chaque courrier)"
               className="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white"
             />
+            <datalist id="correspondants">
+              {correspondants.map((c) => (
+                <option
+                  key={c.id}
+                  value={`${c.nom}${c.specialite ? `, ${c.specialite}` : ""}`}
+                />
+              ))}
+            </datalist>
           </div>
           <div>
             <label className="block text-sm text-slate-500 mb-1">Gabarit</label>
