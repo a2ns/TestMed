@@ -1,6 +1,6 @@
-# Primeia
+# Primia
 
-**Primeia** : client lourd multiplateforme (Windows/macOS) pour cabinet médical,
+**Primia** : client lourd multiplateforme (Windows/macOS) pour cabinet médical,
 avec GED, scan de masse + OCR, impression, Sesam-Vitale (Windows) et
 **assistant IA d'aide à la rédaction de courriers médicaux**.
 
@@ -62,7 +62,7 @@ docs/                cahier des charges + architecture
 
 ```bash
 # Base de données
-docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=primeia postgres:16
+docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=primia postgres:16
 cd packages/db && npm install && npx prisma migrate dev
 
 # Client lourd
