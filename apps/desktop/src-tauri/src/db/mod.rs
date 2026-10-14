@@ -722,6 +722,74 @@ pub async fn maj_patient(
     Ok(())
 }
 
+
+/// Recherche un patient par NIR (via l'empreinte chiffrée déterministe).
+pub async fn trouver_patient_par_nir(nir: &str) -> Option<String> {
+    if nir.trim().is_empty() {
+        return None;
+    }
+    let pool = match pool() {
+        Ok(p) => p,
+        Err(_) => return None,
+    };
+    let empreinte = crate::crypto::empreinte(nir.trim());
+    let id: Option<(String,)> = sqlx::query_as(
+        "SELECT id FROM \"Patient\" WHERE \"nirEmpreinte\" = $1",
+    )
+    .bind(empreinte)
+    .fetch_optional(pool)
+    .await
+    .ok()
+    .flatten();
+    id.map(|(i,)| i)
+}
+
+/// Recherche un patient par identité exacte (nom + prénoms).
+pub async fn trouver_patient_par_identite(nom: &str, prenoms: &str) -> Option<String> {
+    if nom.trim().is_empty() {
+        return None;
+    }
+    let pool = match pool() {
+        Ok(p) => p,
+        Err(_) => return None,
+    };
+    let id: Option<(String,)> = sqlx::query_as(
+        "SELECT id FROM \"Patient\" WHERE LOWER(nom) = LOWER($1) AND LOWER(prenoms) = LOWER($2) LIMIT 1",
+    )
+    .bind(nom.trim())
+    .bind(prenoms.trim())
+    .fetch_optional(pool)
+    .await
+    .ok()
+    .flatten();
+    id.map(|(i,)| i)
+}
+
+/// Enregistre une constante issue d'Amélie (ex. arrêt de travail).
+pub async fn creer_constante_amelie(
+    patient_id: &str,
+    type_constante: &str,
+    valeur: &str,
+    unite: Option<&str>,
+    utilisateur_id: &str,
+) -> Result<String, sqlx::Error> {
+    let pool = pool()?;
+    let id = uuid::Uuid::new_v4().to_string();
+    sqlx::query(
+        "INSERT INTO \"ConstanteBio\" (id, \"patientId\", type, valeur, unite, date) \
+         VALUES ($1, $2, $3, $4, $5, now())",
+    )
+    .bind(&id)
+    .bind(patient_id)
+    .bind(type_constante)
+    .bind(valeur)
+    .bind(unite)
+    .execute(pool)
+    .await?;
+    crate::audit::journaliser(utilisateur_id, "CONSTANTE_AMELIE", Some("patient"), Some(patient_id), None);
+    Ok(id)
+}
+
 pub async fn query_patients(recherche: &str) -> Result<Vec<crate::commands::patients::Patient>, String> {
     let pool = pool().map_err(|e| e.to_string())?;
     let rows = sqlx::query_as::<_, crate::commands::patients::Patient>(

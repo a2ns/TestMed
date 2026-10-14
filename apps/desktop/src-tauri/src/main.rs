@@ -8,6 +8,8 @@ mod dmp;
 mod fsv;
 mod sauvegarde;
 mod db;
+mod dicos;
+mod amelie;
 mod ia;
 mod impression;
 mod ocr;
@@ -68,6 +70,12 @@ fn main() {
             ia::assister_ia,
             ia::analyser_document_ia,
             ia::extraire_constantes_ia,
+            dicos::verifier_dicos,
+            dicos::lister_messages_dicos,
+            dicos::importer_piece_dicos,
+            amelie::verifier_amelie,
+            amelie::lister_arrets_amelie,
+            amelie::importer_arret_amelie,
             commands::scan::lister_scanners,
             commands::scan::scan_masse,
             impression::commande::imprimer_courrier,
