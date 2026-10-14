@@ -21,9 +21,16 @@ pub struct CourrierImpression {
 
 /// Génère le PDF du courrier et retourne son chemin.
 pub fn generer_pdf(c: &CourrierImpression, chemin: &str) -> Result<(), String> {
-    let police = genpdf::fonts::from_files("/System/Library/Fonts", "Helvetica", None)
-        .or_else(|_| genpdf::fonts::from_files("/usr/share/fonts", "Liberation", None))
-        .map_err(|e| format!("police introuvable : {e}"))?;
+    // Polices candidates selon l'OS (macOS : Helvetica Supplemental ; Linux : Liberation).
+    let police = [
+        ("/System/Library/Fonts/Supplemental", "Helvetica"),
+        ("/System/Library/Fonts", "Helvetica"),
+        ("/Library/Fonts", "Arial"),
+        ("/usr/share/fonts", "Liberation"),
+    ]
+    .iter()
+    .find_map(|(dossier, nom)| genpdf::fonts::from_files(dossier, nom, None).ok())
+    .ok_or("aucune police système trouvée (Helvetica/Arial/Liberation)")?;
     let mut doc = genpdf::Document::new(police);
     doc.set_title(format!("Courrier — {}", c.patient));
 
