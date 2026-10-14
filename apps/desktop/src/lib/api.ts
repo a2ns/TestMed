@@ -344,6 +344,16 @@ export const api = {
     invoke<{ chemin: string; tailleOctets: number; tables: number }>("lancer_sauvegarde", { token }),
   verifierFsv: (token: string) =>
     invoke<{ disponible: boolean; detail: string }>("verifier_fsv", { token }),
+  lireCarteVitale: (token: string) =>
+    invoke<{
+      nir: string;
+      nom: string;
+      prenoms: string;
+      dateNaissance: string;
+      sexe: string;
+      medecinTraitant: string | null;
+      droits: unknown;
+    }>("lire_carte_vitale", { token }),
   verifierDmp: (token: string) =>
     invoke<{ configure: boolean; detail: string }>("verifier_dmp", { token }),
   creerCompte: (identifiant: string, motDePasse: string, role: string, adminToken: string) =>

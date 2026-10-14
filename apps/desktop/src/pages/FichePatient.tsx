@@ -21,6 +21,7 @@ import {
   Trash2,
   AlertTriangle,
   ArrowLeft,
+  CreditCard,
 } from "lucide-react";
 
 type Onglet = "consultations" | "antecedents" | "traitements" | "allergies" | "documents";
@@ -88,6 +89,37 @@ export default function FichePatient() {
       .catch((e) => setErreur(String(e)));
   }, [id, token]);
 
+  async function lireCarteVitale() {
+    setErreur(null);
+    try {
+      const carte = await api.lireCarteVitale(token!);
+      // Met  jour l'identit affiche et le NIR (chiffr  l'enregistrement).
+      if (id) {
+        await api.majPatient(
+          {
+            id,
+            nom: carte.nom || identite?.nom || "",
+            prenoms: carte.prenoms || identite?.prenoms || "",
+            dateNaissance: carte.dateNaissance || null,
+            sexe: carte.sexe || null,
+            adresse: null,
+            telephone: null,
+            email: null,
+            medecinTraitant: carte.medecinTraitant || null,
+            nir: carte.nir || null,
+          },
+          token!
+        );
+        const p = await api.getPatient(id, token!);
+        setPatientComplet(p);
+        setIdentite({ nom: p.nom, prenoms: p.prenoms, dateNaissance: p.dateNaissance });
+        setErreur(null);
+      }
+    } catch (e) {
+      setErreur(String(e));
+    }
+  }
+
   async function ajouterConsultation(motif: string, notes: string) {
     if (!id) return;
     await api.creerConsultation(id, motif, notes);
@@ -154,13 +186,22 @@ export default function FichePatient() {
             <h1 className="text-xl font-bold">
               {identite ? `${identite.prenoms} ${identite.nom}` : "…"}
             </h1>
-            <button
-              onClick={() => setEditionOuverte(true)}
-              className="text-slate-400 hover:text-lavande-600"
-              title="Modifier la fiche patient"
-            >
-              <Pencil size={16} />
-            </button>
+            <div className="flex gap-1">
+              <button
+                onClick={lireCarteVitale}
+                className="text-slate-400 hover:text-lavande-600"
+                title="Lire la carte Vitale (poste Windows FSV)"
+              >
+                <CreditCard size={16} />
+              </button>
+              <button
+                onClick={() => setEditionOuverte(true)}
+                className="text-slate-400 hover:text-lavande-600"
+                title="Modifier la fiche patient"
+              >
+                <Pencil size={16} />
+              </button>
+            </div>
           </div>
           <p className="text-sm text-slate-500">
             {age}

@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
+import { useAuth } from "../lib/auth";
+import { CreditCard } from "lucide-react";
 
 export default function NouveauPatient() {
+  const { token } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({
     nom: "",
@@ -48,6 +51,28 @@ export default function NouveauPatient() {
     };
   }
 
+  async function lireCarteVitale() {
+    setErreur(null);
+    try {
+      const carte = await api.lireCarteVitale(token!);
+      // Pr-remplissage : identit, date, sexe, NIR.
+      const dn = carte.dateNaissance
+        ? carte.dateNaissance.split("-").reverse().join("/")
+        : "";
+      setForm({
+        ...form,
+        nom: carte.nom || form.nom,
+        prenoms: carte.prenoms || form.prenoms,
+        dateNaissance: dn,
+        sexe: carte.sexe || form.sexe,
+        nir: carte.nir || form.nir,
+        medecinTraitant: carte.medecinTraitant || form.medecinTraitant,
+      });
+    } catch (e) {
+      setErreur(String(e));
+    }
+  }
+
   async function enregistrer() {
     if (form.dateNaissance && validerDate()) {
       setErreur(validerDate());
@@ -87,6 +112,18 @@ export default function NouveauPatient() {
         ← Retour
       </button>
       <h1 className="text-2xl font-bold mb-6">Nouveau patient</h1>
+
+      <div className="bg-white rounded-xl border border-slate-200 p-4 mb-4 flex items-center justify-between">
+        <p className="text-sm text-slate-500">
+          Carte Vitale insre dans le lecteur ? Crez la fiche en un clic.
+        </p>
+        <button
+          onClick={lireCarteVitale}
+          className="bg-lavande-600 text-white px-4 py-2 rounded-lg hover:bg-lavande-700 inline-flex items-center gap-2 text-sm"
+        >
+          <CreditCard size={16} /> Lire la carte Vitale
+        </button>
+      </div>
       <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
