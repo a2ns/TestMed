@@ -25,17 +25,17 @@ if ! brew services list 2>/dev/null | grep -q "postgresql@16.*started"; then
   brew services start postgresql@16
   sleep 3
   # Base + utilisateur de démo (ignore si déjà créés)
-  createdb magicmed 2>/dev/null || true
-  psql -d postgres -c "SELECT 1 FROM pg_roles WHERE rolname='magicmed'" 2>/dev/null | grep -q 1 || \
-    psql -d postgres -c "CREATE USER magicmed WITH PASSWORD 'magicmed' CREATEDB;"
-  psql -d magicmed -c "SELECT 1 FROM pg_roles WHERE rolname='magicmed'" >/dev/null 2>&1 || true
+  createdb primia 2>/dev/null || true
+  psql -d postgres -c "SELECT 1 FROM pg_roles WHERE rolname='primia'" 2>/dev/null | grep -q 1 || \
+    psql -d postgres -c "CREATE USER primia WITH PASSWORD 'primia' CREATEDB;"
+  psql -d primia -c "SELECT 1 FROM pg_roles WHERE rolname='primia'" >/dev/null 2>&1 || true
 fi
 
 # 3. Environnement du poste (créé s'il n'existe pas)
 if [ ! -f .env ]; then
   echo "🔑 Création du .env local (clé de démonstration)…"
   cat > .env <<EOF
-DATABASE_URL=postgresql://$(whoami)@localhost:5432/magicmed
+DATABASE_URL=postgresql://$(whoami)@localhost:5432/primia
 AI_BASE_URL=https://api.mistral.ai/v1
 AI_MODEL=mistral-small-latest
 AI_API_KEY=
@@ -59,7 +59,7 @@ npx prisma db push
 npm run seed
 
 # 5. Lancement de l'application
-echo "🚀 Lancement de MagicMed (première compilation : quelques minutes)…"
+echo "🚀 Lancement de Primia (première compilation : quelques minutes)…"
 cd "$REPO_ROOT/apps/desktop"
 npm install
 npm run tauri dev

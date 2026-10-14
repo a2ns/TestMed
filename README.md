@@ -41,12 +41,12 @@ conformité données de santé.
 
 ```bash
 # 1. PostgreSQL
-docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=magicmed postgres:16
+docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=primia postgres:16
 
 # 2. Schéma + compte admin initial
 cd packages/db
 npm install
-DATABASE_URL=postgresql://postgres:magicmed@localhost:5432/magicmed npm run db:push
+DATABASE_URL=postgresql://postgres:primia@localhost:5432/primia npm run db:push
 ADMIN_MOT_DE_PASSE=changer-moi npm run seed
 
 # 3. Client lourd

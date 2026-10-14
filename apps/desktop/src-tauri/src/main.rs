@@ -23,7 +23,7 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .setup(|_app| {
             let url = std::env::var("DATABASE_URL")
-                .unwrap_or_else(|_| "postgres://magicmed:magicmed@localhost:5432/magicmed".into());
+                .unwrap_or_else(|_| "postgresql://localhost:5432/primia".into());
             tauri::async_runtime::block_on(db::init(&url))?;
             Ok(())
         })

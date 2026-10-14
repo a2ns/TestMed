@@ -1,5 +1,5 @@
 {
-  "name": "magicmed-db",
+  "name": "primia-db",
   "private": true,
   "scripts": {
     "migrate": "prisma migrate dev",

@@ -22,7 +22,7 @@ pub fn config() -> ConfigSauvegarde {
     ConfigSauvegarde {
         dossier: std::env::var("MAGICMED_SAUVEGARDE_DOSSIER").unwrap_or_else(|_| {
             let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
-            format!("{home}/MagicMed-backups")
+            format!("{home}/Primia-backups")
         }),
         retention: std::env::var("MAGICMED_SAUVEGARDE_RETENTION")
             .ok()
@@ -45,7 +45,7 @@ pub async fn lancer_sauvegarde(token: String) -> Result<ResultatSauvegarde, Stri
     std::fs::create_dir_all(&cfg.dossier).map_err(|e| e.to_string())?;
 
     let horodatage = chrono::Local::now().format("%Y%m%d-%H%M%S");
-    let nom = format!("magicmed-{horodatage}.sql.gz.enc");
+    let nom = format!("primia-{horodatage}.sql.gz.enc");
     let chemin_archive = Path::new(&cfg.dossier).join(&nom);
 
     // 1. pg_dump (format SQL, compression gzip via -Zd)
@@ -95,7 +95,7 @@ fn appliquer_retention(cfg: &ConfigSauvegarde) -> Result<(), String> {
             p.extension().map(|x| x == "enc").unwrap_or(false)
                 && p.file_name()
                     .and_then(|n| n.to_str())
-                    .map(|n| n.starts_with("magicmed-"))
+                    .map(|n| n.starts_with("primia-"))
                     .unwrap_or(false)
         })
         .collect();

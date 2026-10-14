@@ -10,8 +10,8 @@ Machine dédiée ou NAS du cabinet (sous onduleur, sauvegardé).
 # Debian/Ubuntu
 sudo apt install postgresql
 sudo -u postgres psql <<'EOF'
-CREATE USER magicmed WITH PASSWORD '<mot-de-passe-fort>';
-CREATE DATABASE magicmed OWNER magicmed;
+CREATE USER primia WITH PASSWORD '<mot-de-passe-fort>';
+CREATE DATABASE primia OWNER primia;
 EOF
 ```
 
@@ -24,7 +24,7 @@ Mise à jour du schéma (poste admin) :
 ```bash
 cd packages/db
 npm install
-DATABASE_URL=postgresql://magicmed:***@serveur:5432/magicmed npm run db:push
+DATABASE_URL=postgresql://primia:***@serveur:5432/primia npm run db:push
 ADMIN_MOT_DE_PASSE='<mot-de-passe-admin>' npm run seed   # crée le compte admin
 ```
 
@@ -40,7 +40,7 @@ ADMIN_MOT_DE_PASSE='<mot-de-passe-admin>' npm run seed   # crée le compte admin
 - `.env` du poste (voir modèle `.env.example`) :
 
 ```ini
-DATABASE_URL=postgresql://magicmed:***@serveur:5432/magicmed
+DATABASE_URL=postgresql://primia:***@serveur:5432/primia
 MAGICMED_CLE_MASTER=<openssl rand -base64 32>   # IDENTIQUE sur tous les postes
 AI_BASE_URL=https://api.mistral.ai/v1           # ou http://localhost:11434/v1 (Ollama local)
 AI_MODEL=mistral-small-latest

@@ -15,7 +15,7 @@ pub async fn scan_masse(
 ) -> Result<ScanResultat, String> {
     let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
     // 1. Scan du lot (ADF) dans un dossier temporaire.
-    let dossier_tmp = std::env::temp_dir().join(format!("magicmed-scan-{}", uuid::Uuid::new_v4()));
+    let dossier_tmp = std::env::temp_dir().join(format!("primia-scan-{}", uuid::Uuid::new_v4()));
     let dossier_tmp = dossier_tmp.to_string_lossy().to_string();
     let lot = crate::scan::backend().scanner_masse(&scanner, &dossier_tmp)?;
 
