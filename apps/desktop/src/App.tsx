@@ -1,8 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/auth";
 import Layout from "./components/Layout";
+import PaletteRecherche from "./components/PaletteRecherche";
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
+import Aujourdhui from "./pages/Aujourdhui";
 import Patients from "./pages/Patients";
 import Agenda from "./pages/Agenda";
 import Ged from "./pages/Ged";
@@ -19,7 +20,7 @@ function AppProtegee() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route index element={<Dashboard />} />
+        <Route index element={<Aujourdhui />} />
         <Route path="agenda" element={<Agenda />} />
         <Route path="patients" element={<Patients />} />
         <Route path="patients/nouveau" element={<NouveauPatient />} />
@@ -40,6 +41,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <AppProtegee />
+        <PaletteRecherche />
       </BrowserRouter>
     </AuthProvider>
   );

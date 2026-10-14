@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { api, Antecedent, Allergie, Consultation, Traitement, ResultatDocument } from "../lib/api";
+import {
+  api,
+  Antecedent,
+  Allergie,
+  Consultation,
+  Traitement,
+  ResultatDocument,
+} from "../lib/api";
 import { useAuth } from "../lib/auth";
 
 type Onglet = "consultations" | "antecedents" | "traitements" | "allergies" | "documents";
@@ -8,10 +15,12 @@ type Onglet = "consultations" | "antecedents" | "traitements" | "allergies" | "d
 const CATEGORIES = ["MEDICAL", "CHIRURGICAL", "FAMILIAL", "OBSTETRIQUE", "TOXIQUE"];
 const GRAVITES = ["SEVERE", "MODEREE", "FAIBLE"];
 
+/// Fiche patient repensée pour la consultation (médecin, 15 min/patient) :
+/// synthèse permanente à gauche, actions rapides en haut, onglets à droite.
 export default function FichePatient() {
   const { id } = useParams<{ id: string }>();
-  const { token } = useAuth();
   const navigate = useNavigate();
+  const { token } = useAuth();
   const [onglet, setOnglet] = useState<Onglet>("consultations");
 
   const [consultations, setConsultations] = useState<Consultation[]>([]);
@@ -19,18 +28,31 @@ export default function FichePatient() {
   const [traitements, setTraitements] = useState<Traitement[]>([]);
   const [allergies, setAllergies] = useState<Allergie[]>([]);
   const [erreur, setErreur] = useState<string | null>(null);
-
-  const [nomPatient, setNomPatient] = useState("");
+  const [identite, setIdentite] = useState<{
+    nom: string;
+    prenoms: string;
+    dateNaissance: string | null;
+  } | null>(null);
 
   useEffect(() => {
     if (!id) return;
     setErreur(null);
-    api.getPatient(id, token!).then((p) => setNomPatient(`${p.prenoms} ${p.nom}`)).catch((e) => setErreur(String(e)));
-    api.listConsultations(id).then(setConsultations).catch((e) => setErreur(String(e)));
-    api.listAntecedents(id).then(setAntecedents).catch((e) => setErreur(String(e)));
-    api.listTraitements(id).then(setTraitements).catch((e) => setErreur(String(e)));
-    api.listAllergies(id).then(setAllergies).catch((e) => setErreur(String(e)));
-  }, [id]);
+    Promise.all([
+      api.getPatient(id, token!),
+      api.listConsultations(id),
+      api.listAntecedents(id),
+      api.listTraitements(id),
+      api.listAllergies(id),
+    ])
+      .then(([p, c, a, t, al]) => {
+        setIdentite({ nom: p.nom, prenoms: p.prenoms, dateNaissance: p.dateNaissance });
+        setConsultations(c);
+        setAntecedents(a);
+        setTraitements(t);
+        setAllergies(al);
+      })
+      .catch((e) => setErreur(String(e)));
+  }, [id, token]);
 
   async function ajouterConsultation(motif: string, notes: string) {
     if (!id) return;
@@ -38,7 +60,10 @@ export default function FichePatient() {
     setConsultations(await api.listConsultations(id));
   }
 
-  async function structurerNotes(motif: string, notes: string): Promise<{motif: string, notes: string} | null> {
+  async function structurerNotes(
+    motif: string,
+    notes: string
+  ): Promise<{ motif: string; notes: string } | null> {
     if (!notes.trim()) return null;
     try {
       const structure = await api.assisterIa("consultation", notes, null, token!);
@@ -53,6 +78,7 @@ export default function FichePatient() {
     await api.supprimerConsultation(idCons, token!);
     if (id) setConsultations(await api.listConsultations(id));
   }
+
   async function ajouterAntecedent(cat: string, lib: string, annee: number | null) {
     if (!id) return;
     await api.creerAntecedent(id, cat, lib, annee, null);
@@ -69,69 +95,155 @@ export default function FichePatient() {
     setAllergies(await api.listAllergies(id));
   }
 
+  const age = identite?.dateNaissance
+    ? `${Math.floor(
+        (Date.now() - new Date(identite.dateNaissance).getTime()) /
+          (365.25 * 24 * 3600 * 1000)
+      )} ans`
+    : "";
+
+  const traitementsActifs = traitements.filter((t) => t.actif);
+  const derniereConsultation = consultations[0];
+
   return (
-    <div className="p-8 max-w-6xl">
-      <button
-        onClick={() => navigate("/patients")}
-        className="text-sky-600 hover:underline text-sm mb-3"
-      >
-        ← Retour à la recherche
-      </button>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">{nomPatient || "…"}</h1>
-        <div className="flex gap-3 items-center">
-          {allergies.length > 0 && (
-            <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-medium">
-              ⚠ {allergies.length} allergie(s)
-            </span>
+    <div className="flex h-full">
+      {/* Colonne gauche : synthèse permanente */}
+      <aside className="w-80 border-r border-slate-200 bg-white overflow-auto p-5 space-y-5 shrink-0">
+        <div>
+          <button
+            onClick={() => navigate("/patients")}
+            className="text-xs text-slate-400 hover:text-slate-600 mb-2"
+          >
+            ← Recherche
+          </button>
+          <h1 className="text-xl font-bold">
+            {identite ? `${identite.prenoms} ${identite.nom}` : "…"}
+          </h1>
+          <p className="text-sm text-slate-500">
+            {age}
+            {identite?.dateNaissance
+              ? ` — né(e) le ${new Date(identite.dateNaissance).toLocaleDateString("fr-FR")}`
+              : ""}
+          </p>
+        </div>
+
+        {allergies.length > 0 && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+            <h2 className="text-xs font-bold text-red-700 uppercase mb-1">
+              ⚠ Allergies
+            </h2>
+            {allergies.map((a) => (
+              <div key={a.id} className="text-sm text-red-800 font-medium">
+                {a.substance}
+                <span className="text-xs font-normal text-red-500 ml-1">
+                  {a.gravite}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div>
+          <h2 className="text-xs font-bold text-slate-400 uppercase mb-2">
+            Traitements en cours ({traitementsActifs.length})
+          </h2>
+          {traitementsActifs.length === 0 && (
+            <p className="text-sm text-slate-400">Aucun</p>
           )}
+          {traitementsActifs.map((t) => (
+            <div key={t.id} className="text-sm mb-1">
+              <span className="font-medium">{t.medicament}</span>
+              <span className="text-slate-500"> — {t.posologie}</span>
+            </div>
+          ))}
+        </div>
+
+        {derniereConsultation && (
+          <div>
+            <h2 className="text-xs font-bold text-slate-400 uppercase mb-2">
+              Dernière consultation
+            </h2>
+            <div className="text-sm">
+              <div className="text-slate-500 text-xs mb-0.5">
+                {new Date(derniereConsultation.date).toLocaleDateString("fr-FR")} —{" "}
+                {derniereConsultation.motif}
+              </div>
+              {derniereConsultation.notes && (
+                <p className="line-clamp-4 text-slate-600">
+                  {derniereConsultation.notes}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </aside>
+
+      {/* Colonne droite : actions + onglets */}
+      <div className="flex-1 overflow-auto p-6">
+        {/* Barre d'actions : tout à 1 clic */}
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => setOnglet("consultations")}
+            className="bg-sky-600 text-white px-4 py-2.5 rounded-xl hover:bg-sky-700 font-medium"
+          >
+            🩺 Nouvelle consultation
+          </button>
           <button
             onClick={() => navigate(`/patients/${id}/ordonnance`)}
-            className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 text-sm"
+            className="bg-slate-900 text-white px-4 py-2.5 rounded-xl hover:bg-slate-700 font-medium"
           >
-            📝 Ordonnance
+            💊 Ordonnance
+          </button>
+          <button
+            onClick={() => navigate(`/courriers?patient=${id}`)}
+            className="bg-slate-900 text-white px-4 py-2.5 rounded-xl hover:bg-slate-700 font-medium"
+          >
+            ✉️ Courrier
           </button>
         </div>
-      </div>
-      {erreur && <p className="text-sm text-red-600 mb-4">Erreur : {erreur}</p>}
 
-      <div className="flex gap-2 mb-6 border-b border-slate-200">
-        {(["consultations", "antecedents", "traitements", "allergies", "documents"] as Onglet[]).map((o) => (
-          <button
-            key={o}
-            onClick={() => setOnglet(o)}
-            className={`px-4 py-2 text-sm capitalize rounded-t-lg ${
-              onglet === o
-                ? "bg-white border-x border-t border-slate-200 font-semibold -mb-px"
-                : "text-slate-500 hover:text-slate-800"
-            }`}
-          >
-            {o}
-          </button>
-        ))}
-      </div>
+        {erreur && (
+          <p className="text-sm text-red-600 mb-4">Erreur : {erreur}</p>
+        )}
 
-      {onglet === "consultations" && (
-        <SectionConsultations
-          consultations={consultations}
-          ajouter={ajouterConsultation}
-          supprimer={supprimerUneConsultation}
-          structurer={structurerNotes}
-        />
-      )}
-      {onglet === "antecedents" && (
-        <SectionAntecedents
-          antecedents={antecedents}
-          ajouter={ajouterAntecedent}
-        />
-      )}
-      {onglet === "traitements" && (
-        <SectionTraitements traitements={traitements} ajouter={ajouterTraitement} />
-      )}
-      {onglet === "allergies" && (
-        <SectionAllergies allergies={allergies} ajouter={ajouterAllergie} />
-      )}
-      {onglet === "documents" && id && <SectionDocuments patientId={id} />}
+        <div className="flex gap-1 mb-5 border-b border-slate-200">
+          {(["consultations", "antecedents", "traitements", "allergies", "documents"] as Onglet[]).map(
+            (o) => (
+              <button
+                key={o}
+                onClick={() => setOnglet(o)}
+                className={`px-4 py-2 text-sm capitalize rounded-t-lg ${
+                  onglet === o
+                    ? "bg-white border-x border-t border-slate-200 font-semibold -mb-px"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                {o}
+                {o === "documents" ? "" : ""}
+              </button>
+            )
+          )}
+        </div>
+
+        {onglet === "consultations" && (
+          <SectionConsultations
+            consultations={consultations}
+            ajouter={ajouterConsultation}
+            supprimer={supprimerUneConsultation}
+            structurer={structurerNotes}
+          />
+        )}
+        {onglet === "antecedents" && (
+          <SectionAntecedents antecedents={antecedents} ajouter={ajouterAntecedent} />
+        )}
+        {onglet === "traitements" && (
+          <SectionTraitements traitements={traitements} ajouter={ajouterTraitement} />
+        )}
+        {onglet === "allergies" && (
+          <SectionAllergies allergies={allergies} ajouter={ajouterAllergie} />
+        )}
+        {onglet === "documents" && id && <SectionDocuments patientId={id} />}
+      </div>
     </div>
   );
 }
@@ -145,7 +257,10 @@ function SectionConsultations({
   consultations: Consultation[];
   ajouter: (motif: string, notes: string) => Promise<void>;
   supprimer: (id: string) => Promise<void>;
-  structurer: (motif: string, notes: string) => Promise<{ motif: string; notes: string } | null>;
+  structurer: (
+    motif: string,
+    notes: string
+  ) => Promise<{ motif: string; notes: string } | null>;
 }) {
   const [motif, setMotif] = useState("");
   const [notes, setNotes] = useState("");
@@ -162,13 +277,18 @@ function SectionConsultations({
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          rows={4}
+          rows={5}
           placeholder="Notes : examen, diagnostic, conduite à tenir…"
           className="w-full border border-slate-300 rounded-lg p-3"
         />
         <div className="flex gap-3">
           <button
-            onClick={() => ajouter(motif, notes).then(() => { setMotif(""); setNotes(""); })}
+            onClick={() =>
+              ajouter(motif, notes).then(() => {
+                setMotif("");
+                setNotes("");
+              })
+            }
             disabled={!motif}
             className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 disabled:opacity-40"
           >
@@ -181,7 +301,7 @@ function SectionConsultations({
             }}
             disabled={!notes.trim()}
             className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-100 disabled:opacity-40"
-            title="Structure les notes prises à la hâte en observation claire (motif, examen, conduite à tenir)"
+            title="Structure les notes prises à la hâte en observation claire"
           >
             ✨ Structurer
           </button>
@@ -252,7 +372,10 @@ function SectionAntecedents({
         </div>
         <button
           onClick={() =>
-            ajouter(cat, lib, annee ? parseInt(annee) : null).then(() => { setLib(""); setAnnee(""); })
+            ajouter(cat, lib, annee ? parseInt(annee) : null).then(() => {
+              setLib("");
+              setAnnee("");
+            })
           }
           disabled={!lib}
           className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 disabled:opacity-40"
@@ -318,7 +441,11 @@ function SectionTraitements({
         </div>
         <button
           onClick={() =>
-            ajouter(med, poso, duree || null).then(() => { setMed(""); setPoso(""); setDuree(""); })
+            ajouter(med, poso, duree || null).then(() => {
+              setMed("");
+              setPoso("");
+              setDuree("");
+            })
           }
           disabled={!med}
           className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 disabled:opacity-40"
@@ -462,9 +589,9 @@ function SectionDocuments({ patientId }: { patientId: string }) {
               {d.type}
             </span>
             <button
-              onClick={() => api.ouvrirDocument(d.id, token!).catch((e) =>
-                setErreur(String(e))
-              )}
+              onClick={() =>
+                api.ouvrirDocument(d.id, token!).catch((e) => setErreur(String(e)))
+              }
               className="text-xs text-sky-600 hover:text-sky-800"
             >
               👁 Voir
