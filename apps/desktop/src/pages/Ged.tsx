@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api, ResultatDocument } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import PatientPicker from "../components/PatientPicker";
-import { Eye, Trash2, FileUp, CheckCircle2, Inbox } from "lucide-react";
+import { Eye, Trash2, FileUp, CheckCircle2, Inbox, Sparkles } from "lucide-react";
 
 const TYPES = [
   "COURRIER",
@@ -334,6 +334,34 @@ function LigneCaddie({
   const [typeChoisi, setTypeChoisi] = useState("AUTRE");
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
+  const [analyseIa, setAnalyseIa] = useState<string | null>(null);
+
+  async function analyser() {
+    setAnalyseIa(null);
+    setErreur(null);
+    try {
+      const a = await api.analyserDocumentIa(doc.extrait ?? "", token);
+      // Pré-sélection du type proposé
+      if (TYPES.includes(a.typeDocument)) setTypeChoisi(a.typeDocument);
+      // Recherche du patient proposé : si trouvé, pré-remplir le picker
+      if (a.nomPatient) {
+        try {
+          const res = await api.listPatients(a.nomPatient);
+          if (res.length === 1) {
+            setPatientId(res[0].id);
+            setPatientNom(`${res[0].prenoms} ${res[0].nom}`);
+          }
+        } catch {
+          /* pas de correspondance exacte : le médecin cherche manuellement */
+        }
+      }
+      setAnalyseIa(
+        `IA : ${a.typeDocument}${a.nomPatient ? ` — patient probable : ${a.nomPatient}` : ""} (confiance ${Math.round(a.confiance * 100)}%)${a.commentaire ? ` — ${a.commentaire}` : ""}`
+      );
+    } catch (e) {
+      setErreur(String(e));
+    }
+  }
 
   async function classer() {
     if (!patientId) return;
@@ -384,13 +412,25 @@ function LigneCaddie({
           ))}
         </select>
         <button
+          onClick={analyser}
+          className="bg-white border border-slate-300 px-3 py-2 rounded-lg hover:bg-slate-100 text-sm inline-flex items-center gap-1"
+          title="L'IA analyse l'OCR : type de document et patient probable"
+        >
+          <Sparkles size={14} /> Analyser
+        </button>
+        <button
           onClick={classer}
           disabled={!patientId || enCours}
-          className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 disabled:opacity-40 text-sm"
+          className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 disabled:opacity-40 text-sm inline-flex items-center gap-1"
         >
-          <CheckCircle2 size={14} className="inline" /> Classer
+          <CheckCircle2 size={14} /> Classer
         </button>
       </div>
+      {analyseIa && (
+        <p className="text-xs text-lavande-700 bg-lavande-50 border border-lavande-200 rounded-lg px-3 py-2">
+          {analyseIa}
+        </p>
+      )}
       {erreur && <p className="text-xs text-red-600">{erreur}</p>}
     </div>
   );

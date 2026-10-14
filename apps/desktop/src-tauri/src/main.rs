@@ -65,6 +65,7 @@ fn main() {
             db::maj_patient,
             ia::reformuler_texte,
             ia::assister_ia,
+            ia::analyser_document_ia,
             commands::scan::lister_scanners,
             commands::scan::scan_masse,
             impression::commande::imprimer_courrier,

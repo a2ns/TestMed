@@ -235,3 +235,56 @@ pub async fn assister_ia(
     );
     Ok(resultat)
 }
+
+/// Analyse IA d'un document OCR pour le classement GED : type de document
+/// et patient probable (nom/prénom détectés dans le texte).
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AnalyseDocument {
+    pub type_document: String,
+    pub nom_patient: Option<String>,
+    pub confiance: f64,
+    pub commentaire: Option<String>,
+}
+
+#[tauri::command]
+pub async fn analyser_document_ia(
+    texte_ocr: String,
+    token: String,
+) -> Result<AnalyseDocument, String> {
+    crate::auth::valider_session(&token).ok_or("session expirée")?;
+    if texte_ocr.trim().len() < 10 {
+        return Err("texte OCR trop court pour analyse".into());
+    }
+    let systeme = "Tu es un assistant de classement de documents médicaux dans une GED de cabinet de médecine générale. \
+Analyse le texte OCR d'un document et réponds STRICTEMENT au format JSON : \
+{\"type_document\": \"COURRIER|COMPTE_RENDU|ORDONNANCE|RESULTAT_EXAMEN|IMAGERIE|CERTIFICAT|FACTURE|AUTRE\", \
+\"nom_patient\": \"Prénom Nom ou null si indéterminable\", \
+\"confiance\": 0.0, \
+\"commentaire\": \"courte remarque utile ou null\"}. \
+Pour nom_patient : cherche le nom du patient dans l'en-tête, l'objet ou le corps (souvent après 'Patient :', 'M./Mme', ou en en-tête de résultats d'examen). Le praticien expéditeur n'est PAS le patient. Confiance : 0.0-1.0 selon la clarté du document.";
+    let corps = serde_json::json!({
+        "model": model(),
+        "messages": [
+            {"role": "system", "content": systeme},
+            {"role": "user", "content": format!("Texte OCR à analyser :\n{}", texte_ocr.chars().take(2000).collect::<String>())}
+        ],
+        "temperature": 0.1,
+        "max_tokens": 200
+    });
+    let reponse = appel_ia(&corps).await?;
+    // Le modèle peut entourer le JSON de texte : extraire les accolades.
+    let debut = reponse.find('{').ok_or("réponse IA illisible")?;
+    let fin = reponse.rfind('}').ok_or("réponse IA illisible")?;
+    let analyse: AnalyseDocument = serde_json::from_str(&reponse[debut..=fin])
+        .map_err(|e| format!("réponse IA inattendue : {e}"))?;
+    let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
+    crate::audit::journaliser(
+        &utilisateur.id,
+        "IA_CLASSEMENT_DOC",
+        Some("document"),
+        None,
+        Some(serde_json::json!({ "type": analyse.type_document, "confiance": analyse.confiance })),
+    );
+    Ok(analyse)
+}
