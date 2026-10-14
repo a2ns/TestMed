@@ -34,7 +34,7 @@ conformité données de santé.
 | ORM (gestion/migrations) | Prisma |
 | OCR | Tesseract (pack français), 100 % local |
 | Scan | SANE (macOS) / TWAIN (Windows) |
-| IA | API compatible OpenAI : **Mistral** ou **Ollama local** (RGPD : tout peut rester dans le cabinet) |
+| IA | **100 % local par défaut** : Ollama + mistral-nemo — aucune donnée de santé ne quitte le poste |
 | Crypto | AES-256-GCM (NIR, sauvegardes), bcrypt (mots de passe) |
 
 ## Démarrage rapide (développement)
@@ -95,7 +95,7 @@ docs/               architecture, conformité, déploiement
 
 - Authentification nominative + rôles, journal d'audit (accès, échecs de connexion)
 - Chiffrement au repos du NIR (AES-256-GCM + empreinte déterministe)
-- OCR et IA exécutables **en local** (Ollama) : aucune donnée n'est exfiltrée
+- **IA 100 % locale par défaut** (Ollama + mistral-nemo) : aucune donnée de santé ne quitte le poste — choix acté pour la confidentialité médicale
 - Sauvegardes chiffrées, rétention automatique
 - Hébergement on-premise : aucun cloud requis (HDS non nécessaire)
 

@@ -92,7 +92,41 @@ npm run tauri build      # produit .msi (bundling)
 
 Distribuer ensuite le `.msi` / `.dmg` aux autres postes du cabinet.
 
-## 6. Première mise en service
+## 6. Assistant IA — 100 % local (recommandé)
+
+Politique de confidentialité médicale : **aucune donnée patient ne doit
+quitter le poste**. L'IA tourne donc en local via Ollama :
+
+```bash
+brew install ollama
+ollama serve &            # ou l'app Ollama au démarrage
+ollama pull mistral-nemo  # ~7 Go — excellent en français
+```
+
+`.env` du poste :
+```ini
+AI_BASE_URL=http://localhost:11434/v1
+AI_MODEL=mistral-nemo
+AI_API_KEY=
+```
+
+Vérification : Primia → Système → « Tester la connexion IA » → doit
+afficher « IA opérationnelle (mistral-nemo @ …) ».
+
+**Architecture multi-poste** : un seul Mac du cabinet peut servir l'IA à
+tous les postes — les autres configurent `AI_BASE_URL=http://<ip-du-mac-ia>:11434/v1`.
+
+**Qualité attendue par tâche** : courriers et notes très bons ; analyse de
+classement GED (format JSON) correct — à valider sur vos premiers documents
+réels. Un modèle plus gros (`mistral-small` 22B, ~14 Go) améliore le suivi
+des consignes si la RAM le permet.
+
+**Limite clinique importante** : l'assistant de prescription propose, le
+médecin valide — c'est vrai quel que soit le modèle. En local, la vigilance
+sur les propositions de posologie doit être encore plus attentive, le
+modèle 12B étant moins fiable que les API sur ce point précis.
+
+## 7. Première mise en service
 
 1. Se connecter avec **admin** / mot de passe du seed → changer ce mot de
    passe immédiatement.
