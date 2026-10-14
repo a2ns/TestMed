@@ -69,6 +69,7 @@ model Patient {
   allergies       Allergie[]
   ordonnances     Ordonnance[]
   rendezVous      RendezVous[]
+  constantes      ConstanteBio[]
 }
 
 model Antecedent {
