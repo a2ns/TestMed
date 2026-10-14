@@ -23,21 +23,20 @@ pub struct EtatDicos {
 }
 
 #[tauri::command]
-pub fn verifier_dicos(token: String) -> Result<EtatDicos, String> {
+pub async fn verifier_dicos(token: String) -> Result<EtatDicos, String> {
     crate::auth::valider_session(&token).ok_or("session expirée")?;
-    let bal = std::env::var("DICOS_BAL_URL");
-    let cert = std::env::var("DICOS_CERTIFICAT");
+    let bal = crate::config::lire_config("DICOS_BAL_URL").await
+        .or_else(|| std::env::var("DICOS_BAL_URL").ok());
+    let cert = crate::config::lire_config("DICOS_CERTIFICAT").await
+        .or_else(|| std::env::var("DICOS_CERTIFICAT").ok());
     Ok(match (&bal, &cert) {
-        (Ok(u), Ok(c)) => EtatDicos {
+        (Some(u), Some(c)) => EtatDicos {
             configure: true,
             detail: format!("BAL MSSanté : {u} (certificat {c})"),
         },
         _ => EtatDicos {
             configure: false,
-            detail: "DICOS non configuré : nécessite une adhésion SantéConnectée, \
-                     un certificat MSSanté (DICOS_BAL_URL, DICOS_CERTIFICAT dans .env) \
-                     et la convention avec vos laboratoires."
-                .into(),
+            detail: "DICOS non configuré : renseignez l'adresse de votre BAL MSSanté et votre certificat ci-dessous (ou via les variables DICOS_* du .env), après adhésion SantéConnectée et convention avec vos laboratoires.".into(),
         },
     })
 }
@@ -55,8 +54,9 @@ pub struct MessageDicos {
 pub async fn lister_messages_dicos(token: String) -> Result<Vec<MessageDicos>, String> {
     let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
     let _ = utilisateur;
-    let bal_url = std::env::var("DICOS_BAL_URL")
-        .map_err(|_| "DICOS non configuré (voir Système → DICOS)")?;
+    let bal_url = crate::config::lire_config("DICOS_BAL_URL").await
+        .or_else(|| std::env::var("DICOS_BAL_URL").ok())
+        .ok_or("DICOS non configuré (voir Système → DICOS)")?;
     // Interrogation de la BAL MSSanté : le référentiel DIM expose une API
     // HTTPS documentée par l'ASIP. Requête listant les messages non lus.
     let client = reqwest::Client::new();
@@ -93,8 +93,9 @@ pub async fn importer_piece_dicos(
     token: String,
 ) -> Result<crate::commands::recherche::ImportIntelligentResultat, String> {
     let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
-    let bal_url = std::env::var("DICOS_BAL_URL")
-        .map_err(|_| "DICOS non configuré")?;
+    let bal_url = crate::config::lire_config("DICOS_BAL_URL").await
+        .or_else(|| std::env::var("DICOS_BAL_URL").ok())
+        .ok_or("DICOS non configuré")?;
     let client = reqwest::Client::new();
     // Téléchargement (le certificat MSSanté gère le chiffrement applicatif).
     let resp = client

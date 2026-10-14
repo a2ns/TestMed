@@ -348,6 +348,11 @@ export const api = {
     invoke<{ configure: boolean; detail: string }>("verifier_dmp", { token }),
   creerCompte: (identifiant: string, motDePasse: string, role: string, adminToken: string) =>
     invoke<void>("creer_compte", { identifiants: { identifiant, motDePasse }, role, adminToken }),
+  enregistrerConfig: (cle: string, valeur: string, token: string) =>
+    invoke<void>("enregistrer_config", { cle, valeur, token }),
+  supprimerConfig: (cle: string, token: string) =>
+    invoke<void>("supprimer_config", { cle, token }),
+  listerConfig: (token: string) => invoke<string[]>("lister_config", { token }),
   verifierDicos: (token: string) =>
     invoke<{ configure: boolean; detail: string }>("verifier_dicos", { token }),
   listerMessagesDicos: (token: string) =>

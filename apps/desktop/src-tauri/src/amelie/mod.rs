@@ -23,20 +23,20 @@ pub struct EtatAmelie {
 }
 
 #[tauri::command]
-pub fn verifier_amelie(token: String) -> Result<EtatAmelie, String> {
+pub async fn verifier_amelie(token: String) -> Result<EtatAmelie, String> {
     crate::auth::valider_session(&token).ok_or("session expirée")?;
-    let identifiant = std::env::var("AMELIE_IDENTIFIANT");
-    let mot_de_passe = std::env::var("AMELIE_MOT_DE_PASSE");
+    let identifiant = crate::config::lire_config("AMELIE_IDENTIFIANT").await
+        .or_else(|| std::env::var("AMELIE_IDENTIFIANT").ok());
+    let mot_de_passe = crate::config::lire_config("AMELIE_MOT_DE_PASSE").await
+        .or_else(|| std::env::var("AMELIE_MOT_DE_PASSE").ok());
     Ok(match (&identifiant, &mot_de_passe) {
-        (Ok(i), Ok(_)) => EtatAmelie {
+        (Some(i), Some(_)) => EtatAmelie {
             configure: true,
             detail: format!("Compte ameliPro configuré ({i})"),
         },
         _ => EtatAmelie {
             configure: false,
-            detail: "Amélie non configuré : nécessite un compte ameliPro et l'adhésion \
-                     au service AT (AMELIE_IDENTIFIANT, AMELIE_MOT_DE_PASSE dans .env)."
-                .into(),
+            detail: "Amélie non configuré : renseignez vos identifiants ameliPro ci-dessous (ou via les variables AMELIE_* du .env).".into(),
         },
     })
 }
@@ -61,10 +61,12 @@ pub async fn lister_arrets_amelie(token: String) -> Result<Vec<ArretTravail>, St
     let _ = utilisateur;
     let url = std::env::var("AMELIE_URL")
         .unwrap_or_else(|_| "https://api.ameli.fr/v1".into());
-    let identifiant = std::env::var("AMELIE_IDENTIFIANT")
-        .map_err(|_| "Amélie non configuré (voir Système → Amélie)")?;
-    let mot_de_passe = std::env::var("AMELIE_MOT_DE_PASSE")
-        .map_err(|_| "Amélie non configuré")?;
+    let identifiant = crate::config::lire_config("AMELIE_IDENTIFIANT").await
+        .or_else(|| std::env::var("AMELIE_IDENTIFIANT").ok())
+        .ok_or("Amélie non configuré (voir Système → Amélie)")?;
+    let mot_de_passe = crate::config::lire_config("AMELIE_MOT_DE_PASSE").await
+        .or_else(|| std::env::var("AMELIE_MOT_DE_PASSE").ok())
+        .ok_or("Amélie non configuré")?;
 
     let client = reqwest::Client::new();
     let resp = client
@@ -107,10 +109,12 @@ pub async fn importer_arret_amelie(
     // Récupérer le détail de l'AT (même service).
     let url = std::env::var("AMELIE_URL")
         .unwrap_or_else(|_| "https://api.ameli.fr/v1".into());
-    let identifiant = std::env::var("AMELIE_IDENTIFIANT")
-        .map_err(|_| "Amélie non configuré")?;
-    let mot_de_passe = std::env::var("AMELIE_MOT_DE_PASSE")
-        .map_err(|_| "Amélie non configuré")?;
+    let identifiant = crate::config::lire_config("AMELIE_IDENTIFIANT").await
+        .or_else(|| std::env::var("AMELIE_IDENTIFIANT").ok())
+        .ok_or("Amélie non configuré")?;
+    let mot_de_passe = crate::config::lire_config("AMELIE_MOT_DE_PASSE").await
+        .or_else(|| std::env::var("AMELIE_MOT_DE_PASSE").ok())
+        .ok_or("Amélie non configuré")?;
 
     let client = reqwest::Client::new();
     let resp = client

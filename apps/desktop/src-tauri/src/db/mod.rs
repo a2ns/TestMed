@@ -38,6 +38,12 @@ pub async fn init(database_url: &str) -> Result<(), sqlx::Error> {
     )
     .execute(&pool)
     .await;
+    // Configuration applicative : secrets chiffrés (clé maître AES-GCM).
+    let _ = sqlx::query(
+        "CREATE TABLE IF NOT EXISTS \"ConfigApp\" (cle TEXT PRIMARY KEY, valeur_chiffree TEXT NOT NULL, \"misAJour\" TIMESTAMP NOT NULL DEFAULT now(), \"misAJourPar\" TEXT)",
+    )
+    .execute(&pool)
+    .await;
 
     let _ = POOL.set(pool);
     Ok(())

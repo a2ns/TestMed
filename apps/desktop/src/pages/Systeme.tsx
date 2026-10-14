@@ -34,6 +34,10 @@ export default function Systeme() {
     }[]
   >([]);
   const [resultatConnecteur, setResultatConnecteur] = useState<string | null>(null);
+  const [clesConfigurees, setClesConfigurees] = useState<string[]>([]);
+  const [formDicos, setFormDicos] = useState({ bal: "", certificat: "" });
+  const [formAmelie, setFormAmelie] = useState({ identifiant: "", motDePasse: "" });
+  const [configStatut, setConfigStatut] = useState<string | null>(null);
 
   const [identifiant, setIdentifiant] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
@@ -58,6 +62,7 @@ export default function Systeme() {
     api.verifierDmp(token!).then(setEtatDmp).catch(() => undefined);
     api.verifierDicos(token!).then(setEtatDicos).catch(() => undefined);
     api.verifierAmelie(token!).then(setEtatAmelie).catch(() => undefined);
+    api.listerConfig(token!).then(setClesConfigurees).catch(() => undefined);
   }, [token, utilisateur]);
 
   if (utilisateur?.role !== "ADMIN" && utilisateur?.role !== "MEDECIN") {
@@ -193,17 +198,48 @@ export default function Systeme() {
         <p className={`text-sm font-medium ${etatDicos?.configure ? "text-emerald-600" : "text-amber-600"}`}>
           {etatDicos ? etatDicos.detail : "vérification…"}
         </p>
-        <button
-          onClick={() =>
-            api
-              .listerMessagesDicos(token!)
-              .then(setMessagesDicos)
-              .catch((e) => setErreur(String(e)))
-          }
-          className="bg-white border border-slate-300 px-3 py-2 rounded-lg hover:bg-nuit-100 text-sm"
-        >
-          Vérifier les nouveaux messages
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            value={formDicos.bal}
+            onChange={(e) => setFormDicos({ ...formDicos, bal: e.target.value })}
+            placeholder="Adresse BAL MSSanté"
+            className="border border-slate-300 rounded-lg px-3 py-2 text-sm"
+          />
+          <input
+            value={formDicos.certificat}
+            onChange={(e) => setFormDicos({ ...formDicos, certificat: e.target.value })}
+            placeholder="Certificat (chemin/ID)"
+            className="border border-slate-300 rounded-lg px-3 py-2 text-sm"
+          />
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={async () => {
+              try {
+                if (formDicos.bal) await api.enregistrerConfig("DICOS_BAL_URL", formDicos.bal, token!);
+                if (formDicos.certificat) await api.enregistrerConfig("DICOS_CERTIFICAT", formDicos.certificat, token!);
+                setClesConfigurees(await api.listerConfig(token!));
+                setEtatDicos(await api.verifierDicos(token!));
+                setConfigStatut("Configuration DICOS enregistrée (chiffrée en base)");
+                setFormDicos({ bal: "", certificat: "" });
+              } catch (e) { setErreur(String(e)); }
+            }}
+            className="bg-lavande-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-lavande-700"
+          >
+            Enregistrer (chiffré)
+          </button>
+          <button
+            onClick={() =>
+              api
+                .listerMessagesDicos(token!)
+                .then(setMessagesDicos)
+                .catch((e) => setErreur(String(e)))
+            }
+            className="bg-white border border-slate-300 px-3 py-2 rounded-lg hover:bg-nuit-100 text-sm"
+          >
+            Vérifier les nouveaux messages
+          </button>
+        </div>
         {messagesDicos.length > 0 && (
           <div className="space-y-2">
             {messagesDicos.map((m) => (
@@ -240,17 +276,49 @@ export default function Systeme() {
         <p className={`text-sm font-medium ${etatAmelie?.configure ? "text-emerald-600" : "text-amber-600"}`}>
           {etatAmelie ? etatAmelie.detail : "vérification…"}
         </p>
-        <button
-          onClick={() =>
-            api
-              .listerArretsAmelie(token!)
-              .then(setArretsAmelie)
-              .catch((e) => setErreur(String(e)))
-          }
-          className="bg-white border border-slate-300 px-3 py-2 rounded-lg hover:bg-nuit-100 text-sm"
-        >
-          Vérifier les arrêts de travail
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            value={formAmelie.identifiant}
+            onChange={(e) => setFormAmelie({ ...formAmelie, identifiant: e.target.value })}
+            placeholder="Identifiant ameliPro"
+            className="border border-slate-300 rounded-lg px-3 py-2 text-sm"
+          />
+          <input
+            type="password"
+            value={formAmelie.motDePasse}
+            onChange={(e) => setFormAmelie({ ...formAmelie, motDePasse: e.target.value })}
+            placeholder="Mot de passe"
+            className="border border-slate-300 rounded-lg px-3 py-2 text-sm"
+          />
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={async () => {
+              try {
+                if (formAmelie.identifiant) await api.enregistrerConfig("AMELIE_IDENTIFIANT", formAmelie.identifiant, token!);
+                if (formAmelie.motDePasse) await api.enregistrerConfig("AMELIE_MOT_DE_PASSE", formAmelie.motDePasse, token!);
+                setClesConfigurees(await api.listerConfig(token!));
+                setEtatAmelie(await api.verifierAmelie(token!));
+                setConfigStatut("Configuration Amélie enregistrée (chiffrée en base)");
+                setFormAmelie({ identifiant: "", motDePasse: "" });
+              } catch (e) { setErreur(String(e)); }
+            }}
+            className="bg-lavande-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-lavande-700"
+          >
+            Enregistrer (chiffré)
+          </button>
+          <button
+            onClick={() =>
+              api
+                .listerArretsAmelie(token!)
+                .then(setArretsAmelie)
+                .catch((e) => setErreur(String(e)))
+            }
+            className="bg-white border border-slate-300 px-3 py-2 rounded-lg hover:bg-nuit-100 text-sm"
+          >
+            Vérifier les arrêts de travail
+          </button>
+        </div>
         {arretsAmelie.length > 0 && (
           <div className="space-y-2">
             {arretsAmelie.map((a) => (
@@ -280,6 +348,14 @@ export default function Systeme() {
 
       {resultatConnecteur && (
         <p className="text-sm text-emerald-600">{resultatConnecteur}</p>
+      )}
+      {configStatut && (
+        <p className="text-sm text-emerald-600">{configStatut}</p>
+      )}
+      {clesConfigurees.length > 0 && (
+        <p className="text-xs text-slate-400">
+          Secrets chiffrés en base : {clesConfigurees.join(", ")}
+        </p>
       )}
 
       <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-2">

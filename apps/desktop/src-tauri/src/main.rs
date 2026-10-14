@@ -10,6 +10,7 @@ mod sauvegarde;
 mod db;
 mod dicos;
 mod amelie;
+mod config;
 mod ia;
 mod impression;
 mod ocr;
@@ -76,6 +77,9 @@ fn main() {
             amelie::verifier_amelie,
             amelie::lister_arrets_amelie,
             amelie::importer_arret_amelie,
+            config::enregistrer_config,
+            config::supprimer_config,
+            config::lister_config,
             commands::scan::lister_scanners,
             commands::scan::scan_masse,
             impression::commande::imprimer_courrier,
