@@ -9,6 +9,7 @@ import {
   ResultatDocument,
 } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import CourrierPatient from "../components/CourrierPatient";
 
 type Onglet = "consultations" | "antecedents" | "traitements" | "allergies" | "documents";
 
@@ -22,6 +23,8 @@ export default function FichePatient() {
   const navigate = useNavigate();
   const { token } = useAuth();
   const [onglet, setOnglet] = useState<Onglet>("consultations");
+  const [courrierOuvert, setCourrierOuvert] = useState(false);
+  const [cleDocuments, setCleDocuments] = useState(0);
 
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [antecedents, setAntecedents] = useState<Antecedent[]>([]);
@@ -226,7 +229,7 @@ export default function FichePatient() {
             💊 Ordonnance
           </button>
           <button
-            onClick={() => navigate(`/courriers?patient=${id}`)}
+            onClick={() => setCourrierOuvert(true)}
             className="bg-slate-900 text-white px-4 py-2.5 rounded-xl hover:bg-slate-700 font-medium"
           >
             ✉️ Courrier
@@ -273,8 +276,23 @@ export default function FichePatient() {
         {onglet === "allergies" && (
           <SectionAllergies allergies={allergies} ajouter={ajouterAllergie} />
         )}
-        {onglet === "documents" && id && <SectionDocuments patientId={id} />}
+        {onglet === "documents" && id && (
+          <SectionDocuments patientId={id} cle={cleDocuments} />
+        )}
       </div>
+
+      {/* Module courrier intégré : patient verrouillé, archivage GED direct */}
+      {courrierOuvert && id && identite && (
+        <CourrierPatient
+          patientId={id}
+          patientNom={`${identite.prenoms} ${identite.nom}`}
+          onFerme={() => setCourrierOuvert(false)}
+          onArchive={() => {
+            setCleDocuments((k) => k + 1);
+            setOnglet("documents");
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -577,7 +595,13 @@ function SectionAllergies({
   );
 }
 
-function SectionDocuments({ patientId }: { patientId: string }) {
+function SectionDocuments({
+  patientId,
+  cle,
+}: {
+  patientId: string;
+  cle: number;
+}) {
   const [docs, setDocs] = useState<ResultatDocument[]>([]);
   const [erreur, setErreur] = useState<string | null>(null);
   const { token } = useAuth();
@@ -587,7 +611,7 @@ function SectionDocuments({ patientId }: { patientId: string }) {
       .listDocuments(patientId)
       .then(setDocs)
       .catch((e) => setErreur(String(e)));
-  }, [patientId]);
+  }, [patientId, cle]);
 
   async function supprimerDoc(idDoc: string) {
     await api.supprimerDocument(idDoc, token!);
