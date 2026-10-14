@@ -40,7 +40,7 @@ export default function Aujourdhui() {
         </h1>
         <button
           onClick={() => navigate("/agenda")}
-          className="text-sky-600 hover:underline text-sm"
+          className="text-lavande-600 hover:underline text-sm"
         >
           Voir l'agenda complet →
         </button>
@@ -60,7 +60,7 @@ export default function Aujourdhui() {
             key={r.id}
             className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-4 hover:border-sky-300 transition"
           >
-            <div className="text-lg font-bold text-sky-700 w-16 tabular-nums">
+            <div className="text-lg font-bold text-lavande-700 w-16 tabular-nums">
               {new Date(r.debut).toLocaleTimeString("fr-FR", {
                 hour: "2-digit",
                 minute: "2-digit",
@@ -83,7 +83,7 @@ export default function Aujourdhui() {
                   ? "bg-amber-100 text-amber-700"
                   : r.statut === "HONORE"
                     ? "bg-emerald-100 text-emerald-700"
-                    : "bg-slate-100 text-slate-500"
+                    : "bg-nuit-100 text-slate-500"
               }`}
             >
               {r.statut}
@@ -100,7 +100,7 @@ export default function Aujourdhui() {
               {r.statut === "ARRIVE" && (
                 <button
                   onClick={() => marquer(r, "HONORE")}
-                  className="bg-sky-600 text-white text-sm px-3 py-1.5 rounded-lg hover:bg-sky-700"
+                  className="bg-lavande-600 text-white text-sm px-3 py-1.5 rounded-lg hover:bg-lavande-700"
                 >
                   Terminé
                 </button>

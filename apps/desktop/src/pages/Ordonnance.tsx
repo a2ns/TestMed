@@ -168,7 +168,7 @@ export default function Ordonnance() {
     <div className="p-8 max-w-4xl">
       <button
         onClick={() => navigate(`/patients/${patientId}`)}
-        className="text-sky-600 hover:underline text-sm mb-3"
+        className="text-lavande-600 hover:underline text-sm mb-3"
       >
         ← Retour à la fiche patient
       </button>
@@ -287,12 +287,12 @@ export default function Ordonnance() {
         </table>
         <button
           onClick={() => setLignes([...lignes, { ...LIGNE_VIDE }])}
-          className="text-sky-600 hover:underline text-sm"
+          className="text-lavande-600 hover:underline text-sm"
         >
           + Ajouter une ligne
         </button>
 
-        <div className="border-t border-slate-100 pt-4">
+        <div className="border-t border-nuit-100 pt-4">
           <h3 className="font-semibold text-sm mb-2">Assistant prescription</h3>
           <div className="flex gap-3">
             <input
@@ -304,7 +304,7 @@ export default function Ordonnance() {
             <button
               onClick={proposerPrescription}
               disabled={!description.trim() || propositionsEnCours}
-              className="bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-700 disabled:opacity-40 text-sm whitespace-nowrap"
+              className="bg-nuit-950 text-white px-4 py-2 rounded-lg hover:bg-nuit-700 disabled:opacity-40 text-sm whitespace-nowrap"
             >
               {propositionsEnCours ? "…" : "✨ Proposer"}
             </button>
@@ -321,7 +321,7 @@ export default function Ordonnance() {
                     setLignes([...lignes, l]);
                     setPropositions(propositions.filter((_, j) => j !== i));
                   }}
-                  className="block w-full text-left px-3 py-2 rounded-lg hover:bg-sky-50 text-sm border border-slate-100"
+                  className="block w-full text-left px-3 py-2 rounded-lg hover:bg-lavande-50 text-sm border border-nuit-100"
                 >
                   ➕ {l.medicament} — {l.posologie}
                   {l.duree ? ` (${l.duree})` : ""}
@@ -338,7 +338,7 @@ export default function Ordonnance() {
           <button
             onClick={enregistrerEtImprimer}
             disabled={enCours}
-            className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 disabled:opacity-40"
+            className="bg-lavande-600 text-white px-4 py-2 rounded-lg hover:bg-lavande-700 disabled:opacity-40"
           >
             {enCours ? "Traitement…" : "💾 Enregistrer et imprimer"}
           </button>

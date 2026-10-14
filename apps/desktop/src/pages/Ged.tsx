@@ -161,7 +161,7 @@ export default function Ged() {
             value={recherche}
             onChange={(e) => setRecherche(e.target.value)}
             placeholder="Rechercher dans le contenu des documents (OCR)…"
-            className="flex-1 min-w-72 border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-sky-400"
+            className="flex-1 min-w-72 border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-lavande-400"
           />
           <select
             value={filtreType}
@@ -185,7 +185,7 @@ export default function Ged() {
               <div key={r.id} className="px-4 py-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">
+                    <span className="text-xs font-bold text-slate-400 bg-nuit-100 px-2 py-1 rounded">
                       {r.type}
                     </span>
                     <span className="font-medium">{r.nomFichier}</span>
@@ -198,7 +198,7 @@ export default function Ged() {
                   {r.nomPatient && (
                     <button
                       onClick={() => navigate(`/patients/${r.patientId}`)}
-                      className="text-sky-600 hover:underline text-sm"
+                      className="text-lavande-600 hover:underline text-sm"
                     >
                       {r.nomPatient}
                     </button>
@@ -207,7 +207,7 @@ export default function Ged() {
                     onClick={() => api.ouvrirDocument(r.id, token!).catch((e) =>
                       setErreur(String(e))
                     )}
-                    className="text-xs text-sky-600 hover:text-sky-800"
+                    className="text-xs text-lavande-600 hover:text-lavande-800"
                   >
                     👁 Voir
                   </button>
@@ -225,7 +225,7 @@ export default function Ged() {
                 </div>
                 {r.extrait && (
                   <p
-                    className="text-sm text-slate-600 mt-1"
+                    className="text-sm text-nuit-500 mt-1"
                     dangerouslySetInnerHTML={{
                       __html: r.extrait
                         .replace(/&/g, "&amp;")
@@ -268,13 +268,13 @@ export default function Ged() {
               ))}
             </select>
           </div>
-          <label className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 cursor-pointer">
+          <label className="bg-lavande-600 text-white px-4 py-2 rounded-lg hover:bg-lavande-700 cursor-pointer">
             📥 Importer un fichier
             <input type="file" className="hidden" onChange={importerFichier} />
           </label>
         </div>
 
-        <div className="border-t border-slate-100 pt-4">
+        <div className="border-t border-nuit-100 pt-4">
           <h2 className="font-semibold mb-3">Scan de masse (chargeur ADF)</h2>
           <div className="flex flex-wrap gap-4 items-end">
             <div>
@@ -301,7 +301,7 @@ export default function Ged() {
             <button
               onClick={lancerScanMasse}
               disabled={scanEnCours || !scanner}
-              className="bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-700 disabled:opacity-40"
+              className="bg-nuit-950 text-white px-4 py-2 rounded-lg hover:bg-nuit-700 disabled:opacity-40"
             >
               {scanEnCours ? "⏳ Scan + OCR en cours…" : "📄 Scanner en masse"}
             </button>

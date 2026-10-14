@@ -59,7 +59,7 @@ export default function PatientPicker({
         value={recherche}
         onChange={(e) => setRecherche(e.target.value)}
         placeholder="Rechercher un patient (2 caractères minimum)…"
-        className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-400"
+        className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-lavande-400"
       />
       {suggestions.length > 0 && (
         <div className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-white border border-slate-200 rounded-lg shadow-lg divide-y">
@@ -67,7 +67,7 @@ export default function PatientPicker({
             <button
               key={p.id}
               onClick={() => choisir(p)}
-              className="block w-full text-left px-3 py-2 hover:bg-sky-50 text-sm"
+              className="block w-full text-left px-3 py-2 hover:bg-lavande-50 text-sm"
             >
               {p.prenoms} <span className="font-medium">{p.nom}</span>
             </button>

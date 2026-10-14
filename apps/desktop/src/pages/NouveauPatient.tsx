@@ -82,7 +82,7 @@ export default function NouveauPatient() {
     <div className="p-8 max-w-3xl">
       <button
         onClick={() => navigate("/patients")}
-        className="text-sky-600 hover:underline text-sm mb-3"
+        className="text-lavande-600 hover:underline text-sm mb-3"
       >
         ← Retour
       </button>
@@ -150,13 +150,13 @@ export default function NouveauPatient() {
           <button
             onClick={enregistrer}
             disabled={!form.nom || !form.prenoms || enCours}
-            className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 disabled:opacity-40"
+            className="bg-lavande-600 text-white px-4 py-2 rounded-lg hover:bg-lavande-700 disabled:opacity-40"
           >
             {enCours ? "Enregistrement…" : "Créer le patient"}
           </button>
           <button
             onClick={() => navigate("/patients")}
-            className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-100"
+            className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-nuit-100"
           >
             Annuler
           </button>

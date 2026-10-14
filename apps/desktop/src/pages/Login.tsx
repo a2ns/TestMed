@@ -22,13 +22,13 @@ export default function Login() {
   }
 
   return (
-    <div className="h-screen flex items-center justify-center bg-slate-900">
+    <div className="h-screen flex items-center justify-center bg-nuit-950">
       <form
         onSubmit={soumettre}
         className="bg-white rounded-2xl shadow-xl p-8 w-96 space-y-4"
       >
         <h1 className="text-2xl font-bold text-center">
-          Magic<span className="text-sky-600">Med</span>
+          Magic<span className="text-lavande-600">Med</span>
         </h1>
         <div>
           <label className="block text-sm text-slate-500 mb-1">Identifiant</label>
@@ -36,7 +36,7 @@ export default function Login() {
             autoFocus
             value={identifiant}
             onChange={(e) => setIdentifiant(e.target.value)}
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-400"
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-lavande-400"
           />
         </div>
         <div>
@@ -47,13 +47,13 @@ export default function Login() {
             type="password"
             value={motDePasse}
             onChange={(e) => setMotDePasse(e.target.value)}
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-400"
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-lavande-400"
           />
         </div>
         {erreur && <p className="text-sm text-red-600">{erreur}</p>}
         <button
           disabled={chargement || !identifiant || !motDePasse}
-          className="w-full bg-sky-600 text-white py-2 rounded-lg hover:bg-sky-700 disabled:opacity-40"
+          className="w-full bg-lavande-600 text-white py-2 rounded-lg hover:bg-lavande-700 disabled:opacity-40"
         >
           {chargement ? "Connexion…" : "Se connecter"}
         </button>

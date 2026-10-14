@@ -180,7 +180,7 @@ export default function Agenda() {
                       setPatientNom(`${p.prenoms} ${p.nom}`);
                       setResultats([]);
                     }}
-                    className="block w-full text-left px-3 py-2 hover:bg-sky-50 text-sm"
+                    className="block w-full text-left px-3 py-2 hover:bg-lavande-50 text-sm"
                   >
                     {p.prenoms} <span className="font-medium">{p.nom}</span>
                   </button>
@@ -203,13 +203,13 @@ export default function Agenda() {
             <button
               onClick={enregistrerRdv}
               disabled={!patientId}
-              className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 disabled:opacity-40"
+              className="bg-lavande-600 text-white px-4 py-2 rounded-lg hover:bg-lavande-700 disabled:opacity-40"
             >
               Enregistrer
             </button>
             <button
               onClick={() => setFormVisible(false)}
-              className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-100"
+              className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-nuit-100"
             >
               Annuler
             </button>
@@ -262,13 +262,13 @@ export default function Agenda() {
           <div className="flex gap-3">
             <button
               onClick={enregistrerModification}
-              className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700"
+              className="bg-lavande-600 text-white px-4 py-2 rounded-lg hover:bg-lavande-700"
             >
               Enregistrer
             </button>
             <button
               onClick={() => setRdvModif(null)}
-              className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-100"
+              className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-nuit-100"
             >
               Annuler
             </button>
@@ -299,7 +299,7 @@ export default function Agenda() {
             </button>
             <button
               onClick={() => setRdvSuppression(null)}
-              className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-100"
+              className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-nuit-100"
             >
               Annuler
             </button>
@@ -315,17 +315,17 @@ export default function Agenda() {
           return (
             <div
               key={hhmm}
-              className="flex border-t border-slate-100 first:border-t-0"
+              className="flex border-t border-nuit-100 first:border-t-0"
             >
-              <div className="w-20 px-4 py-3 text-sm text-slate-500 border-r border-slate-100">
+              <div className="w-20 px-4 py-3 text-sm text-slate-500 border-r border-nuit-100">
                 {hhmm}
               </div>
               {rdv ? (
-                <div className="flex-1 px-4 py-3 flex items-center justify-between bg-sky-50">
+                <div className="flex-1 px-4 py-3 flex items-center justify-between bg-lavande-50">
                   <div>
                     <button
                       onClick={() => navigate(`/patients/${rdv.patientId}`)}
-                      className="font-semibold text-sky-800 hover:underline"
+                      className="font-semibold text-lavande-800 hover:underline"
                     >
                       {rdv.prenomsPatient} {rdv.nomPatient}
                     </button>
@@ -342,7 +342,7 @@ export default function Agenda() {
                           ? "bg-amber-100 text-amber-700"
                           : rdv.statut === "HONORE"
                             ? "bg-emerald-100 text-emerald-700"
-                            : "bg-slate-100 text-slate-500"
+                            : "bg-nuit-100 text-slate-500"
                       }`}
                     >
                       {rdv.statut}
@@ -358,14 +358,14 @@ export default function Agenda() {
                     {rdv.statut === "ARRIVE" && (
                       <button
                         onClick={() => changerStatut(rdv, "HONORE")}
-                        className="bg-sky-600 text-white px-3 py-1 rounded-full hover:bg-sky-700"
+                        className="bg-lavande-600 text-white px-3 py-1 rounded-full hover:bg-lavande-700"
                       >
                         Terminé
                       </button>
                     )}
                     <button
                       onClick={() => ouvrirModification(rdv)}
-                      className="bg-white border border-slate-300 px-3 py-1 rounded-full hover:bg-slate-100"
+                      className="bg-white border border-slate-300 px-3 py-1 rounded-full hover:bg-nuit-100"
                     >
                       ✏️ Modifier
                     </button>
@@ -380,7 +380,7 @@ export default function Agenda() {
               ) : (
                 <button
                   onClick={() => ouvrirCreation(hhmm)}
-                  className="flex-1 px-4 py-3 text-left text-sm text-slate-300 hover:bg-sky-50 hover:text-sky-600"
+                  className="flex-1 px-4 py-3 text-left text-sm text-slate-300 hover:bg-lavande-50 hover:text-lavande-600"
                 >
                   + libre
                 </button>

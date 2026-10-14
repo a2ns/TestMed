@@ -161,7 +161,7 @@ export default function CourrierPatient({
   }
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 z-40 flex items-center justify-center p-6">
+    <div className="fixed inset-0 bg-nuit-950/50 z-40 flex items-center justify-center p-6">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] overflow-auto p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold">
@@ -218,7 +218,7 @@ export default function CourrierPatient({
             <button
               onClick={generer}
               disabled={chargement || !notes}
-              className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 disabled:opacity-40 w-full"
+              className="bg-lavande-600 text-white px-4 py-2 rounded-lg hover:bg-lavande-700 disabled:opacity-40 w-full"
             >
               {chargement ? "Génération…" : "✨ Générer le courrier"}
             </button>
@@ -233,28 +233,28 @@ export default function CourrierPatient({
               value={contenu}
               onChange={(e) => setContenu(e.target.value)}
               rows={18}
-              className="flex-1 w-full border border-slate-300 rounded-lg p-4 font-serif focus:outline-none focus:ring-2 focus:ring-sky-400"
+              className="flex-1 w-full border border-slate-300 rounded-lg p-4 font-serif focus:outline-none focus:ring-2 focus:ring-lavande-400"
               placeholder="Le brouillon IA apparaîtra ici…"
             />
             <div className="flex gap-2 mt-3 flex-wrap">
               <button
                 onClick={reformuler}
                 disabled={!contenu || chargement}
-                className="bg-white border border-slate-300 px-3 py-2 rounded-lg hover:bg-slate-100 disabled:opacity-40 text-sm"
+                className="bg-white border border-slate-300 px-3 py-2 rounded-lg hover:bg-nuit-100 disabled:opacity-40 text-sm"
               >
                 ✨ Reformuler
               </button>
               <button
                 onClick={archiverSeul}
                 disabled={!contenu || impressionEnCours}
-                className="bg-white border border-slate-300 px-3 py-2 rounded-lg hover:bg-slate-100 disabled:opacity-40 text-sm"
+                className="bg-white border border-slate-300 px-3 py-2 rounded-lg hover:bg-nuit-100 disabled:opacity-40 text-sm"
               >
                 📁 Archiver
               </button>
               <button
                 onClick={archiverEtImprimer}
                 disabled={!contenu || impressionEnCours}
-                className="bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-700 disabled:opacity-40 text-sm"
+                className="bg-nuit-950 text-white px-4 py-2 rounded-lg hover:bg-nuit-700 disabled:opacity-40 text-sm"
               >
                 {impressionEnCours ? "…" : "🖨️ Imprimer + archiver"}
               </button>

@@ -10,6 +10,17 @@ import {
 } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import CourrierPatient from "../components/CourrierPatient";
+import {
+  Stethoscope,
+  Pill,
+  Mail,
+  Pencil,
+  Sparkles,
+  Eye,
+  Trash2,
+  AlertTriangle,
+  ArrowLeft,
+} from "lucide-react";
 
 type Onglet = "consultations" | "antecedents" | "traitements" | "allergies" | "documents";
 
@@ -134,9 +145,9 @@ export default function FichePatient() {
         <div>
           <button
             onClick={() => navigate("/patients")}
-            className="text-xs text-slate-400 hover:text-slate-600 mb-2"
+            className="text-xs text-slate-400 hover:text-nuit-500 mb-2"
           >
-            ← Recherche
+            <ArrowLeft size={14} /> Recherche
           </button>
           <div className="flex items-start justify-between">
             <h1 className="text-xl font-bold">
@@ -144,10 +155,10 @@ export default function FichePatient() {
             </h1>
             <button
               onClick={() => setEditionOuverte(true)}
-              className="text-slate-400 hover:text-sky-600"
+              className="text-slate-400 hover:text-lavande-600"
               title="Modifier la fiche patient"
             >
-              ✏️
+              <Pencil size={16} />
             </button>
           </div>
           <p className="text-sm text-slate-500">
@@ -161,7 +172,7 @@ export default function FichePatient() {
         {allergies.length > 0 && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-3">
             <h2 className="text-xs font-bold text-red-700 uppercase mb-1">
-              ⚠ Allergies
+              <AlertTriangle size={12} className="inline" /> Allergies
             </h2>
             {allergies.map((a) => (
               <div key={a.id} className="text-sm text-red-800 font-medium">
@@ -203,7 +214,7 @@ export default function FichePatient() {
           {constantes.length > 0 && (
             <div className="mt-3 text-sm">
               {constantes.slice(0, 6).map((c) => (
-                <div key={c.id} className="flex justify-between text-slate-600">
+                <div key={c.id} className="flex justify-between text-nuit-500">
                   <span>{c.type}</span>
                   <span className="font-medium">
                     {c.valeur}
@@ -226,7 +237,7 @@ export default function FichePatient() {
                 {derniereConsultation.motif}
               </div>
               {derniereConsultation.notes && (
-                <p className="line-clamp-4 text-slate-600">
+                <p className="line-clamp-4 text-nuit-500">
                   {derniereConsultation.notes}
                 </p>
               )}
@@ -241,21 +252,21 @@ export default function FichePatient() {
         <div className="flex gap-2 mb-6">
           <button
             onClick={() => setOnglet("consultations")}
-            className="bg-sky-600 text-white px-4 py-2.5 rounded-xl hover:bg-sky-700 font-medium"
+            className="bg-lavande-600 text-white px-4 py-2.5 rounded-xl hover:bg-lavande-700 font-medium inline-flex items-center gap-2"
           >
-            🩺 Nouvelle consultation
+            <Stethoscope size={18} /> Nouvelle consultation
           </button>
           <button
             onClick={() => navigate(`/patients/${id}/ordonnance`)}
-            className="bg-slate-900 text-white px-4 py-2.5 rounded-xl hover:bg-slate-700 font-medium"
+            className="bg-nuit-950 text-white px-4 py-2.5 rounded-xl hover:bg-nuit-700 font-medium inline-flex items-center gap-2"
           >
-            💊 Ordonnance
+            <Pill size={18} /> Ordonnance
           </button>
           <button
             onClick={() => setCourrierOuvert(true)}
-            className="bg-slate-900 text-white px-4 py-2.5 rounded-xl hover:bg-slate-700 font-medium"
+            className="bg-nuit-950 text-white px-4 py-2.5 rounded-xl hover:bg-nuit-700 font-medium inline-flex items-center gap-2"
           >
-            ✉️ Courrier
+            <Mail size={18} /> Courrier
           </button>
         </div>
 
@@ -380,7 +391,7 @@ function SectionConsultations({
               })
             }
             disabled={!motif}
-            className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 disabled:opacity-40"
+            className="bg-lavande-600 text-white px-4 py-2 rounded-lg hover:bg-lavande-700 disabled:opacity-40"
           >
             Enregistrer
           </button>
@@ -390,10 +401,10 @@ function SectionConsultations({
               if (r) setNotes(r.notes);
             }}
             disabled={!notes.trim()}
-            className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-100 disabled:opacity-40"
+            className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-nuit-100 disabled:opacity-40"
             title="Structure les notes prises à la hâte en observation claire"
           >
-            ✨ Structurer
+            <Sparkles size={14} className="inline" /> Structurer
           </button>
         </div>
       </div>
@@ -412,7 +423,7 @@ function SectionConsultations({
                 }}
                 className="text-xs text-red-500 hover:text-red-700"
               >
-                🗑 Supprimer
+                <Trash2 size={14} className="inline" /> Supprimer
               </button>
             </div>
           </div>
@@ -468,13 +479,13 @@ function SectionAntecedents({
             })
           }
           disabled={!lib}
-          className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 disabled:opacity-40"
+          className="bg-lavande-600 text-white px-4 py-2 rounded-lg hover:bg-lavande-700 disabled:opacity-40"
         >
           Ajouter
         </button>
       </div>
       <table className="w-full bg-white rounded-xl border border-slate-200 overflow-hidden text-left text-sm">
-        <thead className="bg-slate-100 text-slate-500">
+        <thead className="bg-nuit-100 text-slate-500">
           <tr>
             <th className="px-4 py-2">Catégorie</th>
             <th className="px-4 py-2">Libellé</th>
@@ -483,7 +494,7 @@ function SectionAntecedents({
         </thead>
         <tbody>
           {antecedents.map((a) => (
-            <tr key={a.id} className="border-t border-slate-100">
+            <tr key={a.id} className="border-t border-nuit-100">
               <td className="px-4 py-2">{a.categorie}</td>
               <td className="px-4 py-2">{a.libelle}</td>
               <td className="px-4 py-2">{a.annee ?? "—"}</td>
@@ -538,13 +549,13 @@ function SectionTraitements({
             })
           }
           disabled={!med}
-          className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 disabled:opacity-40"
+          className="bg-lavande-600 text-white px-4 py-2 rounded-lg hover:bg-lavande-700 disabled:opacity-40"
         >
           Ajouter
         </button>
       </div>
       <table className="w-full bg-white rounded-xl border border-slate-200 overflow-hidden text-left text-sm">
-        <thead className="bg-slate-100 text-slate-500">
+        <thead className="bg-nuit-100 text-slate-500">
           <tr>
             <th className="px-4 py-2">Médicament</th>
             <th className="px-4 py-2">Posologie</th>
@@ -554,7 +565,7 @@ function SectionTraitements({
         </thead>
         <tbody>
           {traitements.map((t) => (
-            <tr key={t.id} className="border-t border-slate-100">
+            <tr key={t.id} className="border-t border-nuit-100">
               <td className="px-4 py-2 font-medium">{t.medicament}</td>
               <td className="px-4 py-2">{t.posologie}</td>
               <td className="px-4 py-2">{t.duree ?? "—"}</td>
@@ -606,7 +617,7 @@ function SectionAllergies({
         <button
           onClick={() => ajouter(sub, grav).then(() => setSub(""))}
           disabled={!sub}
-          className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 disabled:opacity-40"
+          className="bg-lavande-600 text-white px-4 py-2 rounded-lg hover:bg-lavande-700 disabled:opacity-40"
         >
           Ajouter
         </button>
@@ -624,7 +635,7 @@ function SectionAllergies({
                   ? "bg-red-100 text-red-700"
                   : a.gravite === "MODEREE"
                     ? "bg-amber-100 text-amber-700"
-                    : "bg-slate-100 text-slate-500"
+                    : "bg-nuit-100 text-slate-500"
               }`}
             >
               {a.gravite}
@@ -681,16 +692,16 @@ function SectionDocuments({
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">
+            <span className="text-xs font-bold text-slate-500 bg-nuit-100 px-2 py-1 rounded">
               {d.type}
             </span>
             <button
               onClick={() =>
                 api.ouvrirDocument(d.id, token!).catch((e) => setErreur(String(e)))
               }
-              className="text-xs text-sky-600 hover:text-sky-800"
+              className="text-xs text-lavande-600 hover:text-lavande-800"
             >
-              👁 Voir
+              <Eye size={14} className="inline" /> Voir
             </button>
             <button
               onClick={() => {
@@ -699,7 +710,7 @@ function SectionDocuments({
               }}
               className="text-xs text-red-500 hover:text-red-700"
             >
-              🗑
+              <Trash2 size={14} />
             </button>
           </div>
         </div>
@@ -758,7 +769,7 @@ function SaisieConstantes({
       <button
         onClick={enregistrer}
         disabled={!valeur.trim() || !patientId}
-        className="text-xs bg-sky-600 text-white px-2 py-1.5 rounded-lg hover:bg-sky-700 disabled:opacity-40"
+        className="text-xs bg-lavande-600 text-white px-2 py-1.5 rounded-lg hover:bg-lavande-700 disabled:opacity-40"
       >
         ✓
       </button>
@@ -852,7 +863,7 @@ function EditionPatient({
   }
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 z-40 flex items-center justify-center p-6">
+    <div className="fixed inset-0 bg-nuit-950/50 z-40 flex items-center justify-center p-6">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-auto p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold">Modifier la fiche patient</h2>
@@ -949,13 +960,13 @@ function EditionPatient({
           <button
             onClick={enregistrer}
             disabled={enCours}
-            className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 disabled:opacity-40"
+            className="bg-lavande-600 text-white px-4 py-2 rounded-lg hover:bg-lavande-700 disabled:opacity-40"
           >
             {enCours ? "Enregistrement…" : "Enregistrer"}
           </button>
           <button
             onClick={onFerme}
-            className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-100"
+            className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-nuit-100"
           >
             Annuler
           </button>

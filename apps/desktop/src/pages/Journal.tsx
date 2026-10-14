@@ -41,7 +41,7 @@ export default function Journal() {
       />
       {erreur && <p className="text-sm text-red-600 mb-4">Erreur : {erreur}</p>}
       <table className="w-full bg-white rounded-xl border border-slate-200 overflow-hidden text-left text-sm">
-        <thead className="bg-slate-100 text-slate-500">
+        <thead className="bg-nuit-100 text-slate-500">
           <tr>
             <th className="px-4 py-3">Horodatage</th>
             <th className="px-4 py-3">Utilisateur</th>
@@ -52,7 +52,7 @@ export default function Journal() {
         </thead>
         <tbody>
           {visibles.map((e) => (
-            <tr key={e.id} className="border-t border-slate-100">
+            <tr key={e.id} className="border-t border-nuit-100">
               <td className="px-4 py-2 whitespace-nowrap">
                 {new Date(e.ts).toLocaleString("fr-FR")}
               </td>

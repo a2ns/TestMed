@@ -239,13 +239,13 @@ export default function Courriers() {
               onChange={(e) => setNotes(e.target.value)}
               rows={10}
               placeholder="Motif, examen, conclusion…"
-              className="w-full border border-slate-300 rounded-lg p-3 bg-white focus:outline-none focus:ring-2 focus:ring-sky-400"
+              className="w-full border border-slate-300 rounded-lg p-3 bg-white focus:outline-none focus:ring-2 focus:ring-lavande-400"
             />
           </div>
           <button
             onClick={generer}
             disabled={chargement || !patientId || !notes}
-            className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 disabled:opacity-40"
+            className="bg-lavande-600 text-white px-4 py-2 rounded-lg hover:bg-lavande-700 disabled:opacity-40"
           >
             {chargement ? "Génération…" : "✨ Générer le courrier"}
           </button>
@@ -258,14 +258,14 @@ export default function Courriers() {
             value={contenu}
             onChange={(e) => setContenu(e.target.value)}
             rows={22}
-            className="flex-1 w-full border border-slate-300 rounded-lg p-4 bg-white font-serif focus:outline-none focus:ring-2 focus:ring-sky-400"
+            className="flex-1 w-full border border-slate-300 rounded-lg p-4 bg-white font-serif focus:outline-none focus:ring-2 focus:ring-lavande-400"
             placeholder="Le brouillon IA apparaîtra ici…"
           />
           <div className="flex gap-3 mt-3 flex-wrap">
             <button
               onClick={reformuler}
               disabled={!contenu || chargement}
-              className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-100 disabled:opacity-40 text-sm"
+              className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-nuit-100 disabled:opacity-40 text-sm"
               title="Améliore la clarté et le style sans changer le sens médical"
             >
               ✨ Reformuler
@@ -273,14 +273,14 @@ export default function Courriers() {
             <button
               onClick={imprimer}
               disabled={!contenu || impressionEnCours}
-              className="bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-700 disabled:opacity-40"
+              className="bg-nuit-950 text-white px-4 py-2 rounded-lg hover:bg-nuit-700 disabled:opacity-40"
             >
               {impressionEnCours ? "⏳ Impression…" : "🖨️ Imprimer"}
             </button>
             <button
               onClick={archiver}
               disabled={!contenu}
-              className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-100 disabled:opacity-40"
+              className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-nuit-100 disabled:opacity-40"
             >
               📁 Archiver dans la GED
             </button>

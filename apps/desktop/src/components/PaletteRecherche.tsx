@@ -53,7 +53,7 @@ export default function PaletteRecherche() {
 
   return (
     <div
-      className="fixed inset-0 bg-slate-900/40 z-50 flex items-start justify-center pt-24"
+      className="fixed inset-0 bg-nuit-950/40 z-50 flex items-start justify-center pt-24"
       onClick={() => setOuverte(false)}
     >
       <div
@@ -75,7 +75,7 @@ export default function PaletteRecherche() {
             <button
               key={p.id}
               onClick={() => choisir(p)}
-              className="w-full text-left px-5 py-3 hover:bg-sky-50 flex justify-between items-center"
+              className="w-full text-left px-5 py-3 hover:bg-lavande-50 flex justify-between items-center"
             >
               <span className="font-medium">
                 {p.prenoms} {p.nom}

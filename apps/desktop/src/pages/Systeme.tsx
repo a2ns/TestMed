@@ -126,7 +126,7 @@ export default function Systeme() {
           <button
             onClick={creerCompte}
             disabled={!identifiant || !motDePasse}
-            className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 disabled:opacity-40"
+            className="bg-lavande-600 text-white px-4 py-2 rounded-lg hover:bg-lavande-700 disabled:opacity-40"
           >
             + Créer le compte
           </button>
@@ -146,7 +146,7 @@ export default function Systeme() {
         <button
           onClick={sauvegarder}
           disabled={sauvegardeEnCours}
-          className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 disabled:opacity-40"
+          className="bg-lavande-600 text-white px-4 py-2 rounded-lg hover:bg-lavande-700 disabled:opacity-40"
         >
           {sauvegardeEnCours ? "Sauvegarde en cours…" : "Lancer une sauvegarde"}
         </button>
@@ -268,7 +268,7 @@ export default function Systeme() {
               setErreur(String(e));
             }
           }}
-          className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700"
+          className="bg-lavande-600 text-white px-4 py-2 rounded-lg hover:bg-lavande-700"
         >
           Enregistrer ma fiche
         </button>
@@ -295,7 +295,7 @@ export default function Systeme() {
                 )
                 .catch((e) => setErreur(String(e)))
             }
-            className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700"
+            className="bg-lavande-600 text-white px-4 py-2 rounded-lg hover:bg-lavande-700"
           >
             Tester la connexion IA
           </button>
