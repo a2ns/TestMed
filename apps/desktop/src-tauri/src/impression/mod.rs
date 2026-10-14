@@ -19,18 +19,42 @@ pub struct CourrierImpression {
     pub signature: String,
 }
 
+/// Charge la police pour le PDF : cherche un TTF réel sur le système,
+/// en testant les chemins de chaque OS. Charge direct du fichier (les
+/// conventions genpdf `{nom}-Regular.ttf` ne collent pas aux noms macOS).
+fn charger_police() -> Result<genpdf::fonts::FontFamily<genpdf::fonts::FontData>, String> {
+    let candidats: &[&str] = &[
+        // macOS — vrais fichiers système Apple
+        "/System/Library/Fonts/Supplemental/Helvetica.ttc",
+        "/System/Library/Fonts/Supplemental/Helvetica.ttf",
+        "/System/Library/Fonts/Helvetica.ttc",
+        "/System/Library/Fonts/Supplemental/Arial.ttf",
+        "/Library/Fonts/Arial.ttf",
+        // Linux — Liberation (métriquement compatible Helvetica)
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/liberation/LiberationSans-Regular.ttf",
+        // Windows
+        "C:\\Windows\\Fonts\\arial.ttf",
+    ];
+    for chemin in candidats {
+        if !std::path::Path::new(chemin).exists() {
+            continue;
+        }
+        if let Ok(data) = genpdf::fonts::FontData::load(chemin, None) {
+            return Ok(genpdf::fonts::FontFamily {
+                regular: data.clone(),
+                bold: data.clone(),
+                italic: data.clone(),
+                bold_italic: data,
+            });
+        }
+    }
+    Err("police introuvable : ni Helvetica ni Arial ni Liberation sur ce système".into())
+}
+
 /// Génère le PDF du courrier et retourne son chemin.
 pub fn generer_pdf(c: &CourrierImpression, chemin: &str) -> Result<(), String> {
-    // Polices candidates selon l'OS (macOS : Helvetica Supplemental ; Linux : Liberation).
-    let police = [
-        ("/System/Library/Fonts/Supplemental", "Helvetica"),
-        ("/System/Library/Fonts", "Helvetica"),
-        ("/Library/Fonts", "Arial"),
-        ("/usr/share/fonts", "Liberation"),
-    ]
-    .iter()
-    .find_map(|(dossier, nom)| genpdf::fonts::from_files(dossier, nom, None).ok())
-    .ok_or("aucune police système trouvée (Helvetica/Arial/Liberation)")?;
+    let police = charger_police()?;
     let mut doc = genpdf::Document::new(police);
     doc.set_title(format!("Courrier — {}", c.patient));
 
