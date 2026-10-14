@@ -67,6 +67,7 @@ fn main() {
             ia::reformuler_texte,
             ia::assister_ia,
             ia::analyser_document_ia,
+            ia::extraire_constantes_ia,
             commands::scan::lister_scanners,
             commands::scan::scan_masse,
             impression::commande::imprimer_courrier,

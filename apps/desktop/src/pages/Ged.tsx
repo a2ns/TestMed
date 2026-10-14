@@ -436,6 +436,23 @@ function LigneCaddie({
     setErreur(null);
     try {
       await api.classerDocument(doc.id, patientId, typeChoisi, token);
+      // Si le document contient des constantes (résultats de labo),
+      // l'IA les extrait et les enregistre dans le dossier du patient.
+      if (doc.extrait && (doc.extrait.length > 30)) {
+        try {
+          const constantes = await api.extraireConstantesIa(doc.extrait, token);
+          if (constantes.length > 0) {
+            for (const c of constantes) {
+              await api.creerConstante(patientId, c.type, c.valeur, c.unite, token);
+            }
+            setAnalyseIa(
+              `Document classé — ${constantes.length} constante(s) extraite(s) et enregistrée(s) dans le dossier du patient`
+            );
+          }
+        } catch {
+          // L'extraction est un bonus : le classement reste acquis.
+        }
+      }
       onClasse();
     } catch (e) {
       setErreur(String(e));

@@ -336,3 +336,51 @@ Pour nom_patient : cherche le nom du patient dans l'en-tête, l'objet ou le corp
     );
     Ok(analyse)
 }
+
+/// Extrait les constantes biologiques d'un texte OCR (résultats de laboratoire
+/// principalement) : tension, poids, glycémie, HbA1c, cholestérol, etc.
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConstanteExtraite {
+    pub r#type: String,
+    pub valeur: String,
+    pub unite: Option<String>,
+}
+
+#[tauri::command]
+pub async fn extraire_constantes_ia(
+    texte_ocr: String,
+    token: String,
+) -> Result<Vec<ConstanteExtraite>, String> {
+    let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
+    if texte_ocr.trim().len() < 10 {
+        return Err("texte OCR trop court".into());
+    }
+    let systeme = "Tu es un assistant d'extraction de constantes biologiques depuis des comptes rendus et résultats d'examen. \
+Analyse le texte et extrais UNIQUEMENT les mesures présentes, au format JSON strict : \
+[{\"type\": \"TENSION|POIDS|GLYCEMIE|HBA1C|CHOLESTEROL|LDL|HDL|TRIGLYCERIDES|CREATINININE|TSH|TEMPERATURE|SATURATION|POULS|AUTRE\", \"valeur\": \"valeur avec décimale point\", \"unite\": \"unité ou null\"}] \
+La tension s'écrit \"12/8\" (systolique/diastolique). N'invente AUCUNE valeur absente du texte. Tableau JSON seul, sans texte autour. \
+Si aucune constante n'est présente, réponds [].";
+    let corps = serde_json::json!({
+        "model": model(),
+        "messages": [
+            {"role": "system", "content": systeme},
+            {"role": "user", "content": format!("Texte à analyser :\n{}", texte_ocr.chars().take(2500).collect::<String>())}
+        ],
+        "temperature": 0.0,
+        "max_tokens": 400
+    });
+    let reponse = appel_ia(&corps).await?;
+    let debut = reponse.find('[').ok_or("réponse IA illisible")?;
+    let fin = reponse.rfind(']').ok_or("réponse IA illisible")?;
+    let extraites: Vec<ConstanteExtraite> = serde_json::from_str(&reponse[debut..=fin])
+        .map_err(|e| format!("réponse IA inattendue : {e}"))?;
+    crate::audit::journaliser(
+        &utilisateur.id,
+        "IA_EXTRACTION_CONSTANTS",
+        None,
+        None,
+        Some(serde_json::json!({ "nb": extraites.len() })),
+    );
+    Ok(extraites)
+}

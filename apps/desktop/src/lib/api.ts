@@ -267,6 +267,10 @@ export const api = {
     invoke<string>("reformuler_texte", { texte, consigne, token }),
   assisterIa: (tache: string, entree: string, contextePatient: { allergies: string[]; traitements: string[] } | null, token: string) =>
     invoke<string>("assister_ia", { tache, entree, contextePatient, token }),
+  extraireConstantesIa: (texteOcr: string, token: string) =>
+    invoke<{ type: string; valeur: string; unite: string | null }[]>(
+      "extraire_constantes_ia", { texteOcr, token }
+    ),
   analyserDocumentIa: (texteOcr: string, token: string) =>
     invoke<{ typeDocument: string; nomPatient: string | null; confiance: number; commentaire: string | null }>(
       "analyser_document_ia", { texteOcr, token }
