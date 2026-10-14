@@ -5,3 +5,6 @@ Cargo.lock
 .env
 *.db
 .DS_Store
+
+# Lockfiles régénérés par chaque poste (npm install)
+package-lock.json
