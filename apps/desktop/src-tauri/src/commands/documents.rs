@@ -27,10 +27,7 @@ pub async fn import_document(doc: DocumentImport) -> Result<String, String> {
     let dossier = std::env::var("MAGICMED_DOCS_DIR").unwrap_or_else(|_| "documents".into());
     std::fs::create_dir_all(&dossier).map_err(|e| e.to_string())?;
     let source = std::path::Path::new(&doc.chemin);
-    let extension = source
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("bin");
+    let extension = source.extension().and_then(|e| e.to_str()).unwrap_or("bin");
     let nom_stocke = format!("{}.{}", uuid::Uuid::new_v4(), extension);
     let destination = std::path::Path::new(&dossier).join(&nom_stocke);
     std::fs::copy(source, &destination).map_err(|e| e.to_string())?;

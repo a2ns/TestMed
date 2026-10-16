@@ -70,7 +70,7 @@ def fb_query(db_path, select_sql):
 def blob(expr):
     """Échappe une colonne BLOB pour l'extraction une-ligne-par-ligne."""
     nl = f"' || ASCII_CHAR(13) || ASCII_CHAR(10) || '"
-    return f"REPLACE(REPLACE(CAST({expr} AS VARCHAR(32000)), ASCII_CHAR(13)||ASCII_CHAR(10), '<NL>'), ASCII_CHAR(10), '<NL>')"
+    return f"REPLACE(REPLACE(CAST({expr} AS VARCHAR(32000)), ASCII_CHAR(13)||ASCII_CHAR(10), '<NL>'), ASCII_CHAR(10), '<NL>') || '{SEP}' ||"
 
 
 def fld(expr):
@@ -229,7 +229,7 @@ def main():
         + q("NUM_PAT", "")
         + q("PRATICIEN", "")
         + q("DATE_CONSULT", "")
-        + q(blob("CONSULTATION"), "")
+        + blob("CONSULTATION")
         + "'END' FROM PATIENTCONSULT WHERE DATE_SUPPR IS NULL",
     )
     path = os.path.join(OUT_DIR, "consultations.csv")
@@ -310,9 +310,9 @@ def main():
     print("5/6 Gabarits de documents...")
     rows = fb_query(
         db,
-        "SELECT m.IDMODELE, e.LIBELLE, " + blob("m.COMMENTAIRE")
-        + " || '" + SEP + "' || 'END'"
-        " FROM MODELEDOCUMENT m JOIN MODELEDOCUMENTENT e ON e.IDMODELE = m.IDMODELE",
+        "SELECT " + q("m.IDMODELE", "") + q("e.LIBELLE", "")
+        + blob("m.COMMENTAIRE")
+        + "'END' FROM MODELEDOCUMENT m JOIN MODELEDOCUMENTENT e ON e.IDMODELE = m.IDMODELE",
     )
     path = os.path.join(OUT_DIR, "gabarits.csv")
     n = 0

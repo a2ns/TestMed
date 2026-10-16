@@ -17,7 +17,8 @@ pub struct ConsultationResume {
     pub notes: Option<String>,
 }
 
-const SYSTEM_PROMPT: &str = "Tu es un assistant de rédaction de courriers médicaux pour un médecin \
+const SYSTEM_PROMPT: &str =
+    "Tu es un assistant de rédaction de courriers médicaux pour un médecin \
 généraliste français. Rédige un courrier professionnel, clair et concis en français, \
 à partir des notes de consultation. N'invente aucun diagnostic, symptôme ni traitement \
 non mentionné dans les notes. Utilise la terminologie médicale appropriée. \
@@ -32,7 +33,8 @@ fn model() -> String {
 }
 
 async fn chat(system: &str, user: &str, temperature: f32) -> Result<String, String> {
-    let api_key = std::env::var("AI_API_KEY").map_err(|_| "AI_API_KEY non configurée".to_string())?;
+    let api_key =
+        std::env::var("AI_API_KEY").map_err(|_| "AI_API_KEY non configurée".to_string())?;
     let body = serde_json::json!({
         "model": model(),
         "messages": [

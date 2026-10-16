@@ -19,10 +19,12 @@ fn pool() -> Result<&'static PgPool, String> {
 
 // ---------- Patients ----------
 
-pub async fn query_patients(recherche: &str) -> Result<Vec<crate::commands::patients::Patient>, String> {
+pub async fn query_patients(
+    recherche: &str,
+) -> Result<Vec<crate::commands::patients::Patient>, String> {
     let pool = pool()?;
     let rows = sqlx::query_as::<_, crate::commands::patients::Patient>(
-        "SELECT id, nom, prenoms FROM "Patient" WHERE nom ILIKE $1 OR prenoms ILIKE $1 ORDER BY nom LIMIT 50",
+        "SELECT id, nom, prenoms FROM \"Patient\" WHERE nom ILIKE $1 OR prenoms ILIKE $1 ORDER BY nom LIMIT 50",
     )
     .bind(format!("%{recherche}%"))
     .fetch_all(pool)
@@ -31,11 +33,13 @@ pub async fn query_patients(recherche: &str) -> Result<Vec<crate::commands::pati
     Ok(rows)
 }
 
-pub async fn creer_patient(req: &crate::commands::patients::PatientNouveau) -> Result<crate::commands::patients::Patient, String> {
+pub async fn creer_patient(
+    req: &crate::commands::patients::PatientNouveau,
+) -> Result<crate::commands::patients::Patient, String> {
     let pool = pool()?;
     let id = uuid::Uuid::new_v4().to_string();
     sqlx::query_as::<_, crate::commands::patients::Patient>(
-        "INSERT INTO "Patient" (id, nom, prenoms, \"dateNaissance\", sexe, telephone, email, \"medecinTraitant\")
+        "INSERT INTO \"Patient\" (id, nom, prenoms, \"dateNaissance\", sexe, telephone, email, \"medecinTraitant\")
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          RETURNING id, nom, prenoms",
     )
@@ -60,14 +64,14 @@ pub async fn contexte_patient(patient_id: &str) -> Result<crate::ia::ContextePat
     let pool = pool()?;
     let p: (String, String, Option<chrono::NaiveDate>, Option<String>, Option<String>) =
         sqlx::query_as(
-            "SELECT nom, prenoms, \"dateNaissance\", sexe, \"medecinTraitant\" FROM "Patient" WHERE id = $1",
+            "SELECT nom, prenoms, \"dateNaissance\", sexe, \"medecinTraitant\" FROM \"Patient\" WHERE id = $1",
         )
         .bind(patient_id)
         .fetch_one(pool)
         .await
         .map_err(|e| e.to_string())?;
     let consultations: Vec<(chrono::NaiveDateTime, Option<String>, Option<String>)> = sqlx::query_as(
-        "SELECT date, motif, notes FROM "Consultation" WHERE \"patientId\" = $1 ORDER BY date DESC LIMIT 5",
+        "SELECT date, motif, notes FROM \"Consultation\" WHERE \"patientId\" = $1 ORDER BY date DESC LIMIT 5",
     )
     .bind(patient_id)
     .fetch_all(pool)
@@ -92,10 +96,12 @@ pub async fn contexte_patient(patient_id: &str) -> Result<crate::ia::ContextePat
 
 // ---------- Documents (GED) ----------
 
-pub async fn insert_document(doc: &crate::commands::documents::DocumentImport) -> Result<String, String> {
+pub async fn insert_document(
+    doc: &crate::commands::documents::DocumentImport,
+) -> Result<String, String> {
     let pool = pool()?;
     let id = uuid::Uuid::new_v4().to_string();
-    sqlx::query("INSERT INTO "Document" (id, \"patientId\", \"nomFichier\", \"cheminStockage\", type) VALUES ($1, $2, $3, $4, $5)")
+    sqlx::query("INSERT INTO \"Document\" (id, \"patientId\", \"nomFichier\", \"cheminStockage\", type) VALUES ($1, $2, $3, $4, $5)")
         .bind(&id)
         .bind(&doc.patient_id)
         .bind(&doc.nom_fichier)
@@ -107,10 +113,12 @@ pub async fn insert_document(doc: &crate::commands::documents::DocumentImport) -
     Ok(id)
 }
 
-pub async fn list_documents(patient_id: Option<&str>) -> Result<Vec<crate::commands::documents::DocumentRow>, String> {
+pub async fn list_documents(
+    patient_id: Option<&str>,
+) -> Result<Vec<crate::commands::documents::DocumentRow>, String> {
     let pool = pool()?;
     let rows = sqlx::query_as::<_, crate::commands::documents::DocumentRow>(
-        "SELECT id, \"patientId\", \"nomFichier\", type, \"createdAt\" FROM "Document"
+        "SELECT id, \"patientId\", \"nomFichier\", type, \"createdAt\" FROM \"Document\"
          WHERE ($1::text IS NULL OR \"patientId\" = $1) ORDER BY \"createdAt\" DESC LIMIT 200",
     )
     .bind(patient_id)
@@ -122,10 +130,12 @@ pub async fn list_documents(patient_id: Option<&str>) -> Result<Vec<crate::comma
 
 // ---------- Courriers ----------
 
-pub async fn enregistrer_courrier(req: &crate::commands::courriers::CourrierSauvegarde) -> Result<crate::commands::courriers::CourrierRow, String> {
+pub async fn enregistrer_courrier(
+    req: &crate::commands::courriers::CourrierSauvegarde,
+) -> Result<crate::commands::courriers::CourrierRow, String> {
     let pool = pool()?;
     let row = sqlx::query_as::<_, crate::commands::courriers::CourrierRow>(
-        "INSERT INTO "Courrier" (id, \"patientId\", sujet, contenu, \"aiGenere\", statut, date)
+        "INSERT INTO \"Courrier\" (id, \"patientId\", sujet, contenu, \"aiGenere\", statut, date)
          VALUES ($1, $2, $3, $4, $5, $6, now())
          RETURNING id, \"patientId\", sujet, contenu, \"aiGenere\", statut, date",
     )
@@ -141,10 +151,12 @@ pub async fn enregistrer_courrier(req: &crate::commands::courriers::CourrierSauv
     Ok(row)
 }
 
-pub async fn list_courriers(patient_id: Option<&str>) -> Result<Vec<crate::commands::courriers::CourrierRow>, String> {
+pub async fn list_courriers(
+    patient_id: Option<&str>,
+) -> Result<Vec<crate::commands::courriers::CourrierRow>, String> {
     let pool = pool()?;
     let rows = sqlx::query_as::<_, crate::commands::courriers::CourrierRow>(
-        "SELECT id, \"patientId\", sujet, contenu, \"aiGenere\", statut, date FROM "Courrier"
+        "SELECT id, \"patientId\", sujet, contenu, \"aiGenere\", statut, date FROM \"Courrier\"
          WHERE ($1::text IS NULL OR \"patientId\" = $1) ORDER BY date DESC LIMIT 200",
     )
     .bind(patient_id)
@@ -166,13 +178,13 @@ pub async fn valider_courrier(id: &str) -> Result<(), String> {
 
 // ---------- Réconciliation des fiches orphelines ----------
 
-pub async fn fiches_orphelines()
--> Result<Vec<crate::commands::reconciliation::FicheOrpheline>, String> {
+pub async fn fiches_orphelines(
+) -> Result<Vec<crate::commands::reconciliation::FicheOrpheline>, String> {
     let pool = pool()?;
     let consultations: Vec<crate::commands::reconciliation::FicheOrpheline> = sqlx::query_as(
         "SELECT id, 'Consultation' AS kind, CAST(date AS VARCHAR(10)) AS date,
                 motif AS sujet, LEFT(COALESCE(notes, ''), 120) AS extrait
-         FROM "Consultation" WHERE "patientId" IS NULL ORDER BY date DESC",
+         FROM \"Consultation\" WHERE \"patientId\" IS NULL ORDER BY date DESC",
     )
     .fetch_all(pool)
     .await
@@ -180,7 +192,7 @@ pub async fn fiches_orphelines()
     let courriers: Vec<crate::commands::reconciliation::FicheOrpheline> = sqlx::query_as(
         "SELECT id, 'Courrier' AS kind, CAST(date AS VARCHAR(10)) AS date,
                 sujet, LEFT(contenu, 120) AS extrait
-         FROM "Courrier" WHERE "patientId" IS NULL ORDER BY date DESC",
+         FROM \"Courrier\" WHERE \"patientId\" IS NULL ORDER BY date DESC",
     )
     .fetch_all(pool)
     .await
@@ -190,13 +202,13 @@ pub async fn fiches_orphelines()
     Ok(fiches)
 }
 
-pub async fn occurrences_patients()
--> Result<Vec<crate::commands::reconciliation::OccurrencePatient>, String> {
+pub async fn occurrences_patients(
+) -> Result<Vec<crate::commands::reconciliation::OccurrencePatient>, String> {
     let pool = pool()?;
     let rows = sqlx::query_as::<_, crate::commands::reconciliation::OccurrencePatient>(
         "SELECT p.id, p.nom, p.prenoms, COUNT(c.id) AS occurrences
-         FROM "Patient" p
-         JOIN "Consultation" c ON c."patientId" = p.id
+         FROM \"Patient\" p
+         JOIN \"Consultation\" c ON c.\"patientId\" = p.id
          GROUP BY p.id, p.nom, p.prenoms
          ORDER BY COUNT(c.id) DESC LIMIT 100",
     )
@@ -232,21 +244,21 @@ pub async fn lier_fiche(kind: &str, fiche_id: &str, patient_id: &str) -> Result<
 
 pub async fn statistiques() -> Result<crate::commands::dashboard::Stats, String> {
     let pool = pool()?;
-    let (patients_total,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM "Patient"")
+    let (patients_total,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM \"Patient\"")
         .fetch_one(pool)
         .await
         .map_err(|e| e.to_string())?;
-    let (documents_total,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM "Document"")
+    let (documents_total,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM \"Document\"")
         .fetch_one(pool)
         .await
         .map_err(|e| e.to_string())?;
     let (courriers_brouillons,): (i64,) =
-        sqlx::query_as("SELECT COUNT(*) FROM "Courrier" WHERE statut = 'BROUILLON'")
+        sqlx::query_as("SELECT COUNT(*) FROM \"Courrier\" WHERE statut = 'BROUILLON'")
             .fetch_one(pool)
             .await
             .map_err(|e| e.to_string())?;
     let (courriers_valides,): (i64,) =
-        sqlx::query_as("SELECT COUNT(*) FROM "Courrier" WHERE statut = 'VALIDE'")
+        sqlx::query_as("SELECT COUNT(*) FROM \"Courrier\" WHERE statut = 'VALIDE'")
             .fetch_one(pool)
             .await
             .map_err(|e| e.to_string())?;
