@@ -1,16 +1,10 @@
 #!/usr/bin/env python3
-"""Récupère le texte des consultations MagicMed au format RichView (Delphi) :
-les BLOB CONSULTATION « binaires » (194 580 lignes) contiennent le compte rendu
-en format interne RichView (paires d'octets + marqueurs + feuille de style).
+"""Récupère le texte des consultations MagicMed :
+- BLOB RichView (marqueurs + style + texte en paires d'octets) -> décodage
+- BLOB RTF -> conversion via rtf_vers_html
 
-Canal d'extraction : isql sort les BLOB en hexadécimal via CAST(... OCTETS) ?
-Non — FB 2.0 ne l'offre pas proprement en texte. Voie robuste : utiliser
-l'outil GBAK ? Trop lourd. La voie retenue : extraire via isql en HEX n'existe
-pas, mais l'on peut passer par l'export en hex avec l'UDF ? Le plus fiable
-disponible : utiliser le canal CSV de PostgreSQL pour la ré-injection, et pour
-l'EXTRACTION Firebird, caster le BLOB en VARCHAR(32000) — le contenu est de
-l'ASCII (marqueurs + paires), donc le CAST fonctionne (c'est seulement le
-LEFT(CAST(...)) court qui tronquait violemment).
+Cible UNIQUEMENT les consultations Primia encore marquées
+(notes IN ('-8 1 3 1', '-8 1 3 2')).
 
 Usage : python3 recupere_richview.py [--dry-run]
 """
@@ -24,6 +18,7 @@ import uuid
 MIG_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, MIG_DIR)
 from decode_richview import decode_richview, vers_html  # noqa: E402
+from rtf_vers_html import rtf_vers_html  # noqa: E402
 
 NS = uuid.UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
 DRY_RUN = "--dry-run" in sys.argv
@@ -45,7 +40,6 @@ def psql(sql):
 
 
 def fb_query(db, select_sql):
-    """Requête isql ; les BLOB sont castés en VARCHAR(32000) par l'appelant."""
     script = (
         f"CONNECT '{db}' USER 'SYSDBA' PASSWORD 'masterkey';\n"
         "SET HEADING OFF;\n"
@@ -72,7 +66,6 @@ def fb_query(db, select_sql):
 
 
 def main():
-    # 0. base source
     itb = None
     data_dir = os.path.join(MIG_DIR, "data")
     for f in sorted(os.listdir(data_dir)):
@@ -84,27 +77,31 @@ def main():
         sys.exit(1)
     db = f"/database/{itb}"
 
-    # 1. les consultations Primia encore marquées
+    # 1. consultations Primia encore marquées (leurs UUIDs)
     nb = psql("SELECT COUNT(*) FROM \"Consultation\" "
               "WHERE notes IN ('-8 1 3 1', '-8 1 3 2')").strip()
     print(f"Consultations encore marquées : {nb}")
     if nb == "0":
         print("Rien à faire.")
         return
+    marques = set(psql("SELECT id FROM \"Consultation\" "
+                       "WHERE notes IN ('-8 1 3 1', '-8 1 3 2')").split())
+    print(f"UUIDs marqués chargés : {len(marques)}")
 
-    # 2. leurs CONS_ID d'origine (uuid5 inversé impossible : on garde la table
-    #    de correspondance CONS_ID -> id en réutilisant le même uuid5)
-    #    Extraire CONS_ID + BLOB depuis Firebird, par lots.
-    print("Liste des CONS_ID concernés (depuis Firebird)...")
+    # 2. CONS_ID de toutes les consultations source
     fld = lambda e: f"COALESCE(CAST({e} AS VARCHAR(32000)), '') || '{SEP}' ||"
-    rows_ids = fb_query(
-        db,
-        "SELECT " + fld("CONS_ID") + "'END' FROM PATIENTCONSULT "
-        "WHERE DATE_SUPPR IS NULL")
+    # échappement des sauts de ligne (CRITICAL : les BLOB multi-lignes sinon
+    # fragmentés par le parsing ligne à ligne)
+    blob_esc = ("REPLACE(REPLACE(CAST(CONSULTATION AS VARCHAR(32000)), "
+                "ASCII_CHAR(13)||ASCII_CHAR(10), '<NL>'), "
+                "ASCII_CHAR(10), '<NL>')")
+    print("Liste des CONS_ID (depuis Firebird)...")
+    rows_ids = fb_query(db, "SELECT " + fld("CONS_ID") + "'END' FROM PATIENTCONSULT "
+                        "WHERE DATE_SUPPR IS NULL")
     tous_ids = [r[0].strip() for r in rows_ids if r and r[0].strip()]
     print(f"Consultations source : {len(tous_ids)}")
 
-    # 3. extraction par lots avec décoding
+    # 3. extraction par lots
     TAILLE_LOT = 300
     updates = []
     erreurs = 0
@@ -112,35 +109,50 @@ def main():
         lot = tous_ids[i:i + TAILLE_LOT]
         sel = ("SELECT "
                + fld("CONS_ID")
-               + fld("CAST(CONSULTATION AS VARCHAR(32000))")
+               + "COALESCE(" + blob_esc + ", '') || '" + SEP + "' || "
                + "'END' FROM PATIENTCONSULT WHERE CONS_ID IN ("
                + ",".join(lot) + ")")
         try:
             rows = fb_query(db, sel)
-        except RuntimeError as e:
+        except RuntimeError:
             erreurs += 1
             continue
         for r in rows:
             if len(r) < 2:
                 continue
             cons_id = r[0].strip()
-            brut = r[1]
-            texte = decode_richview(brut.encode("cp1252", errors="replace"))
-            if texte and len(texte.strip()) > 5:
-                updates.append((src_uuid("PATIENTCONSULT", cons_id),
-                                vers_html(texte)))
+            cid_uuid = src_uuid("PATIENTCONSULT", cons_id)
+            if cid_uuid not in marques:
+                continue  # pas une consultation marquée : ignorer
+            brut = r[1].replace("<NL>", "\r")
+            if not brut.strip():
+                continue
+            try:
+                if brut.lstrip().startswith("{\\rtf"):
+                    html = rtf_vers_html(brut.strip())
+                else:
+                    texte = decode_richview(brut.encode("cp1252", errors="replace"))
+                    html = vers_html(texte)
+            except Exception:
+                continue
+            if html and html.strip() not in ("", "<p></p>", "<p><br></p>"):
+                updates.append((cid_uuid, html))
         if (i // TAILLE_LOT) % 50 == 0:
             print(f"   lot {i // TAILLE_LOT + 1}/{(len(tous_ids) + TAILLE_LOT - 1) // TAILLE_LOT} ({len(updates)} textes)")
 
-    print(f"Textes RichView décodés : {len(updates)} (lots en erreur : {erreurs})")
-    if DRY_RUN or not updates:
-        if DRY_RUN and updates:
+    print(f"Textes décodés pour consultations marquées : {len(updates)} "
+          f"(lots en erreur : {erreurs})")
+    if DRY_RUN:
+        if updates:
             print("Aperçu :")
             for _id, t in updates[:3]:
-                print(" ", t[:200])
+                print(" ", t[:250])
+        return
+    if not updates:
+        print("Aucune mise à jour à faire.")
         return
 
-    # 4. ré-injection (canal CSV robuste)
+    # 4. ré-injection CSV
     with open("/tmp/rv_updates.csv", "w", encoding="utf-8") as fh:
         csv.writer(fh).writerows(updates)
     subprocess.run(["docker", "cp", "/tmp/rv_updates.csv",
@@ -167,9 +179,10 @@ def main():
     restant = psql("SELECT COUNT(*) FROM \"Consultation\" "
                    "WHERE notes IN ('-8 1 3 1', '-8 1 3 2')").strip()
     print(f"\nRésultat : {nb} marquées -> {restant} restantes")
-    print("Aperçu :")
+    print("Aperçu d'une note mise à jour :")
     print(psql("SELECT LEFT(notes, 250) FROM \"Consultation\" "
-               "WHERE notes LIKE '<p>%' ORDER BY date DESC LIMIT 1"))
+               "WHERE notes LIKE '<p>%' AND length(notes) > 30 "
+               "ORDER BY date DESC LIMIT 1"))
 
 
 if __name__ == "__main__":
