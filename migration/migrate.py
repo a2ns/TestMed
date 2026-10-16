@@ -54,10 +54,8 @@ def fb_query(db_path, select_sql):
     out = p.stdout.decode("cp1252", errors="replace")
     err = p.stderr.decode("utf-8", errors="replace")
     if "Statement failed" in out or "Statement failed" in err:
-        errlines = [l for l in (out + err).splitlines()
-                    if "Statement failed" in l or l.startswith("-") or "error" in l.lower()]
-        raise RuntimeError("Erreur isql: " + " | ".join(errlines[:5])
-                           + f"\nRequête: {select_sql[:200]}")
+        raise RuntimeError(
+            f"Erreur isql: {(out + err)[:400]}\nRequête: {select_sql[:200]}")
     rows = []
     for line in out.splitlines():
         line = line.rstrip("\r")
@@ -340,18 +338,39 @@ def main():
 
     # ---------- PRESCRIPTIONS -> Courrier ----------
     print("6/6 Courriers (textes de consultation / ordonnances)...")
-    rows = fb_query(
-        db,
-        "SELECT "
-        + q("NUMPRESCRIPTION", "")
-        + q("NUMPATIENT", "")
-        + q(fld("MODALITE"), "")
-        + q(fld("RESUME"), "")
-        + blob("PRESCRIPTION")
-        + "'END' FROM PRESCRIPTIONS WHERE DATE_SUPPR IS NULL",
-    )
+    pg_patients = pg_ids("Patient")
+
+    # Extraction par lots : certains BLOB PRESCRIPTION dépassent 32000 car. et
+    # font échouer le CAST. Par lot de 300 : si un lot échoue, on le reprend
+    # avec le résumé seul (RESUME) — aucune ligne perdue.
+    ids = [r[0].strip() for r in fb_query(
+        db, "SELECT " + q("NUMPRESCRIPTION", "") + "'END' FROM PRESCRIPTIONS WHERE DATE_SUPPR IS NULL")
+        if r and r[0].strip()]
+
+    def lot(idxs, avec_blob):
+        sel = ("SELECT "
+               + q("NUMPRESCRIPTION", "") + q("NUMPATIENT", "")
+               + q(fld("MODALITE"), "") + q(fld("RESUME"), ""))
+        if avec_blob:
+            sel += blob("PRESCRIPTION")
+        else:
+            sel += q(fld("RESUME"), "")
+        sel += "'END' FROM PRESCRIPTIONS WHERE NUMPRESCRIPTION IN (" + ",".join(idxs) + ")"
+        return fb_query(db, sel)
+
+    rows = []
+    TAILLE_LOT = 300
+    for i in range(0, len(ids), TAILLE_LOT):
+        lot_ids = ids[i:i + TAILLE_LOT]
+        try:
+            rows.extend(lot(lot_ids, avec_blob=True))
+        except RuntimeError:
+            rows.extend(lot(lot_ids, avec_blob=False))
+        print(f"   lot {i // TAILLE_LOT + 1}/{(len(ids) + TAILLE_LOT - 1) // TAILLE_LOT} ({len(rows)} lignes)")
+
     path = os.path.join(OUT_DIR, "courriers.csv")
     n = 0
+    orphelins = 0
     with open(path, "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         vus = set()
@@ -382,7 +401,7 @@ def main():
     pg_copy("Courrier",
             ["id", "patientId", "sujet", "contenu", "aiGenere", "statut", "validePar"],
             path)
-    print(f"   {n} courriers ({orphelins} orphelins ignorés : patient absent)")
+    print(f"   {n} courriers ({orphelins} orphelins conservés : patient non lié)")
 
     print("\n=== Migration terminée. Vérification des volumes : ===")
     for t in ["Patient", "Praticien", "Consultation", "Document",
