@@ -41,17 +41,21 @@ fi
 echo "isql détecté dans le conteneur : $ISQL_PATH"
 
 echo ""
-echo "=== 3/5 Création d'un compte Firebird dédié (contourne le conflit SYSDBA) ==="
-# La base contient un rôle SQL nommé SYSDBA. En se connectant avec un autre
-# utilisateur (PRIMIA), le conflit disparaît.
-docker exec magicmed-firebird /usr/local/firebird/bin/gsec -user SYSDBA -password masterkey \
-  -add primia -pw primia123 || echo "(compte peut-être déjà créé : OK)"
+echo "=== 3/5 Copie patchée de la base (rôle SYSDBA -> SYSDBB) ==="
+# MagicMed bloque volontairement la connexion SYSDBA via un rôle SQL homonyme.
+# On copie la base en renommant SYSDBA -> SYSDBB (même longueur, structure intacte),
+# puis on se connecte en SYSDBA avec tous les droits.
+ITB_PATCHE="data/$(basename "$FIRST_ITB" | sed 's/\.[^.]*$//')-sysdbb.itb"
+if [ ! -f "$ITB_PATCHE" ]; then
+  python3 patch_role.py "$FIRST_ITB" "$ITB_PATCHE"
+fi
+DB_SRC="$ITB_PATCHE"
 
-DB_IN_CONTAINER="/database/$(basename "$FIRST_ITB")"
+DB_IN_CONTAINER="/database/$(basename "$DB_SRC")"
 echo ""
 echo "=== 4/5 Test d'ouverture de la base ==="
 cat > /tmp/migration_test.sql <<EOF
-CONNECT '$DB_IN_CONTAINER' USER 'PRIMIA' PASSWORD 'primia123';
+CONNECT '$DB_IN_CONTAINER' USER 'SYSDBA' PASSWORD 'masterkey';
 SELECT 1 FROM RDB\$DATABASE;
 EOF
 if ! docker exec -i magicmed-firebird "$ISQL_PATH" < /tmp/migration_test.sql 2>data/fb_err.txt; then
@@ -65,7 +69,7 @@ echo "Ouverture OK."
 echo ""
 echo "=== 5/5 Extraction du schéma (tables + colonnes) ==="
 cat > /tmp/migration_schema.sql <<EOF
-CONNECT '$DB_IN_CONTAINER' USER 'PRIMIA' PASSWORD 'primia123';
+CONNECT '$DB_IN_CONTAINER' USER 'SYSDBA' PASSWORD 'masterkey';
 SET LIST ON;
 SELECT RDB\$RELATION_NAME AS TABLE_NAME FROM RDB\$RELATIONS
  WHERE RDB\$SYSTEM_FLAG = 0 AND RDB\$VIEW_BLR IS NULL

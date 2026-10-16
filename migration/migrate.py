@@ -28,8 +28,8 @@ MIG_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(MIG_DIR, "data")
 OUT_DIR = os.path.join(MIG_DIR, "out")
 ISQL = "/usr/local/firebird/bin/isql"
-FB_USER = "PRIMIA"
-FB_PASS = "primia123"
+FB_USER = "SYSDBA"
+FB_PASS = "masterkey"
 SEP = "|||"
 NS = uuid.UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")  # uuid.NAMESPACE_DNS
 
