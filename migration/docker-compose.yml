@@ -1,0 +1,28 @@
+services:
+  firebird:
+    image: jacobalbano/firebird:2.5-ss
+    container_name: magicmed-firebird
+    environment:
+      ISC_PASSWORD: masterkey
+    ports:
+      - "30550:3050"
+    volumes:
+      - ./data:/database
+    command: >
+      bash -c "if [ -f /database/*.ITB ] || [ -f /database/*.itb ]; then echo 'Fichier(s) .ITB détecté(s) dans ./data'; ls -lh /database; fi"
+
+  postgres:
+    image: postgres:16
+    container_name: magicmed-postgres
+    environment:
+      POSTGRES_USER: primia
+      POSTGRES_PASSWORD: primia
+      POSTGRES_DB: primia
+    ports:
+      - "54329:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+
+volumes:
+  postgres_data:
