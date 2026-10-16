@@ -131,8 +131,8 @@ def rtf_vers_html(rtf):
 
 
 def main():
-    nb_cons = psql("SELECT COUNT(*) FROM \"Consultation\" WHERE notes LIKE '{\\\\rtf1%'").strip()
-    nb_cou = psql("SELECT COUNT(*) FROM \"Courrier\" WHERE contenu LIKE '{\\\\rtf1%'").strip()
+    nb_cons = psql("SELECT COUNT(*) FROM \"Consultation\" WHERE notes LIKE '%\\\\rtf1%'").strip()
+    nb_cou = psql("SELECT COUNT(*) FROM \"Courrier\" WHERE contenu LIKE '%\\\\rtf1%'").strip()
     print(f"Consultations avec notes RTF : {nb_cons}")
     print(f"Courriers avec contenu RTF   : {nb_cou}")
     if nb_cons == "0" and nb_cou == "0":
@@ -143,7 +143,7 @@ def main():
         print("\n--- Aperçu de 2 conversions par table (aucune modification) ---")
         for table, col in [("Consultation", "notes"), ("Courrier", "contenu")]:
             data = psql(f"SELECT LEFT({col}, 3000) FROM \"{table}\" "
-                        f"WHERE {col} LIKE '{{\\\\rtf1%' LIMIT 2")
+                        f"WHERE {col} LIKE '%\\\\rtf1%' LIMIT 2")
             for rtf in data.split("\x01")[:2]:
                 rtf = rtf.strip()
                 if rtf:
@@ -153,7 +153,7 @@ def main():
 
     for table, col in [("Consultation", "notes"), ("Courrier", "contenu")]:
         data = psql(f"SELECT id || E'\\x01' || {col} FROM \"{table}\" "
-                    f"WHERE {col} LIKE '{{\\\\rtf1%'")
+                    f"WHERE {col} LIKE '%\\\\rtf1%'")
         updates = []
         for line in data.splitlines():
             if "\x01" not in line:
