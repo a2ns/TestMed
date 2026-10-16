@@ -88,7 +88,7 @@ pub fn pool() -> Result<&'static PgPool, sqlx::Error> {
 }
 
 pub async fn hash_mot_de_passe(identifiant: &str) -> Result<String, String> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     let hash: (String,) = sqlx::query_as(
         "SELECT \"motDePasse\" FROM \"Praticien\" WHERE identifiant = $1 AND actif = true",
     )
@@ -100,7 +100,7 @@ pub async fn hash_mot_de_passe(identifiant: &str) -> Result<String, String> {
 }
 
 pub async fn charger_utilisateur(identifiant: &str) -> Result<crate::auth::Utilisateur, String> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query_as::<_, crate::auth::Utilisateur>(
         "SELECT id, identifiant, nom, prenoms, roles[1]::text as role, rpps, \
          \"cabinetNom\" as cabinet_nom, \"cabinetAdresse\" as cabinet_adresse, telephone, email \
@@ -113,7 +113,7 @@ pub async fn charger_utilisateur(identifiant: &str) -> Result<crate::auth::Utili
 }
 
 pub async fn creer_utilisateur(identifiant: &str, hash: &str, role: &str) -> Result<(), String> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query(
         "INSERT INTO \"Praticien\" (id, identifiant, \"motDePasse\", nom, prenoms, roles) \
          VALUES ($1, $2, $3, '', '', ARRAY[$4]::\"Role\"[])",
@@ -513,7 +513,7 @@ pub async fn modifier_rdv(
 /// cherche un patient dont nom ET prénom apparaissent dans le texte.
 /// Retourne (patient_id, confiance) ; (None, 0.0) si aucun ne correspond.
 pub async fn detecter_patient(texte_ocr: &str) -> Result<(Option<String>, f64), String> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     let texte = texte_ocr.to_lowercase();
     // Candidats : tous les patients (cabinet < 10k : charge acceptable).
     let patients: Vec<(String, String, String)> =
@@ -541,7 +541,7 @@ pub async fn insert_document_ocr_intelligent(
     ocr_texte: &str,
     a_trier: bool,
 ) -> Result<(), String> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query(
         "INSERT INTO \"Document\" (id, \"patientId\", \"nomFichier\", \"cheminStockage\", type, \"ocrTexte\", tsv, \"aTrier\") \
          VALUES ($1, $2, $3, $4, $5::\"DocType\", $6, to_tsvector('french', $6), $7)",
@@ -671,7 +671,7 @@ pub async fn maj_praticien(
     if utilisateur.id != id && utilisateur.role != "ADMIN" {
         return Err("on ne peut modifier que sa propre fiche".into());
     }
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query(
         "UPDATE \"Praticien\" SET nom = $2, prenoms = $3, rpps = $4, \"cabinetNom\" = $5, \"cabinetAdresse\" = $6, telephone = $7, email = $8 WHERE id = $1",
     )
@@ -691,7 +691,7 @@ pub async fn maj_praticien(
 
 /// Contexte médical du patient pour l'IA : allergies + traitements actifs.
 pub async fn contexte_patient_ia(patient_id: &str) -> Result<(Vec<String>, Vec<String>), String> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     let allergies: Vec<(String,)> =
         sqlx::query_as("SELECT substance FROM \"Allergie\" WHERE \"patientId\" = $1")
             .bind(patient_id)
@@ -743,7 +743,7 @@ pub async fn maj_patient(
         }
         _ => (None, None),
     };
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query(
         "UPDATE \"Patient\" SET nom = $2, prenoms = $3, \"dateNaissance\" = $4, sexe = $5, \
          adresse = $6, telephone = $7, email = $8, \"medecinTraitant\" = $9, \"nirChiffre\" = $10, \"nirEmpreinte\" = $11, \"updatedAt\" = now() \
@@ -847,7 +847,7 @@ pub async fn creer_constante_amelie(
 
 /// Cre une FSE en brouillon (structure pose pour la facturation).
 pub async fn creer_fse_brouillon(patient_id: &str, praticien_id: &str) -> Result<String, String> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     let id = uuid::Uuid::new_v4().to_string();
     sqlx::query(
         "INSERT INTO \"Fse\" (id, \"patientId\", \"praticienId\", date, statut, \"montantTotal\") \
@@ -869,7 +869,7 @@ pub async fn ajouter_acte_fse(
     libelle: &str,
     montant: f64,
 ) -> Result<(), String> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query(
         "INSERT INTO \"ActeFse\" (id, \"fseId\", code, libelle, montant) \
          VALUES ($1, $2, $3, $4, $5)",
@@ -893,7 +893,7 @@ pub async fn ajouter_acte_fse(
 
 /// Change le statut d'une FSE (PRETE, ENVOYEE, REJETEE...).
 pub async fn changer_statut_fse(fse_id: &str, statut: &str) -> Result<(), String> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query("UPDATE \"Fse\" SET statut = $2 WHERE id = $1")
         .bind(fse_id)
         .bind(statut)
@@ -906,7 +906,7 @@ pub async fn changer_statut_fse(fse_id: &str, statut: &str) -> Result<(), String
 pub async fn query_patients(
     recherche: &str,
 ) -> Result<Vec<crate::commands::patients::Patient>, String> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     let rows = sqlx::query_as::<_, crate::commands::patients::Patient>(
         "SELECT id, nom, prenoms FROM \"Patient\" WHERE nom ILIKE $1 OR prenoms ILIKE $1 ORDER BY nom LIMIT 50",
     )
@@ -920,7 +920,7 @@ pub async fn query_patients(
 pub async fn insert_document(
     doc: &crate::commands::documents::DocumentImport,
 ) -> Result<String, String> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     let id = uuid::Uuid::new_v4().to_string();
     sqlx::query("INSERT INTO \"Document\" (id, \"patientId\", \"nomFichier\", \"cheminStockage\", type) VALUES ($1, $2, $3, $4, $5::\"DocType\")")
         .bind(&id)
@@ -942,7 +942,7 @@ pub async fn insert_document_ocr(
     type_doc: &str,
     ocr_texte: &str,
 ) -> Result<(), String> {
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query(
         "INSERT INTO \"Document\" (id, \"patientId\", \"nomFichier\", \"cheminStockage\", type, \"ocrTexte\", tsv) \
          VALUES ($1, $2, $3, $4, $5::\"DocType\", $6, to_tsvector('french', $6))",
@@ -979,7 +979,7 @@ pub async fn generer_courrier(
     req: &crate::commands::courriers::CourrierRequest,
 ) -> Result<crate::commands::courriers::CourrierGenere, String> {
     // Contexte complet : patient (avec âge), praticien connecté (coordonnées).
-    let pool = pool()?;
+    let pool = pool().map_err(|e| e.to_string())?;
     // PostgreSQL calcule l'âge directement (EXTRACT de date_diff).
     let patient: (String, String, Option<i32>) = sqlx::query_as(
         "SELECT nom, prenoms, DATE_PART('year', AGE(\"dateNaissance\"))::int FROM \"Patient\" WHERE id = $1",
