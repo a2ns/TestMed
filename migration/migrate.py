@@ -107,9 +107,17 @@ def main():
     os.makedirs(OUT_DIR, exist_ok=True)
     itb = None
     for f in sorted(os.listdir(DATA_DIR)):
-        if f.lower().endswith(".itb") and "patched" not in f.lower():
+        if f.lower().endswith("-sysdbb.itb"):
             itb = os.path.join(DATA_DIR, f)
             break
+    if not itb:
+        for f in sorted(os.listdir(DATA_DIR)):
+            if f.lower().endswith(".itb") and "patched" not in f.lower() and "sysdbb" not in f.lower():
+                src = os.path.join(DATA_DIR, f)
+                itb = src[:-4] + "-sysdbb.itb"
+                print(f"Patch du rôle bloquant -> {os.path.basename(itb)}")
+                subprocess.run(["python3", os.path.join(MIG_DIR, "patch_role.py"), src, itb], check=True)
+                break
     if not itb:
         print("ERREUR : aucun .ITB (non patché) dans ./data/")
         sys.exit(1)
