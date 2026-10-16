@@ -43,9 +43,10 @@ fi
 echo "isql détecté dans le conteneur : $ISQL_PATH"
 
 DB_IN_CONTAINER="/database/$(basename "$FIRST_ITB")"
-echo "=== 3/4 Test d'ouverture de la base ==="
-if ! docker exec magicmed-firebird "$ISQL_PATH" -user SYSDBA -password masterkey \
-     "$DB_IN_CONTAINER" -e 'SELECT 1 FROM RDB$DATABASE;' 2>data/fb_err.txt; then
+echo "=== 3/4 Test d’ouverture de la base ==="
+if ! printf 'SELECT 1 FROM RDB$DATABASE;\n' | \
+     docker exec -i magicmed-firebird "$ISQL_PATH" -user SYSDBA -password masterkey \
+     "$DB_IN_CONTAINER" 2>data/fb_err.txt; then
   echo "-- Échec de l'ouverture. Message de Firebird : --"
   cat data/fb_err.txt
   echo ""
