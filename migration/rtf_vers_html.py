@@ -34,10 +34,31 @@ CONTROLES = {
 
 def rtf_vers_html(rtf):
     """Convertit le sous-ensemble RTF utilisé par MagicMed en HTML minimal."""
-    rtf = re.sub(
-        r"\{\\(?:fonttbl|colortbl|stylesheet|generator)\{[^{}]*\}\{[^{}]*\}\}|"
-        r"\{\\\\\*[^{}]*\}",
-        "", rtf)
+    # supprimer les groupes de déclaration (fonttbl, colortbl, ...) avec leurs
+    # sous-groupes imbriqués, jusqu'à l'accolade fermante appariée
+    def supprimer_groupes(texte, mot_cle):
+        resultat = texte
+        cle = "\\" + mot_cle
+        while True:
+            idx = resultat.find("{" + cle)
+            if idx == -1:
+                break
+            # trouver l'accolade fermante appariée
+            profondeur = 0
+            fin = idx
+            for j in range(idx, len(resultat)):
+                if resultat[j] == "{":
+                    profondeur += 1
+                elif resultat[j] == "}":
+                    profondeur -= 1
+                    if profondeur == 0:
+                        fin = j
+                        break
+            resultat = resultat[:idx] + resultat[fin + 1:]
+        return resultat
+
+    for mot_cle in ("fonttbl", "colortbl", "stylesheet", "generator"):
+        rtf = supprimer_groupes(rtf, mot_cle)
     out = []
     i = 0
     n = len(rtf)
