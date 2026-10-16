@@ -45,7 +45,7 @@ def fb_query(db, select_sql):
     out = p.stdout.decode("cp1252", errors="replace")
     err = p.stderr.decode("utf-8", errors="replace")
     if "Statement failed" in out or "Statement failed" in err:
-        raise RuntimeError("Erreur isql : " + (out + err)[:300])
+        raise RuntimeError(f"Erreur isql : {(out + err)[:400]}\nRequête : {select_sql[:150]}")
     rows = []
     for line in out.splitlines():
         line = line.rstrip("\r")
@@ -100,16 +100,35 @@ def main():
                        "WHERE notes IN ('-8 1 3 1', '-8 1 3 2')").strip()
     print(f"Consultations à rattraper : {nb_marquees}")
 
-    # Extraction Firebird : CONS_ID + texte (PRESCRIPTION sinon RESUME)
-    print("Extraction des textes depuis PRESCRIPTIONS (peut prendre plusieurs minutes)...")
-    rows = fb_query(
+    # Extraction Firebird par lots : les BLOB > 32000 car. font échouer le CAST
+    # d'un lot entier ; chaque lot en échec est repris avec RESUME seul.
+    print("Liste des CONS_ID...")
+    ids = [r[0].strip() for r in fb_query(
         db,
-        "SELECT "
-        + fld("CONS_ID")
-        + fld("RESUME")
-        + blob("PRESCRIPTION")
-        + "'END' FROM PRESCRIPTIONS WHERE CONS_ID IS NOT NULL AND DATE_SUPPR IS NULL"
-    )
+        "SELECT " + fld("CONS_ID")
+        + "'END' FROM PRESCRIPTIONS WHERE CONS_ID IS NOT NULL AND DATE_SUPPR IS NULL")
+        if r and r[0].strip()]
+    print(f"Lignes PRESCRIPTIONS à traiter : {len(ids)}")
+
+    def lot(lot_ids, avec_blob):
+        sel = "SELECT " + fld("CONS_ID") + fld("RESUME")
+        if avec_blob:
+            sel += blob("PRESCRIPTION")
+        else:
+            sel += fld("RESUME")
+        sel += "'END' FROM PRESCRIPTIONS WHERE CONS_ID IN (" + ",".join(lot_ids) + ")"
+        return fb_query(db, sel)
+
+    rows = []
+    TAILLE_LOT = 300
+    for i in range(0, len(ids), TAILLE_LOT):
+        lot_ids = ids[i:i + TAILLE_LOT]
+        try:
+            rows.extend(lot(lot_ids, avec_blob=True))
+        except RuntimeError:
+            rows.extend(lot(lot_ids, avec_blob=False))
+        if (i // TAILLE_LOT) % 20 == 0:
+            print(f"   lot {i // TAILLE_LOT + 1}/{(len(ids) + TAILLE_LOT - 1) // TAILLE_LOT} ({len(rows)} lignes)")
     print(f"Textes extraits : {len(rows)}")
 
     # id_consultation = uuid5(PATIENTCONSULT, CONS_ID) ; texte = RTF->HTML ou brut
