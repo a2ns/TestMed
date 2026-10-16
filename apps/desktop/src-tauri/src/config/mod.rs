@@ -11,11 +11,7 @@ pub struct EtatConfig {
 
 /// Chiffre et stocke une valeur de configuration (upsert par clé).
 #[tauri::command]
-pub async fn enregistrer_config(
-    cle: String,
-    valeur: String,
-    token: String,
-) -> Result<(), String> {
+pub async fn enregistrer_config(cle: String, valeur: String, token: String) -> Result<(), String> {
     let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
     if utilisateur.role != "ADMIN" {
         return Err("configuration réservée au rôle ADMIN".into());
@@ -33,7 +29,13 @@ pub async fn enregistrer_config(
     .execute(pool)
     .await
     .map_err(|e| e.to_string())?;
-    crate::audit::journaliser(&utilisateur.id, "CONFIG_ENREGISTREE", Some("config"), Some(&cle), None);
+    crate::audit::journaliser(
+        &utilisateur.id,
+        "CONFIG_ENREGISTREE",
+        Some("config"),
+        Some(&cle),
+        None,
+    );
     Ok(())
 }
 
@@ -50,7 +52,13 @@ pub async fn supprimer_config(cle: String, token: String) -> Result<(), String> 
         .execute(pool)
         .await
         .map_err(|e| e.to_string())?;
-    crate::audit::journaliser(&utilisateur.id, "CONFIG_SUPPRIMEE", Some("config"), Some(&cle), None);
+    crate::audit::journaliser(
+        &utilisateur.id,
+        "CONFIG_SUPPRIMEE",
+        Some("config"),
+        Some(&cle),
+        None,
+    );
     Ok(())
 }
 
@@ -73,14 +81,13 @@ pub async fn lister_config(token: String) -> Result<Vec<String>, String> {
 /// pour le code applicatif (connecteurs, IA).
 pub async fn lire_config(cle: &str) -> Option<String> {
     let pool = crate::db::pool().ok()?;
-    let chiffre: Option<(String,)> = sqlx::query_as(
-        "SELECT valeur_chiffree FROM \"ConfigApp\" WHERE cle = $1",
-    )
-    .bind(cle)
-    .fetch_optional(pool)
-    .await
-    .ok()
-    .flatten();
+    let chiffre: Option<(String,)> =
+        sqlx::query_as("SELECT valeur_chiffree FROM \"ConfigApp\" WHERE cle = $1")
+            .bind(cle)
+            .fetch_optional(pool)
+            .await
+            .ok()
+            .flatten();
     let (c,) = chiffre?;
     crate::crypto::dechiffrer(&c).ok()
 }

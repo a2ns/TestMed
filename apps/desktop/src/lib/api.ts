@@ -393,3 +393,27 @@ export const api = {
       "importer_arret_amelie", { arretId, token }
     ),
 };
+
+export type FicheOrpheline = {
+  id: string;
+  kind: string;
+  date: string | null;
+  sujet: string | null;
+  extrait: string | null;
+};
+
+export type OccurrencePatient = {
+  id: string;
+  nom: string;
+  prenoms: string;
+  occurrences: number;
+};
+
+export const apiReconciliation = {
+  listFichesOrphelines: () =>
+    invoke<FicheOrpheline[]>("list_fiches_orphelines"),
+  listOccurrencesPatients: () =>
+    invoke<OccurrencePatient[]>("list_occurrences_patients"),
+  lierFiche: (req: { kind: string; ficheId: string; patientId: string }) =>
+    invoke<void>("lier_fiche", { req }),
+};

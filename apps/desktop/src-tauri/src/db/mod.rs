@@ -12,16 +12,12 @@ pub async fn init(database_url: &str) -> Result<(), sqlx::Error> {
 
     // Autofix : colonnes des évolutions récentes du schéma que
     // `prisma db push` peut manquer. Idempotent (IF NOT EXISTS).
-    let _ = sqlx::query(
-        "ALTER TABLE \"Praticien\" ADD COLUMN IF NOT EXISTS telephone TEXT",
-    )
-    .execute(&pool)
-    .await;
-    let _ = sqlx::query(
-        "ALTER TABLE \"Praticien\" ADD COLUMN IF NOT EXISTS email TEXT",
-    )
-    .execute(&pool)
-    .await;
+    let _ = sqlx::query("ALTER TABLE \"Praticien\" ADD COLUMN IF NOT EXISTS telephone TEXT")
+        .execute(&pool)
+        .await;
+    let _ = sqlx::query("ALTER TABLE \"Praticien\" ADD COLUMN IF NOT EXISTS email TEXT")
+        .execute(&pool)
+        .await;
     let _ = sqlx::query(
         "ALTER TABLE \"Document\" ADD COLUMN IF NOT EXISTS \"aTrier\" BOOLEAN NOT NULL DEFAULT false",
     )
@@ -66,7 +62,9 @@ pub fn parse_date(s: &str) -> Result<chrono::NaiveDate, sqlx::Error> {
         if d <= chrono::Local::now().date_naive() {
             return Ok(d);
         }
-        return Err(sqlx::Error::Configuration("date de naissance dans le futur".into()));
+        return Err(sqlx::Error::Configuration(
+            "date de naissance dans le futur".into(),
+        ));
     }
     let m: Vec<&str> = s.split('/').collect();
     if m.len() == 3 && m[0].len() == 2 && m[1].len() == 2 && m[2].len() == 4 {
@@ -74,14 +72,19 @@ pub fn parse_date(s: &str) -> Result<chrono::NaiveDate, sqlx::Error> {
             if d <= chrono::Local::now().date_naive() {
                 return Ok(d);
             }
-            return Err(sqlx::Error::Configuration("date de naissance dans le futur".into()));
+            return Err(sqlx::Error::Configuration(
+                "date de naissance dans le futur".into(),
+            ));
         }
     }
-    Err(sqlx::Error::Configuration("date invalide : formats attendus AAAA-MM-JJ ou JJ/MM/AAAA".into()))
+    Err(sqlx::Error::Configuration(
+        "date invalide : formats attendus AAAA-MM-JJ ou JJ/MM/AAAA".into(),
+    ))
 }
 
 pub fn pool() -> Result<&'static PgPool, sqlx::Error> {
-    POOL.get().ok_or_else(|| sqlx::Error::Configuration("base non initialisée".into()))
+    POOL.get()
+        .ok_or_else(|| sqlx::Error::Configuration("base non initialisée".into()))
 }
 
 pub async fn hash_mot_de_passe(identifiant: &str) -> Result<String, String> {
@@ -125,7 +128,9 @@ pub async fn creer_utilisateur(identifiant: &str, hash: &str, role: &str) -> Res
     Ok(())
 }
 
-pub async fn get_patient(id: &str) -> Result<crate::commands::patients::PatientDetail, sqlx::Error> {
+pub async fn get_patient(
+    id: &str,
+) -> Result<crate::commands::patients::PatientDetail, sqlx::Error> {
     let pool = pool()?;
     let mut p = sqlx::query_as::<_, crate::commands::patients::PatientDetail>(
         "SELECT id, nom, prenoms, \"dateNaissance\"::date as date_naissance, sexe, adresse, telephone, email, \"medecinTraitant\" as medecin_traitant, \"nirChiffre\" as nir \
@@ -141,7 +146,9 @@ pub async fn get_patient(id: &str) -> Result<crate::commands::patients::PatientD
     Ok(p)
 }
 
-pub async fn creer_patient(p: &crate::commands::patients::NouveauPatient) -> Result<String, sqlx::Error> {
+pub async fn creer_patient(
+    p: &crate::commands::patients::NouveauPatient,
+) -> Result<String, sqlx::Error> {
     let pool = pool()?;
     let id = uuid::Uuid::new_v4().to_string();
     let dn: Option<chrono::NaiveDate> = match &p.date_naissance {
@@ -152,7 +159,8 @@ pub async fn creer_patient(p: &crate::commands::patients::NouveauPatient) -> Res
     // déterministe pour l'unicité/la recherche.
     let (nir_chiffre, nir_empreinte) = match &p.nir {
         Some(n) if !n.trim().is_empty() => {
-            let c = crate::crypto::chiffrer(n.trim()).map_err(|e| sqlx::Error::Configuration(e.into()))?;
+            let c = crate::crypto::chiffrer(n.trim())
+                .map_err(|e| sqlx::Error::Configuration(e.into()))?;
             let emp = crate::crypto::empreinte(n.trim());
             (Some(c), Some(emp))
         }
@@ -178,7 +186,9 @@ pub async fn creer_patient(p: &crate::commands::patients::NouveauPatient) -> Res
     Ok(id)
 }
 
-pub async fn list_consultations(patient_id: &str) -> Result<Vec<crate::commands::patients::Consultation>, sqlx::Error> {
+pub async fn list_consultations(
+    patient_id: &str,
+) -> Result<Vec<crate::commands::patients::Consultation>, sqlx::Error> {
     let pool = pool()?;
     sqlx::query_as::<_, crate::commands::patients::Consultation>(
         "SELECT id, \"patientId\" as patient_id, motif, notes, date FROM \"Consultation\" WHERE \"patientId\" = $1 ORDER BY date DESC",
@@ -188,7 +198,9 @@ pub async fn list_consultations(patient_id: &str) -> Result<Vec<crate::commands:
     .await
 }
 
-pub async fn creer_consultation(c: &crate::commands::patients::NouvelleConsultation) -> Result<String, sqlx::Error> {
+pub async fn creer_consultation(
+    c: &crate::commands::patients::NouvelleConsultation,
+) -> Result<String, sqlx::Error> {
     let pool = pool()?;
     let id = uuid::Uuid::new_v4().to_string();
     sqlx::query(
@@ -203,7 +215,9 @@ pub async fn creer_consultation(c: &crate::commands::patients::NouvelleConsultat
     Ok(id)
 }
 
-pub async fn list_antecedents(patient_id: &str) -> Result<Vec<crate::commands::patients::Antecedent>, sqlx::Error> {
+pub async fn list_antecedents(
+    patient_id: &str,
+) -> Result<Vec<crate::commands::patients::Antecedent>, sqlx::Error> {
     let pool = pool()?;
     sqlx::query_as::<_, crate::commands::patients::Antecedent>(
         "SELECT id, categorie, libelle, annee, notes FROM \"Antecedent\" WHERE \"patientId\" = $1 ORDER BY categorie, annee",
@@ -213,7 +227,9 @@ pub async fn list_antecedents(patient_id: &str) -> Result<Vec<crate::commands::p
     .await
 }
 
-pub async fn creer_antecedent(a: &crate::commands::patients::NouvelAntecedent) -> Result<String, sqlx::Error> {
+pub async fn creer_antecedent(
+    a: &crate::commands::patients::NouvelAntecedent,
+) -> Result<String, sqlx::Error> {
     let pool = pool()?;
     let id = uuid::Uuid::new_v4().to_string();
     sqlx::query(
@@ -230,7 +246,9 @@ pub async fn creer_antecedent(a: &crate::commands::patients::NouvelAntecedent) -
     Ok(id)
 }
 
-pub async fn list_traitements(patient_id: &str) -> Result<Vec<crate::commands::patients::Traitement>, sqlx::Error> {
+pub async fn list_traitements(
+    patient_id: &str,
+) -> Result<Vec<crate::commands::patients::Traitement>, sqlx::Error> {
     let pool = pool()?;
     sqlx::query_as::<_, crate::commands::patients::Traitement>(
         "SELECT id, medicament, posologie, duree, actif FROM \"Traitement\" WHERE \"patientId\" = $1 ORDER BY actif DESC, \"dateDebut\" DESC",
@@ -240,7 +258,9 @@ pub async fn list_traitements(patient_id: &str) -> Result<Vec<crate::commands::p
     .await
 }
 
-pub async fn creer_traitement(t: &crate::commands::patients::NouveauTraitement) -> Result<String, sqlx::Error> {
+pub async fn creer_traitement(
+    t: &crate::commands::patients::NouveauTraitement,
+) -> Result<String, sqlx::Error> {
     let pool = pool()?;
     let id = uuid::Uuid::new_v4().to_string();
     sqlx::query(
@@ -256,7 +276,9 @@ pub async fn creer_traitement(t: &crate::commands::patients::NouveauTraitement) 
     Ok(id)
 }
 
-pub async fn list_allergies(patient_id: &str) -> Result<Vec<crate::commands::patients::Allergie>, sqlx::Error> {
+pub async fn list_allergies(
+    patient_id: &str,
+) -> Result<Vec<crate::commands::patients::Allergie>, sqlx::Error> {
     let pool = pool()?;
     sqlx::query_as::<_, crate::commands::patients::Allergie>(
         "SELECT id, substance, gravite, reactions FROM \"Allergie\" WHERE \"patientId\" = $1 ORDER BY gravite DESC",
@@ -266,7 +288,9 @@ pub async fn list_allergies(patient_id: &str) -> Result<Vec<crate::commands::pat
     .await
 }
 
-pub async fn creer_allergie(a: &crate::commands::patients::NouvelleAllergie) -> Result<String, sqlx::Error> {
+pub async fn creer_allergie(
+    a: &crate::commands::patients::NouvelleAllergie,
+) -> Result<String, sqlx::Error> {
     let pool = pool()?;
     let id = uuid::Uuid::new_v4().to_string();
     sqlx::query(
@@ -282,7 +306,9 @@ pub async fn creer_allergie(a: &crate::commands::patients::NouvelleAllergie) -> 
     Ok(id)
 }
 
-pub async fn creer_ordonnance(o: &crate::commands::ordonnances::NouvelleOrdonnance) -> Result<String, sqlx::Error> {
+pub async fn creer_ordonnance(
+    o: &crate::commands::ordonnances::NouvelleOrdonnance,
+) -> Result<String, sqlx::Error> {
     let pool = pool()?;
     let id = uuid::Uuid::new_v4().to_string();
     let mut tx = pool.begin().await?;
@@ -318,7 +344,9 @@ pub async fn creer_ordonnance(o: &crate::commands::ordonnances::NouvelleOrdonnan
     Ok(id)
 }
 
-pub async fn list_ordonnances(patient_id: &str) -> Result<Vec<crate::commands::ordonnances::Ordonnance>, sqlx::Error> {
+pub async fn list_ordonnances(
+    patient_id: &str,
+) -> Result<Vec<crate::commands::ordonnances::Ordonnance>, sqlx::Error> {
     let pool = pool()?;
     sqlx::query_as::<_, crate::commands::ordonnances::Ordonnance>(
         "SELECT id, \"patientId\" as patient_id, type::text as type, securisee, date FROM \"Ordonnance\" WHERE \"patientId\" = $1 ORDER BY date DESC",
@@ -328,7 +356,9 @@ pub async fn list_ordonnances(patient_id: &str) -> Result<Vec<crate::commands::o
     .await
 }
 
-pub async fn get_prescriptions(ordonnance_id: &str) -> Result<Vec<crate::commands::ordonnances::PrescriptionLigne>, sqlx::Error> {
+pub async fn get_prescriptions(
+    ordonnance_id: &str,
+) -> Result<Vec<crate::commands::ordonnances::PrescriptionLigne>, sqlx::Error> {
     let pool = pool()?;
     sqlx::query_as::<_, crate::commands::ordonnances::PrescriptionLigne>(
         "SELECT id, zone, medicament, cip, posologie, duree, \"dureeJours\" as duree_jours, substitution, renouvellements, position \
@@ -372,7 +402,9 @@ pub async fn list_audit(limite: i64) -> Result<Vec<crate::audit::EntreeAudit>, s
     .await
 }
 
-pub async fn list_rdv_jour(jour: &str) -> Result<Vec<crate::commands::agenda::RendezVous>, sqlx::Error> {
+pub async fn list_rdv_jour(
+    jour: &str,
+) -> Result<Vec<crate::commands::agenda::RendezVous>, sqlx::Error> {
     let pool = pool()?;
     sqlx::query_as::<_, crate::commands::agenda::RendezVous>(
         "SELECT r.id, r.\"patientId\" as patient_id, p.nom as nom_patient, p.prenoms as prenoms_patient, \
@@ -477,7 +509,6 @@ pub async fn modifier_rdv(
     Ok(())
 }
 
-
 /// Détecte le patient destinataire d'un document à partir de son texte OCR :
 /// cherche un patient dont nom ET prénom apparaissent dans le texte.
 /// Retourne (patient_id, confiance) ; (None, 0.0) si aucun ne correspond.
@@ -485,12 +516,11 @@ pub async fn detecter_patient(texte_ocr: &str) -> Result<(Option<String>, f64), 
     let pool = pool().map_err(|e| e.to_string())?;
     let texte = texte_ocr.to_lowercase();
     // Candidats : tous les patients (cabinet < 10k : charge acceptable).
-    let patients: Vec<(String, String, String)> = sqlx::query_as(
-        "SELECT id, nom, prenoms FROM \"Patient\"",
-    )
-    .fetch_all(pool)
-    .await
-    .map_err(|e| e.to_string())?;
+    let patients: Vec<(String, String, String)> =
+        sqlx::query_as("SELECT id, nom, prenoms FROM \"Patient\"")
+            .fetch_all(pool)
+            .await
+            .map_err(|e| e.to_string())?;
     for (id, nom, prenoms) in patients {
         let nom_l = nom.to_lowercase();
         let prenoms_l = prenoms.to_lowercase();
@@ -530,7 +560,8 @@ pub async fn insert_document_ocr_intelligent(
 }
 
 /// Documents en attente de classement (caddie).
-pub async fn list_documents_a_trier() -> Result<Vec<crate::commands::recherche::ResultatDocument>, sqlx::Error> {
+pub async fn list_documents_a_trier(
+) -> Result<Vec<crate::commands::recherche::ResultatDocument>, sqlx::Error> {
     let pool = pool()?;
     sqlx::query_as::<_, crate::commands::recherche::ResultatDocument>(
         "SELECT d.id, d.\"patientId\" as patient_id, p.nom as nom_patient, d.\"nomFichier\" as nom_fichier, d.type::text as type, \
@@ -545,16 +576,19 @@ pub async fn list_documents_a_trier() -> Result<Vec<crate::commands::recherche::
 /// Nombre de documents à trier (puce de notification).
 pub async fn compter_a_trier() -> Result<i64, sqlx::Error> {
     let pool = pool()?;
-    let (n,) = sqlx::query_as::<_, (i64,)>(
-        "SELECT COUNT(*) FROM \"Document\" WHERE \"aTrier\" = true",
-    )
-    .fetch_one(pool)
-    .await?;
+    let (n,) =
+        sqlx::query_as::<_, (i64,)>("SELECT COUNT(*) FROM \"Document\" WHERE \"aTrier\" = true")
+            .fetch_one(pool)
+            .await?;
     Ok(n)
 }
 
 /// Classe un document : rattachement patient (+ type) et sortie du caddie.
-pub async fn classer_document(document_id: &str, patient_id: &str, type_doc: Option<&str>) -> Result<(), sqlx::Error> {
+pub async fn classer_document(
+    document_id: &str,
+    patient_id: &str,
+    type_doc: Option<&str>,
+) -> Result<(), sqlx::Error> {
     let pool = pool()?;
     match type_doc {
         Some(t) => {
@@ -580,17 +614,15 @@ pub async fn classer_document(document_id: &str, patient_id: &str, type_doc: Opt
     Ok(())
 }
 
-
 /// Supprime un document de la GED (fichier + ligne en base).
 pub async fn supprimer_document(id: &str) -> Result<(), sqlx::Error> {
     let pool = pool()?;
     // Chemin du fichier avant suppression de la ligne.
-    let chemin: Option<(String,)> = sqlx::query_as(
-        "SELECT \"cheminStockage\" FROM \"Document\" WHERE id = $1",
-    )
-    .bind(id)
-    .fetch_optional(pool)
-    .await?;
+    let chemin: Option<(String,)> =
+        sqlx::query_as("SELECT \"cheminStockage\" FROM \"Document\" WHERE id = $1")
+            .bind(id)
+            .fetch_optional(pool)
+            .await?;
     sqlx::query("DELETE FROM \"Document\" WHERE id = $1")
         .bind(id)
         .execute(pool)
@@ -611,16 +643,14 @@ pub async fn supprimer_consultation(id: &str) -> Result<(), sqlx::Error> {
     Ok(())
 }
 
-
 /// Chemin de stockage d'un document (pour ouverture dans l'app native).
 pub async fn chemin_document(id: &str) -> Result<String, sqlx::Error> {
     let pool = pool()?;
-    let (chemin,): (String,) = sqlx::query_as(
-        "SELECT \"cheminStockage\" FROM \"Document\" WHERE id = $1",
-    )
-    .bind(id)
-    .fetch_one(pool)
-    .await?;
+    let (chemin,): (String,) =
+        sqlx::query_as("SELECT \"cheminStockage\" FROM \"Document\" WHERE id = $1")
+            .bind(id)
+            .fetch_one(pool)
+            .await?;
     Ok(chemin)
 }
 
@@ -659,17 +689,15 @@ pub async fn maj_praticien(
     Ok(())
 }
 
-
 /// Contexte médical du patient pour l'IA : allergies + traitements actifs.
 pub async fn contexte_patient_ia(patient_id: &str) -> Result<(Vec<String>, Vec<String>), String> {
     let pool = pool().map_err(|e| e.to_string())?;
-    let allergies: Vec<(String,)> = sqlx::query_as(
-        "SELECT substance FROM \"Allergie\" WHERE \"patientId\" = $1",
-    )
-    .bind(patient_id)
-    .fetch_all(pool)
-    .await
-    .map_err(|e| e.to_string())?;
+    let allergies: Vec<(String,)> =
+        sqlx::query_as("SELECT substance FROM \"Allergie\" WHERE \"patientId\" = $1")
+            .bind(patient_id)
+            .fetch_all(pool)
+            .await
+            .map_err(|e| e.to_string())?;
     let traitements: Vec<(String,)> = sqlx::query_as(
         "SELECT medicament FROM \"Traitement\" WHERE \"patientId\" = $1 AND actif = true",
     )
@@ -735,10 +763,15 @@ pub async fn maj_patient(
     .execute(pool)
     .await
     .map_err(|e| e.to_string())?;
-    crate::audit::journaliser(&utilisateur.id, "PATIENT_MODIFICATION", Some("patient"), Some(&id), None);
+    crate::audit::journaliser(
+        &utilisateur.id,
+        "PATIENT_MODIFICATION",
+        Some("patient"),
+        Some(&id),
+        None,
+    );
     Ok(())
 }
-
 
 /// Recherche un patient par NIR (via l'empreinte chiffrée déterministe).
 pub async fn trouver_patient_par_nir(nir: &str) -> Option<String> {
@@ -750,14 +783,13 @@ pub async fn trouver_patient_par_nir(nir: &str) -> Option<String> {
         Err(_) => return None,
     };
     let empreinte = crate::crypto::empreinte(nir.trim());
-    let id: Option<(String,)> = sqlx::query_as(
-        "SELECT id FROM \"Patient\" WHERE \"nirEmpreinte\" = $1",
-    )
-    .bind(empreinte)
-    .fetch_optional(pool)
-    .await
-    .ok()
-    .flatten();
+    let id: Option<(String,)> =
+        sqlx::query_as("SELECT id FROM \"Patient\" WHERE \"nirEmpreinte\" = $1")
+            .bind(empreinte)
+            .fetch_optional(pool)
+            .await
+            .ok()
+            .flatten();
     id.map(|(i,)| i)
 }
 
@@ -803,10 +835,15 @@ pub async fn creer_constante_amelie(
     .bind(unite)
     .execute(pool)
     .await?;
-    crate::audit::journaliser(utilisateur_id, "CONSTANTE_AMELIE", Some("patient"), Some(patient_id), None);
+    crate::audit::journaliser(
+        utilisateur_id,
+        "CONSTANTE_AMELIE",
+        Some("patient"),
+        Some(patient_id),
+        None,
+    );
     Ok(id)
 }
-
 
 /// Cre une FSE en brouillon (structure pose pour la facturation).
 pub async fn creer_fse_brouillon(patient_id: &str, praticien_id: &str) -> Result<String, String> {
@@ -826,7 +863,12 @@ pub async fn creer_fse_brouillon(patient_id: &str, praticien_id: &str) -> Result
 }
 
 /// Ajoute un acte  une FSE et met  jour le total.
-pub async fn ajouter_acte_fse(fse_id: &str, code: &str, libelle: &str, montant: f64) -> Result<(), String> {
+pub async fn ajouter_acte_fse(
+    fse_id: &str,
+    code: &str,
+    libelle: &str,
+    montant: f64,
+) -> Result<(), String> {
     let pool = pool().map_err(|e| e.to_string())?;
     sqlx::query(
         "INSERT INTO \"ActeFse\" (id, \"fseId\", code, libelle, montant) \
@@ -861,7 +903,9 @@ pub async fn changer_statut_fse(fse_id: &str, statut: &str) -> Result<(), String
     Ok(())
 }
 
-pub async fn query_patients(recherche: &str) -> Result<Vec<crate::commands::patients::Patient>, String> {
+pub async fn query_patients(
+    recherche: &str,
+) -> Result<Vec<crate::commands::patients::Patient>, String> {
     let pool = pool().map_err(|e| e.to_string())?;
     let rows = sqlx::query_as::<_, crate::commands::patients::Patient>(
         "SELECT id, nom, prenoms FROM \"Patient\" WHERE nom ILIKE $1 OR prenoms ILIKE $1 ORDER BY nom LIMIT 50",
@@ -873,7 +917,9 @@ pub async fn query_patients(recherche: &str) -> Result<Vec<crate::commands::pati
     Ok(rows)
 }
 
-pub async fn insert_document(doc: &crate::commands::documents::DocumentImport) -> Result<String, String> {
+pub async fn insert_document(
+    doc: &crate::commands::documents::DocumentImport,
+) -> Result<String, String> {
     let pool = pool().map_err(|e| e.to_string())?;
     let id = uuid::Uuid::new_v4().to_string();
     sqlx::query("INSERT INTO \"Document\" (id, \"patientId\", \"nomFichier\", \"cheminStockage\", type) VALUES ($1, $2, $3, $4, $5::\"DocType\")")
@@ -913,7 +959,6 @@ pub async fn insert_document_ocr(
     Ok(())
 }
 
-
 /// Extrait la ville d'une adresse : dernier segment non vide, en retirant
 /// le code postal s'il est collé (« 75000 Paris » → « Paris »).
 fn extraire_ville(adresse: Option<&str>) -> Option<String> {
@@ -924,9 +969,15 @@ fn extraire_ville(adresse: Option<&str>) -> Option<String> {
         .skip_while(|m| m.chars().all(|c| c.is_ascii_digit()))
         .collect::<Vec<_>>()
         .join(" ");
-    if ville.is_empty() { None } else { Some(ville) }
+    if ville.is_empty() {
+        None
+    } else {
+        Some(ville)
+    }
 }
-pub async fn generer_courrier(req: &crate::commands::courriers::CourrierRequest) -> Result<crate::commands::courriers::CourrierGenere, String> {
+pub async fn generer_courrier(
+    req: &crate::commands::courriers::CourrierRequest,
+) -> Result<crate::commands::courriers::CourrierGenere, String> {
     // Contexte complet : patient (avec âge), praticien connecté (coordonnées).
     let pool = pool().map_err(|e| e.to_string())?;
     // PostgreSQL calcule l'âge directement (EXTRACT de date_diff).
@@ -940,9 +991,9 @@ pub async fn generer_courrier(req: &crate::commands::courriers::CourrierRequest)
     let age = patient.2;
     // La session garde un snapshot antérieur à la mise à jour de la fiche :
     // on recharge le praticien frais depuis la base.
-    let session = crate::auth::valider_session(&req.token)
-        .ok_or("session expirée")?;
-    let praticien = charger_utilisateur(&session.identifiant).await
+    let session = crate::auth::valider_session(&req.token).ok_or("session expirée")?;
+    let praticien = charger_utilisateur(&session.identifiant)
+        .await
         .unwrap_or(session);
     let contenu = crate::ia::generer(&crate::ia::ContexteCourrier {
         nom_patient: patient.0.clone(),
@@ -961,4 +1012,68 @@ pub async fn generer_courrier(req: &crate::commands::courriers::CourrierRequest)
     })
     .await?;
     Ok(crate::commands::courriers::CourrierGenere { contenu })
+}
+
+// ---------- Réconciliation des fiches orphelines ----------
+
+pub async fn fiches_orphelines(
+) -> Result<Vec<crate::commands::reconciliation::FicheOrpheline>, String> {
+    let pool = pool()?;
+    let consultations: Vec<crate::commands::reconciliation::FicheOrpheline> = sqlx::query_as(
+        "SELECT id, 'Consultation' AS kind, CAST(date AS VARCHAR(10)) AS date,
+                motif AS sujet, LEFT(COALESCE(notes, ''), 120) AS extrait
+         FROM \"Consultation\" WHERE \"patientId\" IS NULL ORDER BY date DESC",
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    let courriers: Vec<crate::commands::reconciliation::FicheOrpheline> = sqlx::query_as(
+        "SELECT id, 'Courrier' AS kind, CAST(date AS VARCHAR(10)) AS date,
+                sujet, LEFT(contenu, 120) AS extrait
+         FROM \"Courrier\" WHERE \"patientId\" IS NULL ORDER BY date DESC",
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    let mut fiches = consultations;
+    fiches.extend(courriers);
+    Ok(fiches)
+}
+
+pub async fn occurrences_patients(
+) -> Result<Vec<crate::commands::reconciliation::OccurrencePatient>, String> {
+    let pool = pool()?;
+    let rows = sqlx::query_as::<_, crate::commands::reconciliation::OccurrencePatient>(
+        "SELECT p.id, p.nom, p.prenoms, COUNT(c.id) AS occurrences
+         FROM \"Patient\" p
+         JOIN \"Consultation\" c ON c.\"patientId\" = p.id
+         GROUP BY p.id, p.nom, p.prenoms
+         ORDER BY COUNT(c.id) DESC LIMIT 100",
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(rows)
+}
+
+pub async fn lier_fiche(kind: &str, fiche_id: &str, patient_id: &str) -> Result<(), String> {
+    let pool = pool()?;
+    let table = match kind {
+        "Consultation" => "Consultation",
+        "Courrier" => "Courrier",
+        _ => return Err(format!("type de fiche inconnu : {kind}")),
+    };
+    let requete = format!(
+        "UPDATE \"{table}\" SET \"patientId\" = $1 WHERE id = $2 AND \"patientId\" IS NULL"
+    );
+    let res = sqlx::query(&requete)
+        .bind(patient_id)
+        .bind(fiche_id)
+        .execute(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    if res.rows_affected() == 0 {
+        return Err("fiche introuvable ou déjà rattachée".to_string());
+    }
+    Ok(())
 }

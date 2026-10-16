@@ -8,6 +8,7 @@ import Patients from "./pages/Patients";
 import Agenda from "./pages/Agenda";
 import Ged from "./pages/Ged";
 import Courriers from "./pages/Courriers";
+import Reconciliation from "./pages/Reconciliation";
 import Journal from "./pages/Journal";
 import Systeme from "./pages/Systeme";
 import FichePatient from "./pages/FichePatient";
@@ -30,6 +31,7 @@ function AppProtegee() {
         <Route path="journal" element={<Journal />} />
         <Route path="systeme" element={<Systeme />} />
         <Route path="courriers" element={<Courriers />} />
+        <Route path="reconciliation" element={<Reconciliation />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

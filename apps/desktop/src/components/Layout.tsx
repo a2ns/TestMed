@@ -5,6 +5,7 @@ import {
   Users,
   FolderOpen,
   Mail,
+  Link2,
   ShieldCheck,
   Settings,
   LogOut,
@@ -19,6 +20,7 @@ const MENU = [
   { to: "/patients", label: "Patients", Icone: Users, end: false },
   { to: "/ged", label: "GED", Icone: FolderOpen, end: false, badge: true },
   { to: "/courriers", label: "Courriers", Icone: Mail, end: false },
+  { to: "/reconciliation", label: "Réconciliation", Icone: Link2, end: false },
 ];
 
 const MENU_ADMIN = [

@@ -188,17 +188,21 @@ pub async fn tester_ia(token: String) -> Result<serde_json::Value, String> {
 
 /// Reformule un texte : améliore la forme sans toucher au fond médical.
 #[tauri::command]
-pub async fn reformuler_texte(texte: String, consigne: String, token: String) -> Result<String, String> {
+pub async fn reformuler_texte(
+    texte: String,
+    consigne: String,
+    token: String,
+) -> Result<String, String> {
     let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
     let corps = serde_json::json!({
         "model": model(),
         "messages": [
             {"role": "system", "content": "Tu es relecteur professionnel de courriers médicaux en français. Améliore le texte selon la consigne donnée, avec des règles absolues : \
-1. ORTHOGRAPHE ET GRAMMAIRE PARFAITES : corrige toute faute, accord, conjugaison, ponctuation française (espaces insécables, guillemets). \
-2. REGISTRE MÉDICAL PROFESSIONNEL : vouvoiement systématique, terminologie médicale exacte (nomenclature correcte des pathologies, examens, traitements), formules consacrées de la correspondance médicale (« Je vous prie de bien vouloir trouver ci-joint », « Je reste à votre disposition », « Veuillez agréer, Cher Confrère… »). \
-3. TU NE CHANGES JAMAIS LE SENS MÉDICAL : n'ajoute ni ne retire aucune information clinique, ne modifie aucun dosage, aucun terme de diagnostic. \
-4. AUCUN PLACEHOLDER : aucun champ entre crochets. \
-Rends uniquement le texte corrigé, sans commentaire."},
+    1. ORTHOGRAPHE ET GRAMMAIRE PARFAITES : corrige toute faute, accord, conjugaison, ponctuation française (espaces insécables, guillemets). \
+    2. REGISTRE MÉDICAL PROFESSIONNEL : vouvoiement systématique, terminologie médicale exacte (nomenclature correcte des pathologies, examens, traitements), formules consacrées de la correspondance médicale (« Je vous prie de bien vouloir trouver ci-joint », « Je reste à votre disposition », « Veuillez agréer, Cher Confrère… »). \
+    3. TU NE CHANGES JAMAIS LE SENS MÉDICAL : n'ajoute ni ne retire aucune information clinique, ne modifie aucun dosage, aucun terme de diagnostic. \
+    4. AUCUN PLACEHOLDER : aucun champ entre crochets. \
+    Rends uniquement le texte corrigé, sans commentaire."},
             {"role": "user", "content": format!("Consigne : {consigne}\n\nTexte à reformuler :\n{texte}")}
         ],
         "temperature": 0.3

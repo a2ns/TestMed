@@ -59,13 +59,6 @@ model Patient {
   email           String?
   carteVitale     Json?
   medecinTraitant String?
-<<<<<<< HEAD
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt @default(now())
-  documents  Document[]
-  courriers  Courrier[]
-  consultations Consultation[]
-=======
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt @default(now())
   documents       Document[]
@@ -77,26 +70,17 @@ model Patient {
   ordonnances     Ordonnance[]
   rendezVous      RendezVous[]
   constantes      ConstanteBio[]
->>>>>>> origin/main
 }
 
 model Antecedent {
   id        String   @id @default(uuid())
-<<<<<<< HEAD
-  patientId String?
-  patient   Patient? @relation(fields: [patientId], references: [id], onDelete: SetNull)
-  praticienId String?
-  motif     String?
-=======
   patientId String
   patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
   categorie String // MEDICAL | CHIRURGICAL | FAMILIAL | OBSTETRIQUE | TOXIQUE
   libelle   String
   annee     Int?
->>>>>>> origin/main
   notes     String?
   createdAt DateTime @default(now())
-
   @@index([patientId])
 }
 
@@ -128,8 +112,8 @@ model Allergie {
 
 model Consultation {
   id          String   @id @default(uuid())
-  patientId   String
-  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patientId   String?
+  patient     Patient? @relation(fields: [patientId], references: [id], onDelete: SetNull)
   praticienId String?
   motif       String?
   notes       String?
@@ -169,22 +153,9 @@ model GabaritCourrier {
 }
 
 model Courrier {
-<<<<<<< HEAD
-  id         String   @id @default(uuid())
-  patientId  String?
-  patient    Patient? @relation(fields: [patientId], references: [id], onDelete: SetNull)
-  gabaritId  String?
-  gabarit    GabaritCourrier? @relation(fields: [gabaritId], references: [id])
-  sujet      String?
-  contenu    String
-  aiGenere   Boolean  @default(false)
-  statut     String   @default("BROUILLON") // BROUILLON | VALIDE | IMPRIME
-  date       DateTime @default(now())
-  validePar  String?
-=======
   id        String           @id @default(uuid())
-  patientId String
-  patient   Patient          @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patientId String?
+  patient   Patient?         @relation(fields: [patientId], references: [id], onDelete: SetNull)
   gabaritId String?
   gabarit   GabaritCourrier? @relation(fields: [gabaritId], references: [id])
   sujet     String?
@@ -193,7 +164,6 @@ model Courrier {
   statut    String           @default("BROUILLON") // BROUILLON | VALIDE | IMPRIME
   date      DateTime         @default(now())
   validePar String?
->>>>>>> origin/main
 
   @@index([patientId, date])
 }

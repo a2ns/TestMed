@@ -24,7 +24,10 @@ impl BackendScan for BackendSane {
             .output()
             .map_err(|e| format!("scanimage introuvable ({e}) — installez sane-backends"))?;
         if !sortie.status.success() {
-            return Err(format!("scanimage -L a échoué : {}", String::from_utf8_lossy(&sortie.stderr)));
+            return Err(format!(
+                "scanimage -L a échoué : {}",
+                String::from_utf8_lossy(&sortie.stderr)
+            ));
         }
         let scanners = String::from_utf8_lossy(&sortie.stdout)
             .lines()
@@ -43,16 +46,23 @@ impl BackendScan for BackendSane {
         let prefixe = prefixe.to_string_lossy().to_string();
         let sortie = Command::new("scanimage")
             .args([
-                "-d", scanner,
-                "--format", "png",
-                "--resolution", "300",
-                "--batch", &format!("{prefixe}%d.png"),
+                "-d",
+                scanner,
+                "--format",
+                "png",
+                "--resolution",
+                "300",
+                "--batch",
+                &format!("{prefixe}%d.png"),
                 "--batch-print",
             ])
             .output()
             .map_err(|e| e.to_string())?;
         if !sortie.status.success() && pages.is_empty() {
-            return Err(format!("scan batch a échoué : {}", String::from_utf8_lossy(&sortie.stderr)));
+            return Err(format!(
+                "scan batch a échoué : {}",
+                String::from_utf8_lossy(&sortie.stderr)
+            ));
         }
         let mut i = 1;
         loop {

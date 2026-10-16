@@ -1,9 +1,10 @@
 pub mod agenda;
+pub mod constantes;
+pub mod correspondants;
 pub mod courriers;
 pub mod documents;
 pub mod ordonnances;
 pub mod patients;
 pub mod recherche;
+pub mod reconciliation;
 pub mod scan;
-pub mod constantes;
-pub mod correspondants;

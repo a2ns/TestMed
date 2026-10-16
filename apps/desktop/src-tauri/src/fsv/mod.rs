@@ -35,7 +35,8 @@ pub async fn verifier_fsv(token: String) -> Result<EtatFsv, String> {
     crate::auth::valider_session(&token).ok_or("session expir")?;
     #[cfg(target_os = "windows")]
     {
-        let chemin_dll = crate::config::lire_config("FSV_DLL").await
+        let chemin_dll = crate::config::lire_config("FSV_DLL")
+            .await
             .or_else(|| std::env::var("FSV_DLL").ok())
             .unwrap_or_else(|| "sgpv.dll".into());
         let dispo = std::path::Path::new(&chemin_dll).exists();
@@ -44,7 +45,8 @@ pub async fn verifier_fsv(token: String) -> Result<EtatFsv, String> {
             detail: if dispo {
                 format!("FSV dtect ({chemin_dll})")
             } else {
-                "FSV absent : installez le logiciel FSV du GIE et renseignez le chemin dans Systme".into()
+                "FSV absent : installez le logiciel FSV du GIE et renseignez le chemin dans Systme"
+                    .into()
             },
         })
     }
@@ -63,7 +65,8 @@ pub async fn lire_carte_vitale(token: String) -> Result<CarteVitaleLue, String> 
     let utilisateur = crate::auth::valider_session(&token).ok_or("session expir")?;
     #[cfg(target_os = "windows")]
     {
-        let chemin_dll = crate::config::lire_config("FSV_DLL").await
+        let chemin_dll = crate::config::lire_config("FSV_DLL")
+            .await
             .or_else(|| std::env::var("FSV_DLL").ok())
             .unwrap_or_else(|| "sgpv.dll".into());
 
@@ -71,7 +74,9 @@ pub async fn lire_carte_vitale(token: String) -> Result<CarteVitaleLue, String> 
         // Les signatures suivent la spcification FSV standard (LibraryInit,
         // ReadVitale) ;  ajuster  la version exacte de votre documentation
         // GIE si elle diffre ( constantes et structures exportables).
-        let erreur = |code: i32| format!("FSV : erreur code {code}  la lecture de la carte  consulter la doc GIE");
+        let erreur = |code: i32| {
+            format!("FSV : erreur code {code}  la lecture de la carte  consulter la doc GIE")
+        };
 
         unsafe {
             let lib = libloading::Library::new(&chemin_dll)
@@ -89,8 +94,9 @@ pub async fn lire_carte_vitale(token: String) -> Result<CarteVitaleLue, String> 
             //    (Structure P_DESCRIPTEUR_VITALE de la spcification ;
             //     version buffer gnrique  affiner avec la doc exacte.)
             let mut buffer = [0u8; 8192];
-            let lire: libloading::Symbol<unsafe extern "system" fn(*mut u8, usize) -> i32> =
-                lib.get(b"SGP_LireVitale").map_err(|_| "fonction SGP_LireVitale absente  consulter la doc GIE")?;
+            let lire: libloading::Symbol<unsafe extern "system" fn(*mut u8, usize) -> i32> = lib
+                .get(b"SGP_LireVitale")
+                .map_err(|_| "fonction SGP_LireVitale absente  consulter la doc GIE")?;
             let code = lire(buffer.as_mut_ptr(), buffer.len());
             if code != 0 {
                 return Err(erreur(code));
@@ -114,7 +120,10 @@ pub async fn lire_carte_vitale(token: String) -> Result<CarteVitaleLue, String> 
     #[cfg(not(target_os = "windows"))]
     {
         let _ = utilisateur;
-        Err("lecture Vitale disponible uniquement sur le poste Windows de facturation (FSV/GIE)".into())
+        Err(
+            "lecture Vitale disponible uniquement sur le poste Windows de facturation (FSV/GIE)"
+                .into(),
+        )
     }
 }
 
@@ -161,7 +170,7 @@ pub struct Fse {
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ActeFse {
-    pub code: String,       // code acte (nomenclature)
+    pub code: String, // code acte (nomenclature)
     pub libelle: String,
     pub montant: f64,
 }
@@ -173,7 +182,13 @@ pub async fn creer_fse(token: String, patient_id: String) -> Result<String, Stri
     let id = crate::db::creer_fse_brouillon(&patient_id, &utilisateur.id)
         .await
         .map_err(|e| e.to_string())?;
-    crate::audit::journaliser(&utilisateur.id, "FSE_CREATION", Some("patient"), Some(&patient_id), None);
+    crate::audit::journaliser(
+        &utilisateur.id,
+        "FSE_CREATION",
+        Some("patient"),
+        Some(&patient_id),
+        None,
+    );
     Ok(id)
 }
 
@@ -190,7 +205,13 @@ pub async fn ajouter_acte_fse(
     crate::db::ajouter_acte_fse(&fse_id, &code, &libelle, montant)
         .await
         .map_err(|e| e.to_string())?;
-    crate::audit::journaliser(&utilisateur.id, "FSE_ACTE", Some("fse"), Some(&fse_id), None);
+    crate::audit::journaliser(
+        &utilisateur.id,
+        "FSE_ACTE",
+        Some("fse"),
+        Some(&fse_id),
+        None,
+    );
     Ok(())
 }
 
@@ -201,6 +222,12 @@ pub async fn valider_fse(fse_id: String, token: String) -> Result<(), String> {
     crate::db::changer_statut_fse(&fse_id, "PRETE")
         .await
         .map_err(|e| e.to_string())?;
-    crate::audit::journaliser(&utilisateur.id, "FSE_VALIDATION", Some("fse"), Some(&fse_id), None);
+    crate::audit::journaliser(
+        &utilisateur.id,
+        "FSE_VALIDATION",
+        Some("fse"),
+        Some(&fse_id),
+        None,
+    );
     Ok(())
 }

@@ -55,6 +55,12 @@ pub async fn creer_correspondant(
     .execute(pool)
     .await
     .map_err(|e| e.to_string())?;
-    crate::audit::journaliser(&utilisateur.id, "CORRESPONDANT_AJOUT", Some("correspondant"), Some(&id), None);
+    crate::audit::journaliser(
+        &utilisateur.id,
+        "CORRESPONDANT_AJOUT",
+        Some("correspondant"),
+        Some(&id),
+        None,
+    );
     Ok(id)
 }

@@ -25,9 +25,11 @@ pub struct EtatDicos {
 #[tauri::command]
 pub async fn verifier_dicos(token: String) -> Result<EtatDicos, String> {
     crate::auth::valider_session(&token).ok_or("session expirée")?;
-    let bal = crate::config::lire_config("DICOS_BAL_URL").await
+    let bal = crate::config::lire_config("DICOS_BAL_URL")
+        .await
         .or_else(|| std::env::var("DICOS_BAL_URL").ok());
-    let cert = crate::config::lire_config("DICOS_CERTIFICAT").await
+    let cert = crate::config::lire_config("DICOS_CERTIFICAT")
+        .await
         .or_else(|| std::env::var("DICOS_CERTIFICAT").ok());
     Ok(match (&bal, &cert) {
         (Some(u), Some(c)) => EtatDicos {
@@ -54,7 +56,8 @@ pub struct MessageDicos {
 pub async fn lister_messages_dicos(token: String) -> Result<Vec<MessageDicos>, String> {
     let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
     let _ = utilisateur;
-    let bal_url = crate::config::lire_config("DICOS_BAL_URL").await
+    let bal_url = crate::config::lire_config("DICOS_BAL_URL")
+        .await
         .or_else(|| std::env::var("DICOS_BAL_URL").ok())
         .ok_or("DICOS non configuré (voir Système → DICOS)")?;
     // Interrogation de la BAL MSSanté : le référentiel DIM expose une API
@@ -93,13 +96,16 @@ pub async fn importer_piece_dicos(
     token: String,
 ) -> Result<crate::commands::recherche::ImportIntelligentResultat, String> {
     let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
-    let bal_url = crate::config::lire_config("DICOS_BAL_URL").await
+    let bal_url = crate::config::lire_config("DICOS_BAL_URL")
+        .await
         .or_else(|| std::env::var("DICOS_BAL_URL").ok())
         .ok_or("DICOS non configuré")?;
     let client = reqwest::Client::new();
     // Téléchargement (le certificat MSSanté gère le chiffrement applicatif).
     let resp = client
-        .get(format!("{bal_url}/messages/{message_id}/pieces/{piece_index}"))
+        .get(format!(
+            "{bal_url}/messages/{message_id}/pieces/{piece_index}"
+        ))
         .send()
         .await
         .map_err(|e| format!("téléchargement impossible : {e}"))?;

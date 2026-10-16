@@ -39,8 +39,7 @@ pub async fn lancer_sauvegarde(token: String) -> Result<ResultatSauvegarde, Stri
         return Err("sauvegarde réservée au rôle ADMIN".into());
     }
 
-    let url = std::env::var("DATABASE_URL")
-        .map_err(|_| "DATABASE_URL non configurée")?;
+    let url = std::env::var("DATABASE_URL").map_err(|_| "DATABASE_URL non configurée")?;
     let cfg = config();
     std::fs::create_dir_all(&cfg.dossier).map_err(|e| e.to_string())?;
 
@@ -110,10 +109,7 @@ fn appliquer_retention(cfg: &ConfigSauvegarde) -> Result<(), String> {
 /// Restaure une sauvegarde (déchiffre puis renvoie le SQL — l'administrateur
 /// l'injecte via psql). Le mot de passe base est requis en argument.
 #[tauri::command]
-pub async fn dechiffrer_sauvegarde(
-    chemin: String,
-    token: String,
-) -> Result<String, String> {
+pub async fn dechiffrer_sauvegarde(chemin: String, token: String) -> Result<String, String> {
     let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
     if utilisateur.role != "ADMIN" {
         return Err("opération réservée au rôle ADMIN".into());

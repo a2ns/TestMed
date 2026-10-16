@@ -45,7 +45,9 @@ pub async fn list_documents(patient_id: Option<String>) -> Result<Vec<DocumentRo
 #[tauri::command]
 pub async fn supprimer_document(id: String, token: String) -> Result<(), String> {
     let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
-    crate::db::supprimer_document(&id).await.map_err(|e| e.to_string())?;
+    crate::db::supprimer_document(&id)
+        .await
+        .map_err(|e| e.to_string())?;
     crate::audit::journaliser(
         &utilisateur.id,
         "DOC_SUPPRESSION",
@@ -110,10 +112,7 @@ pub struct CourrierGed {
 /// Enregistre un courrier généré dans la GED du patient : le texte du
 /// courrier sert d'index de recherche plein texte (comme l'OCR).
 #[tauri::command]
-pub async fn enregistrer_courrier_ged(
-    c: CourrierGed,
-    token: String,
-) -> Result<String, String> {
+pub async fn enregistrer_courrier_ged(c: CourrierGed, token: String) -> Result<String, String> {
     let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
     let id = uuid::Uuid::new_v4().to_string();
     crate::db::insert_document_ocr_intelligent(

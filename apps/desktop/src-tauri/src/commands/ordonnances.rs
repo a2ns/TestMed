@@ -30,7 +30,7 @@ pub struct Ordonnance {
 #[serde(rename_all = "camelCase")]
 pub struct NouvelleOrdonnance {
     pub patient_id: String,
-    pub r#type: String,           // SIMPLE | BI_ORDONNANCE | SECURISEE
+    pub r#type: String, // SIMPLE | BI_ORDONNANCE | SECURISEE
     pub securisee: bool,
     pub lignes: Vec<NouvellePrescription>,
 }
@@ -38,7 +38,7 @@ pub struct NouvelleOrdonnance {
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NouvellePrescription {
-    pub zone: String,             // A | B
+    pub zone: String, // A | B
     pub medicament: String,
     pub cip: Option<String>,
     pub posologie: String,
@@ -57,13 +57,17 @@ pub async fn creer_ordonnance(o: NouvelleOrdonnance, token: String) -> Result<St
     if o.r#type == "BI_ORDONNANCE" && !o.lignes.iter().any(|l| l.zone == "B") {
         return Err("bi-ordonnance : au moins une ligne en zone B requise".into());
     }
-    let id = crate::db::creer_ordonnance(&o).await.map_err(|e| e.to_string())?;
+    let id = crate::db::creer_ordonnance(&o)
+        .await
+        .map_err(|e| e.to_string())?;
     crate::audit::journaliser(
         &utilisateur.id,
         "ORDONNANCE_CREATION",
         Some("ordonnance"),
         Some(&id),
-        Some(serde_json::json!({ "patient_id": o.patient_id, "lignes": o.lignes.len(), "type": o.r#type })),
+        Some(
+            serde_json::json!({ "patient_id": o.patient_id, "lignes": o.lignes.len(), "type": o.r#type }),
+        ),
     );
     Ok(id)
 }
