@@ -4,8 +4,10 @@ use serde::Serialize;
 pub struct Stats {
     pub patients_total: i64,
     pub documents_total: i64,
+    pub consultations_total: i64,
     pub courriers_brouillons: i64,
     pub courriers_valides: i64,
+    pub non_lies: i64,
 }
 
 #[tauri::command]
