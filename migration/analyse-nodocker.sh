@@ -12,13 +12,31 @@ if ! command -v brew >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "=== 1/4 Installation de Firebird (si nécessaire) ==="
-brew install firebird 2>/dev/null || brew upgrade firebird 2>/dev/null || true
+echo "=== 1/4 Recherche du client Firebird ==="
+# ATTENTION : la formule Homebrew 'firebird' est un émulateur de calculatrice TI,
+# PAS le SGBD Firebird. Le vrai client s'installe autrement (voir README).
 ISQL=$(command -v isql-fb || command -v isql || true)
 if [ -z "$ISQL" ]; then
-  echo "ERREUR : isql-fb introuvable après installation. Essayez :"
-  echo "  ls /opt/homebrew/opt/firebird/bin/  (Mac Apple Silicon)"
-  echo "  ls /usr/local/opt/firebird/bin/     (Mac Intel)"
+  if [ -x /opt/homebrew/opt/firebird-client/bin/isql-fb ]; then
+    ISQL=/opt/homebrew/opt/firebird-client/bin/isql-fb
+  elif [ -x /usr/local/opt/firebird-client/bin/isql-fb ]; then
+    ISQL=/usr/local/opt/firebird-client/bin/isql-fb
+  elif [ -x /Library/Frameworks/Firebird.framework/Resources/bin/isql ]; then
+    ISQL=/Library/Frameworks/Firebird.framework/Resources/bin/isql
+  fi
+fi
+if [ -z "$ISQL" ]; then
+  echo "ERREUR : client Firebird introuvable."
+  echo "Le SGBD Firebird n'est PAS dans Homebrew (la formule 'firebird' est un"
+  echo "émulateur de calculatrice TI). Deux solutions (voir README.md) :"
+  echo ""
+  echo "  Option A (recommandée, 100% Homebrew) :"
+  echo "    brew install colima docker"
+  echo "    colima start"
+  echo "    puis lancez : ./analyse.sh   (variante Docker du kit)"
+  echo ""
+  echo "  Option B : installez Firebird depuis https://firebirdsql.org -> Downloads"
+  echo "    (installer macOS), puis relancez ce script."
   exit 1
 fi
 echo "isql trouvé : $ISQL"

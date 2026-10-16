@@ -28,15 +28,29 @@ chmod +x analyse.sh
 ./analyse.sh
 ```
 
-**Variante B — sans Docker** (Homebrew suffit, plus léger) :
+**Variante B — sans Docker Desktop** (Homebrew seul) :
 
 ```bash
 chmod +x analyse-nodocker.sh
 ./analyse-nodocker.sh
 ```
 
-Le script B installe Firebird via Homebrew si besoin (aucune configuration
-manuelle : pas de serveur à lancer, la base est lue en direct).
+⚠️ **Important** : la formule Homebrew `firebird` est un émulateur de calculatrice
+TI, **pas** le SGBD. Le vrai Firebird n'est pas distribué via Homebrew.
+
+- **Option A (recommandée)** : Docker léger sans Docker Desktop via Colima :
+
+```bash
+brew install colima docker
+colima start          # démarre une mini-VM Docker (~2 Go de RAM, en arrière-plan)
+./analyse.sh          # la variante Docker du kit fonctionne alors telle quelle
+```
+
+Colima consomme peu et se coupe avec `colima stop` quand vous ne l'utilisez plus.
+
+- **Option B** : installer Firebird officiel pour macOS
+  (https://firebirdsql.org/fr/downloads/) puis lancer `./analyse-nodocker.sh`, qui
+  détecte l'installation automatiquement.
 
 Le script :
 
