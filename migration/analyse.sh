@@ -42,7 +42,7 @@ if ! docker exec magicmed-firebird isql-fb -user SYSDBA -password masterkey \
   cat data/fb_err.txt
   echo "-- Essai avec Firebird 1.5 (rétro-compatible InterBase 5/6) --"
   $COMPOSE down
-  sed 's|jacobalbano/firebird:2.5-ss|jacobalbano/firebird:1.5-ss|' docker-compose.yml > docker-compose.fb15.yml
+  sed 's|jacobalberty/firebird:v2.5.9-ss|jacobalberty/firebird:v1.5.6-ss|' docker-compose.yml > docker-compose.fb15.yml
   $COMPOSE -f docker-compose.fb15.yml up -d firebird
   sleep 5
   FIREBIRD_CMD="docker exec magicmed-firebird isql -user SYSDBA -password masterkey"

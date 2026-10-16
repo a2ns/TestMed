@@ -1,6 +1,6 @@
 services:
   firebird:
-    image: jacobalbano/firebird:2.5-ss
+    image: jacobalberty/firebird:v2.5.9-ss
     container_name: magicmed-firebird
     environment:
       ISC_PASSWORD: masterkey
@@ -8,8 +8,7 @@ services:
       - "30550:3050"
     volumes:
       - ./data:/database
-    command: >
-      bash -c "if [ -f /database/*.ITB ] || [ -f /database/*.itb ]; then echo 'Fichier(s) .ITB détecté(s) dans ./data'; ls -lh /database; fi"
+
 
   postgres:
     image: postgres:16
