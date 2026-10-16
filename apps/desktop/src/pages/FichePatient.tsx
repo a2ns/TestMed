@@ -460,7 +460,9 @@ function SectionConsultations({
       {consultations.map((c) => (
         <div key={c.id} className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex justify-between">
-            <span className="font-semibold">{c.motif}</span>
+            <span className="font-semibold">
+              {c.motif || (c.notes ? c.notes.split("\n")[0].slice(0, 60) : "Consultation")}
+            </span>
             <div className="flex items-center gap-3">
               <span className="text-sm text-slate-500">
                 {new Date(c.date).toLocaleString("fr-FR")}
