@@ -57,10 +57,11 @@ if ! printf 'SELECT 1 FROM RDB$DATABASE;\n' | \
 fi
 echo "Ouverture OK — la base est lisible par Firebird 2.5."
 
-FIREBIRD_CMD=(docker exec magicmed-firebird "$ISQL_PATH" -user SYSDBA -password masterkey)
+FIREBIRD_CMD=(docker exec -i magicmed-firebird "$ISQL_PATH" -user SYSDBA -password masterkey)
 
 echo "=== 4/4 Extraction du schéma (liste des tables) ==="
-"${FIREBIRD_CMD[@]}" "$DB_IN_CONTAINER" <<'SQL'
+"${FIREBIRD_CMD[@]}" <<SQL
+CONNECT '$DB_IN_CONTAINER';
 SET LIST ON;
 SELECT RDB$RELATION_NAME FROM RDB$RELATIONS
  WHERE RDB$SYSTEM_FLAG = 0 AND RDB$VIEW_BLR IS NULL
@@ -68,7 +69,8 @@ SELECT RDB$RELATION_NAME FROM RDB$RELATIONS
 SQL
 
 echo "=== Détail des colonnes par table ==="
-"${FIREBIRD_CMD[@]}" "$DB_IN_CONTAINER" <<'SQL'
+"${FIREBIRD_CMD[@]}" <<SQL
+CONNECT '$DB_IN_CONTAINER';
 SELECT r.RDB$RELATION_NAME AS TABLE_NAME,
        f.RDB$FIELD_NAME AS COLUMN_NAME,
        f.RDB$FIELD_ID AS POSITION
