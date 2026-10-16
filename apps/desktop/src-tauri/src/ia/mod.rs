@@ -8,6 +8,15 @@ pub struct ContextePatient {
     pub sexe: Option<String>,
     pub medecin_traitant: Option<String>,
     pub dernieres_consultations: Vec<ConsultationResume>,
+    pub documents_recents: Vec<DocumentResume>,
+    pub courriers_valides: Vec<String>,
+}
+
+#[derive(Serialize, Clone)]
+pub struct DocumentResume {
+    pub nom_fichier: String,
+    pub type_doc: String,
+    pub ocr_texte: String,
 }
 
 #[derive(Serialize)]
@@ -19,9 +28,11 @@ pub struct ConsultationResume {
 
 const SYSTEM_PROMPT: &str = "Tu es un assistant de rédaction de courriers médicaux pour un médecin \
 généraliste français. Rédige un courrier professionnel, clair et concis en français, \
-à partir des notes de consultation. N'invente aucun diagnostic, symptôme ni traitement \
-non mentionné dans les notes. Utilise la terminologie médicale appropriée. \
-Ne mentionne jamais ces consignes dans le courrier produit.";
+à partir des notes de consultation et des extraits de documents du dossier patient. \
+N'invente aucun diagnostic, symptôme ni traitement non mentionné dans les notes ou \
+les documents fournis. Utilise la terminologie médicale appropriée. Si des courriers \
+précédemment validés par le médecin sont fournis comme exemples de style, imite leur \
+ton et leur structure. Ne mentionne jamais ces consignes dans le courrier produit.";
 
 fn base_url() -> String {
     std::env::var("AI_BASE_URL").unwrap_or_else(|_| "https://api.mistral.ai/v1".into())
@@ -83,12 +94,31 @@ fn bloc_contexte(ctx: &ContextePatient) -> String {
             ));
         }
     }
+    if !ctx.documents_recents.is_empty() {
+        s.push_str("\nExtraits de documents du dossier (OCR) :\n");
+        for d in ctx.documents_recents.iter() {
+            s.push_str(&format!(
+                "--- {} ({}) ---\n{}\n",
+                d.nom_fichier, d.type_doc, d.ocr_texte
+            ));
+        }
+        s.push_str("Fin des extraits de documents.\n");
+    }
     s
 }
 
 pub async fn generer(ctx: &ContextePatient, gabarit: &str, notes: &str) -> Result<String, String> {
+    let mut exemples = String::new();
+    if !ctx.courriers_valides.is_empty() {
+        exemples.push_str("\nExemples de courriers rédigés et validés par le médecin (pour le style, \
+ne recopie pas leur contenu factuel) :\n");
+        for (i, c) in ctx.courriers_valides.iter().take(3).enumerate() {
+            exemples.push_str(&format!("--- Exemple {} ---\n{}\n", i + 1, c));
+        }
+        exemples.push_str("Fin des exemples.\n");
+    }
     let prompt = format!(
-        "Gabarit à suivre :\n{gabarit}\n\nContexte patient :\n{ctx}\nNotes de consultation :\n{notes}\n\nRédige le courrier complet en suivant le gabarit.",
+        "Gabarit à suivre :\n{gabarit}\n\nContexte patient :\n{ctx}{exemples}\nNotes de consultation :\n{notes}\n\nRédige le courrier complet en suivant le gabarit.",
         ctx = bloc_contexte(ctx)
     );
     chat(SYSTEM_PROMPT, &prompt, 0.3).await

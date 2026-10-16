@@ -35,11 +35,24 @@ consultation.
 3. Détection automatique : QR code patient / nom détecté par OCR → rattachement.
 4. Classement manuel éventuel, indexation `tsvector`.
 
-### Rédaction assistée d'un courrier
+### Rédaction assistée d'un courrier (RAG)
 1. Le praticien sélectionne le patient + gabarit (adressage, compte rendu…).
-2. Notes de consultation + contexte patient → prompt IA.
-3. L'IA produit un brouillon ; relecture/reformulation itérative.
-4. Validation par le médecin, impression et archivage GED.
+2. Construction automatique du contexte enrichi (RAG) :
+   - identité et consultations récentes ;
+   - **extraits OCR des 3 documents les plus récents du dossier**
+     (`Document.ocrTexte`, tronqués à 4 000 caractères) ;
+   - **3 derniers courriers validés par le médecin** (exemples de style).
+3. Notes de consultation + contexte → prompt IA.
+4. L'IA produit un brouillon ; relecture/reformulation itérative.
+5. Validation par le médecin, impression et archivage GED.
+Le système **apprend en continu, sans réentraînement** : chaque document
+scanné (OCR) et chaque courrier validé enrichit immédiatement le contexte
+des générations suivantes. Aucun envoi de données vers un service
+d'entraînement ; avec Ollama local, les données restent sur le poste/serveur
+du cabinet.
+Évolutions prévues : recherche sémantique (embeddings + pgvector) pour
+sélectionner les passages les plus pertinents du dossier plutôt que les
+3 derniers documents.
 
 ### Sesam-Vitale (phase 2)
 1. Contrat GIE SESAM-Vitale + lecteur certifié + FSV installé.
