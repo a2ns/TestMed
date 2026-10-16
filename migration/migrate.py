@@ -209,10 +209,9 @@ def main():
 
     # ---------- PATIENTCONSULT -> Consultation ----------
     print("3/6 Consultations...")
-    patient_ids = set()
-    for r in fb_query(db, "SELECT " + q("NUM_PAT", "") + "'END' FROM PATIENT"):
-        if r and clean(r[0]):
-            patient_ids.add(clean(r[0]))
+    # Référence : les UUIDs réellement insérés dans PostgreSQL (certaines lignes
+    # source peuvent être écartées à l'insertion).
+    pg_patients = pg_ids("Patient")
     rows = fb_query(
         db,
         "SELECT "
@@ -228,15 +227,16 @@ def main():
     with open(path, "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         vus = set()
+        orphelins = 0
         for r in rows:
-            if len(r) != 6:
+            if len(r) < 5:
                 continue
             cid, numpat, prat, dte, texte = r[:5]
             if cid in vus:
                 continue
             vus.add(cid)
             numpat = clean(numpat)
-            if not numpat or numpat not in patient_ids:
+            if not numpat or src_uuid("PATIENT", numpat) not in pg_patients:
                 orphelins += 1
                 continue
             w.writerow([
@@ -278,7 +278,7 @@ def main():
                 continue
             vus.add(idoc)
             numpat = clean(numpat)
-            if numpat and numpat not in patient_ids:
+            if numpat and src_uuid("PATIENT", numpat) not in pg_patients:
                 orphelins += 1
                 continue
             nom = clean(etiqu) or clean(objet) or f"document {clean(idoc) or n}"
@@ -353,7 +353,7 @@ def main():
                 continue
             vus.add(nump)
             numpat = clean(numpat)
-            if not numpat or numpat not in patient_ids:
+            if numpat and src_uuid("PATIENT", numpat) not in pg_patients:
                 orphelins += 1
                 continue
             contenu = clean(txt) or clean(res)
