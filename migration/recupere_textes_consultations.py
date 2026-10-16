@@ -161,14 +161,25 @@ def main():
     subprocess.run(["docker", "cp", "/tmp/textes_consult.csv",
                     "magicmed-postgres:/tmp/textes_consult.csv"],
                    check=True, capture_output=True)
-    req = (
-        "CREATE TEMP TABLE maj_textes (id TEXT, contenu TEXT); "
-        "\\copy maj_textes FROM '/tmp/textes_consult.csv' WITH CSV; "
-        "UPDATE \"Consultation\" c SET notes = m.contenu "
-        "FROM maj_textes m WHERE c.id = m.id "
-        "AND c.notes IN ('-8 1 3 1', '-8 1 3 2');"
-    )
-    r = subprocess.run(PSQL + ["-v", "ON_ERROR_STOP=1", "-c", req],
+    # 1. table temporaire persistante pour ce conteneur (psql -c : une seule instruction)
+    r = subprocess.run(PSQL + ["-c", "DROP TABLE IF EXISTS maj_textes; "
+                               "CREATE TABLE maj_textes (id TEXT, contenu TEXT);"],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        print("ERREUR création table :", r.stderr[:300])
+        sys.exit(1)
+    # 2. import CSV via \copy (commande psql dédiée)
+    r = subprocess.run(PSQL + ["-c",
+                               "\\copy maj_textes FROM '/tmp/textes_consult.csv' WITH CSV"],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        print("ERREUR import CSV :", r.stderr[:300])
+        sys.exit(1)
+    # 3. update ciblé
+    r = subprocess.run(PSQL + ["-v", "ON_ERROR_STOP=1", "-c",
+                               'UPDATE "Consultation" c SET notes = m.contenu '
+                               "FROM maj_textes m WHERE c.id = m.id "
+                               "AND c.notes IN ('-8 1 3 1', '-8 1 3 2');"],
                        capture_output=True, text=True)
     if r.returncode != 0:
         print("ERREUR psql :", r.stderr[:300])
