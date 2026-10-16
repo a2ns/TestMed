@@ -346,22 +346,25 @@ def main():
         w = csv.writer(fh)
         vus = set()
         for r in rows:
-            if len(r) != 6:
+            if len(r) < 5:
                 continue
             nump, numpat, modal, res, txt = r[:5]
             if nump in vus:
                 continue
             vus.add(nump)
             numpat = clean(numpat)
-            if numpat and src_uuid("PATIENT", numpat) not in pg_patients:
-                orphelins += 1
+            if not numpat:
                 continue
+            pid = src_uuid("PATIENT", numpat)
+            if pid not in pg_patients:
+                orphelins += 1
+                pid = None
             contenu = clean(txt) or clean(res)
             if not contenu:
                 continue
             w.writerow([
                 src_uuid("PRESCRIPTIONS", clean(nump) or n),
-                src_uuid("PATIENT", numpat),
+                pid,
                 (clean(res) or clean(modal) or "Document")[:200],
                 contenu, False, "VALIDE", None,
             ])
