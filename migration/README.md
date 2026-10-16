@@ -21,10 +21,22 @@ cp /chemin/vers/MAGICMED.ITB data/
 
 ## Étape 1 — Analyse de la base (à faire d'abord)
 
+**Variante A — avec Docker** (si Docker Desktop est installé) :
+
 ```bash
 chmod +x analyse.sh
 ./analyse.sh
 ```
+
+**Variante B — sans Docker** (Homebrew suffit, plus léger) :
+
+```bash
+chmod +x analyse-nodocker.sh
+./analyse-nodocker.sh
+```
+
+Le script B installe Firebird via Homebrew si besoin (aucune configuration
+manuelle : pas de serveur à lancer, la base est lue en direct).
 
 Le script :
 
