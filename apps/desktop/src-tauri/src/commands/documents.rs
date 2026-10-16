@@ -38,11 +38,6 @@ pub async fn import_document(doc: DocumentImport) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub async fn list_documents(patient_id: Option<String>) -> Result<Vec<DocumentRow>, String> {
-    crate::db::list_documents(patient_id.as_deref()).await
-}
-
-#[tauri::command]
 pub async fn supprimer_document(id: String, token: String) -> Result<(), String> {
     let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
     crate::db::supprimer_document(&id)
