@@ -478,7 +478,7 @@ function SectionConsultations({
               </button>
             </div>
           </div>
-          {c.notes && <p className="mt-2 text-sm whitespace-pre-wrap">{c.notes}</p>}
+          {c.notes && <NotesRiches texte={c.notes} />}
         </div>
       ))}
     </div>
@@ -1025,4 +1025,36 @@ function EditionPatient({
       </div>
     </div>
   );
+}
+
+
+/// Affiche une note : HTML enrichi (issu du RTF MagicMed converti) ou texte brut.
+/// Sanitizer maison : seuls strong/em/u/br/p/ul/ol/li sont conservés.
+function sanitiserHtml(html: string): string {
+  const div = document.createElement("div");
+  div.innerHTML = html;
+  const AUTORISES = new Set(["STRONG", "EM", "U", "BR", "P", "UL", "OL", "LI", "#text"]);
+  const nettoyer = (noeud: Node) => {
+    [...noeud.childNodes].forEach((enfant) => {
+      if (!AUTORISES.has(enfant.nodeName)) {
+        enfant.replaceWith(...Array.from(enfant.childNodes));
+      }
+      nettoyer(enfant);
+    });
+  };
+  nettoyer(div);
+  return div.innerHTML;
+}
+
+function NotesRiches({ texte }: { texte: string }) {
+  const estHtml = texte.startsWith("<p>");
+  if (estHtml) {
+    return (
+      <div
+        className="mt-2 text-sm prose prose-sm max-w-none"
+        dangerouslySetInnerHTML={{ __html: sanitiserHtml(texte) }}
+      />
+    );
+  }
+  return <p className="mt-2 text-sm whitespace-pre-wrap">{texte}</p>;
 }

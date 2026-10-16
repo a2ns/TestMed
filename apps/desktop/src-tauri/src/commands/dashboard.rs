@@ -1,6 +1,7 @@
 use serde::Serialize;
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Stats {
     pub patients_total: i64,
     pub documents_total: i64,
