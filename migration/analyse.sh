@@ -34,7 +34,7 @@ sleep 8
 
 # Découverte automatique du binaire isql dans le conteneur
 ISQL_PATH=$(docker exec magicmed-firebird sh -c \
-  'command -v isql || command -v isql-fb || ls /usr/bin/isql* /opt/firebird/bin/isql* 2>/dev/null | head -1' || true)
+  'command -v isql || command -v isql-fb || ls /usr/local/firebird/bin/isql* /opt/firebird/bin/isql* /usr/bin/isql* 2>/dev/null | head -1' || true)
 if [ -z "$ISQL_PATH" ]; then
   echo "ERREUR : binaire isql introuvable dans le conteneur. Diagnostic :"
   docker exec magicmed-firebird sh -c 'ls /usr/bin | grep -i -E "isql|firebird" ; ls /opt 2>/dev/null'
