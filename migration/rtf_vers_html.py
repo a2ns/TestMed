@@ -142,42 +142,44 @@ def main():
     if DRY_RUN:
         print("\n--- Aperçu de 2 conversions par table (aucune modification) ---")
         for table, col in [("Consultation", "notes"), ("Courrier", "contenu")]:
-            data = psql(f"SELECT LEFT({col}, 3000) FROM \"{table}\" "
-                        f"WHERE {col} LIKE '%\\\\rtf1%' LIMIT 2")
-            for rtf in data.split("\x01")[:2]:
-                rtf = rtf.strip()
-                if rtf:
-                    print(f"\n[{table}] RTF : {rtf[:80]}...")
-                    print(f"  => HTML : {rtf_vers_html(rtf)[:400]}")
-        return
+        # Extraction via \copy CSV : insensible aux newlines/quotes dans le contenu
+        like = "%\\\\rtf1%"
+        sql_export = (f"\\copy (SELECT id, {col} FROM \\\"{table}\\\" "
+                      f"WHERE {col} LIKE '{like}') TO '/tmp/rtf_export.csv' WITH CSV")
+        r = subprocess.run(PSQL + ["-c", sql_export], capture_output=True, text=True)
+        if r.returncode != 0:
+            print(f"ERREUR export {table} :", r.stderr[:300])
+            sys.exit(1)
+        subprocess.run(["docker", "cp", "magicmed-postgres:/tmp/rtf_export.csv",
+                        "/tmp/rtf_export.csv"], check=True, capture_output=True)
 
-    for table, col in [("Consultation", "notes"), ("Courrier", "contenu")]:
-        data = psql(f"SELECT id || E'\x01' || replace(replace({col}, chr(10), E'\\\\n'), chr(13), '') "
-                      f"FROM \"{table}\" WHERE {col} LIKE '%\\\\rtf1%'")
+        import csv as csv_mod
         updates = []
-        for line in data.splitlines():
-            if "\x01" not in line:
-                continue
-            cid, rtf = line.split("\x01", 1)
-            rtf = rtf.replace("\\n", "\n")
-            html_txt = rtf_vers_html(rtf)
-            if html_txt.strip() not in ("", "<p></p>", "<p><br></p>"):
-                updates.append((cid, html_txt))
+        with open("/tmp/rtf_export.csv", encoding="utf-8") as fh:
+            for row in csv_mod.reader(fh):
+                if len(row) != 2:
+                    continue
+                cid, rtf = row
+                html_txt = rtf_vers_html(rtf)
+                if html_txt.strip() not in ("", "<p></p>", "<p><br></p>"):
+                    updates.append((cid, html_txt))
         if not updates:
             print(f"{table} : rien à convertir")
             continue
 
-        with tempfile.NamedTemporaryFile("w", suffix=".sql", delete=False,
-                                         encoding="utf-8") as f:
-            for cid, texte in updates:
-                safe = texte.replace("'", "''")
-                f.write(f"UPDATE \"{table}\" SET \"{col}\" = '{safe}' "
-                        f"WHERE id = '{cid}';\n")
-            path = f.name
-        subprocess.run(["docker", "cp", path, "magicmed-postgres:/tmp/rtf.sql"],
+        # Ré-injection via CSV + UPDATE FROM (échappement géré par le format CSV)
+        with open("/tmp/rtf_updates.csv", "w", encoding="utf-8") as fh:
+            w = csv_mod.writer(fh)
+            w.writerows(updates)
+        subprocess.run(["docker", "cp", "/tmp/rtf_updates.csv",
+                        "magicmed-postgres:/tmp/rtf_updates.csv"],
                        check=True, capture_output=True)
-        r = subprocess.run(PSQL + ["-v", "ON_ERROR_STOP=1", "-f", "/tmp/rtf.sql"],
-                           capture_output=True, text=True)
+        req = (f"CREATE TEMP TABLE maj_rtf (id TEXT, contenu TEXT); "
+               f"\\copy maj_rtf FROM '/tmp/rtf_updates.csv' WITH CSV; "
+               f"UPDATE \\\"{table}\\\" t SET \\\"{col}\\\" = m.contenu "
+               f"FROM maj_rtf m WHERE t.id = m.id;")
+        r = subprocess.run(PSQL + ["-v", "ON_ERROR_STOP=1", "-c", req],
+                          capture_output=True, text=True)
         if r.returncode != 0:
             print(f"ERREUR psql sur {table} :", r.stderr[:300])
             sys.exit(1)
