@@ -142,13 +142,15 @@ def main():
     if DRY_RUN:
         print("\n--- Aperçu de 2 conversions par table (aucune modification) ---")
         for table, col in [("Consultation", "notes"), ("Courrier", "contenu")]:
-        # Extraction via \copy CSV : insensible aux newlines/quotes dans le contenu
-        like = "%\\\\rtf1%"
-        sql_export = (f"\\copy (SELECT id, {col} FROM \\\"{table}\\\" "
-                      f"WHERE {col} LIKE '{like}') TO '/tmp/rtf_export.csv' WITH CSV")
+        like = "%\\rtf1%"
+        sql_export = (
+            "\\copy (SELECT id, " + col + ' FROM "' + table + '" '
+            "WHERE " + col + " LIKE '" + like + "') "
+            "TO '/tmp/rtf_export.csv' WITH CSV"
+        )
         r = subprocess.run(PSQL + ["-c", sql_export], capture_output=True, text=True)
         if r.returncode != 0:
-            print(f"ERREUR export {table} :", r.stderr[:300])
+            print("ERREUR export", table, ":", r.stderr[:300])
             sys.exit(1)
         subprocess.run(["docker", "cp", "magicmed-postgres:/tmp/rtf_export.csv",
                         "/tmp/rtf_export.csv"], check=True, capture_output=True)
@@ -164,26 +166,26 @@ def main():
                 if html_txt.strip() not in ("", "<p></p>", "<p><br></p>"):
                     updates.append((cid, html_txt))
         if not updates:
-            print(f"{table} : rien à convertir")
+            print(table, ": rien à convertir")
             continue
 
-        # Ré-injection via CSV + UPDATE FROM (échappement géré par le format CSV)
         with open("/tmp/rtf_updates.csv", "w", encoding="utf-8") as fh:
-            w = csv_mod.writer(fh)
-            w.writerows(updates)
+            csv_mod.writer(fh).writerows(updates)
         subprocess.run(["docker", "cp", "/tmp/rtf_updates.csv",
                         "magicmed-postgres:/tmp/rtf_updates.csv"],
                        check=True, capture_output=True)
-        req = (f"CREATE TEMP TABLE maj_rtf (id TEXT, contenu TEXT); "
-               f"\\copy maj_rtf FROM '/tmp/rtf_updates.csv' WITH CSV; "
-               f"UPDATE \\\"{table}\\\" t SET \\\"{col}\\\" = m.contenu "
-               f"FROM maj_rtf m WHERE t.id = m.id;")
+        req = (
+            "CREATE TEMP TABLE maj_rtf (id TEXT, contenu TEXT); "
+            "\\copy maj_rtf FROM '/tmp/rtf_updates.csv' WITH CSV; "
+            'UPDATE "' + table + '" t SET "' + col + '" = m.contenu '
+            "FROM maj_rtf m WHERE t.id = m.id;"
+        )
         r = subprocess.run(PSQL + ["-v", "ON_ERROR_STOP=1", "-c", req],
                           capture_output=True, text=True)
         if r.returncode != 0:
-            print(f"ERREUR psql sur {table} :", r.stderr[:300])
+            print("ERREUR psql sur", table, ":", r.stderr[:300])
             sys.exit(1)
-        print(f"{table} : {len(updates)} enregistrements convertis (RTF -> HTML)")
+        print(table, ":", len(updates), "enregistrements convertis (RTF -> HTML)")
 
     print("\nAperçu d'une note convertie :")
     print(psql("SELECT LEFT(notes, 300) FROM \"Consultation\" "
