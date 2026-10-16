@@ -1021,7 +1021,7 @@ pub async fn fiches_orphelines(
     let pool = pool().map_err(|e| e.to_string())?;
     let consultations: Vec<crate::commands::reconciliation::FicheOrpheline> = sqlx::query_as(
         "SELECT id, 'Consultation' AS kind, CAST(date AS VARCHAR(10)) AS date,
-                motif AS sujet, LEFT(COALESCE(notes, ''), 120) AS extrait
+                COALESCE(NULLIF(motif, ''), LEFT(notes, 80)) AS sujet, LEFT(COALESCE(notes, motif, ''), 400) AS extrait
          FROM \"Consultation\" WHERE \"patientId\" IS NULL ORDER BY date DESC",
     )
     .fetch_all(pool)
@@ -1029,7 +1029,7 @@ pub async fn fiches_orphelines(
     .map_err(|e| e.to_string())?;
     let courriers: Vec<crate::commands::reconciliation::FicheOrpheline> = sqlx::query_as(
         "SELECT id, 'Courrier' AS kind, CAST(date AS VARCHAR(10)) AS date,
-                sujet, LEFT(contenu, 120) AS extrait
+                COALESCE(NULLIF(sujet, ''), LEFT(contenu, 80)) AS sujet, LEFT(contenu, 400) AS extrait
          FROM \"Courrier\" WHERE \"patientId\" IS NULL ORDER BY date DESC",
     )
     .fetch_all(pool)
@@ -1076,4 +1076,46 @@ pub async fn lier_fiche(kind: &str, fiche_id: &str, patient_id: &str) -> Result<
         return Err("fiche introuvable ou déjà rattachée".to_string());
     }
     Ok(())
+}
+
+// ---------- Statistiques tableau de bord ----------
+
+pub async fn statistiques() -> Result<crate::commands::dashboard::Stats, String> {
+    let pool = pool().map_err(|e| e.to_string())?;
+    let (patients_total,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM \"Patient\"")
+        .fetch_one(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    let (consultations_total,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM \"Consultation\"")
+        .fetch_one(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    let (documents_total,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM \"Document\"")
+        .fetch_one(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    let (courriers_brouillons,): (i64,) =
+        sqlx::query_as("SELECT COUNT(*) FROM \"Courrier\" WHERE statut = 'BROUILLON'")
+            .fetch_one(pool)
+            .await
+            .map_err(|e| e.to_string())?;
+    let (courriers_valides,): (i64,) =
+        sqlx::query_as("SELECT COUNT(*) FROM \"Courrier\" WHERE statut = 'VALIDE'")
+            .fetch_one(pool)
+            .await
+            .map_err(|e| e.to_string())?;
+    let (non_lies,): (i64,) = sqlx::query_as(
+        "SELECT (SELECT COUNT(*) FROM \"Consultation\" WHERE \"patientId\" IS NULL) + (SELECT COUNT(*) FROM \"Courrier\" WHERE \"patientId\" IS NULL)",
+    )
+    .fetch_one(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(crate::commands::dashboard::Stats {
+        patients_total,
+        documents_total,
+        consultations_total,
+        courriers_brouillons,
+        courriers_valides,
+        non_lies,
+    })
 }

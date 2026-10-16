@@ -4,6 +4,7 @@ import Layout from "./components/Layout";
 import PaletteRecherche from "./components/PaletteRecherche";
 import Login from "./pages/Login";
 import Aujourdhui from "./pages/Aujourdhui";
+import Dashboard from "./pages/Dashboard";
 import Patients from "./pages/Patients";
 import Agenda from "./pages/Agenda";
 import Ged from "./pages/Ged";
@@ -22,6 +23,7 @@ function AppProtegee() {
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<Aujourdhui />} />
+        <Route path="dashboard" element={<Dashboard />} />
         <Route path="agenda" element={<Agenda />} />
         <Route path="patients" element={<Patients />} />
         <Route path="patients/nouveau" element={<NouveauPatient />} />

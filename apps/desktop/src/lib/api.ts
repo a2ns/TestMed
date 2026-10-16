@@ -417,3 +417,16 @@ export const apiReconciliation = {
   lierFiche: (req: { kind: string; ficheId: string; patientId: string }) =>
     invoke<void>("lier_fiche", { req }),
 };
+
+export type Stats = {
+  patientsTotal: number;
+  documentsTotal: number;
+  consultationsTotal: number;
+  courriersBrouillons: number;
+  courriersValides: number;
+  nonLies: number;
+};
+
+export const apiStats = {
+  statistiques: () => invoke<Stats>("statistiques"),
+};

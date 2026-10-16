@@ -2,6 +2,7 @@ pub mod agenda;
 pub mod constantes;
 pub mod correspondants;
 pub mod courriers;
+pub mod dashboard;
 pub mod documents;
 pub mod ordonnances;
 pub mod patients;
