@@ -1,14 +1,13 @@
 services:
   firebird:
-    image: jacobalberty/firebird:v2.5.9-ss
+    image: mladenp87/firebird-1.5.6-ss
     container_name: magicmed-firebird
     environment:
       ISC_PASSWORD: masterkey
     ports:
       - "30550:3050"
     volumes:
-      - ./data:/database
-
+      - ./data:/data
 
   postgres:
     image: postgres:16
