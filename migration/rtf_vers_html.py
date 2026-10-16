@@ -152,15 +152,16 @@ def main():
         return
 
     for table, col in [("Consultation", "notes"), ("Courrier", "contenu")]:
-        data = psql(f"SELECT id || E'\\x01' || {col} FROM \"{table}\" "
-                    f"WHERE {col} LIKE '%\\\\rtf1%'")
+        data = psql(f"SELECT id || E'\x01' || replace(replace({col}, chr(10), E'\\\\n'), chr(13), '') "
+                      f"FROM \"{table}\" WHERE {col} LIKE '%\\\\rtf1%'")
         updates = []
         for line in data.splitlines():
             if "\x01" not in line:
                 continue
             cid, rtf = line.split("\x01", 1)
+            rtf = rtf.replace("\\n", "\n")
             html_txt = rtf_vers_html(rtf)
-            if html_txt != "<p></p>":
+            if html_txt.strip() not in ("", "<p></p>", "<p><br></p>"):
                 updates.append((cid, html_txt))
         if not updates:
             print(f"{table} : rien à convertir")
