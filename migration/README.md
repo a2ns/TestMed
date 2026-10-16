@@ -63,14 +63,32 @@ réelle des tables/colonnes, je finalise le script de migration (étape 2) avec 
 mapping précis vers le schéma PostgreSQL de Primia (patients, praticiens,
 consultations, documents, courriers).
 
-## Étape 2 — Migration (à venir)
+## Étape 2 — Migration (maintenant disponible)
 
-Une fois l'analyse reçue, un script `migrate.py` sera fourni. Il :
+Le script `migrate.py` réalise l'import complet MagicMed → Primia :
 
-1. Lit la base Firebird table par table (streaming, peu de RAM).
-2. Transforme les données selon le mapping validé.
-3. Insère dans le PostgreSQL cible (`docker compose up -d postgres`, schéma déjà
-   chargé automatiquement — voir `schema.sql`).
+| MagicMed | → Primia | Contenu |
+|---|---|---|
+| PATIENT | Patient | identité, NIR, coordonnées (61 colonnes analysées) |
+| DONNEEPRATICIEN | Praticien | nom, RPPS, spécialité |
+| PATIENTCONSULT | Consultation | date, praticien, texte de consultation |
+| DOCUMENT | Document | GED : référence documentaire par patient |
+| MODELEDOCUMENT(+ENT) | GabaritCourrier | gabarits de documents/courriers |
+| PRESCRIPTIONS | Courrier | ordonnances/textes avec statut VALIDÉ |
+
+Tables volontairement hors périmètre v1 : MSG_* (messagerie), CPS_* (carte pro),
+SMS, VIDAL*/MEDICAMENTS/CCAM* (référentiels), ENCAISSEMENTS (facturation),
+AGENDA (à planifier en v2). Enfants/riens de perdu : la base d'origine reste
+intacte, on peut étendre le mapping plus tard.
+
+Lancement (les deux conteneurs doivent tourner) :
+
+```bash
+docker compose up -d
+python3 migrate.py
+```
+
+Identifiants PostgreSQL cible : `primia:primia@localhost:54329/primia`.
 
 ## Accès aux conteneurs
 
