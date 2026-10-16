@@ -32,6 +32,7 @@ FB_USER = "SYSDBA"
 FB_PASS = "masterkey"
 SEP = "|||"
 NS = uuid.UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")  # uuid.NAMESPACE_DNS
+NOW = datetime.now().isoformat(sep=" ", timespec="seconds")
 
 
 def src_uuid(table, pk):
@@ -161,14 +162,14 @@ def main():
                 clean(nom) or "?", clean(pre) or "?",
                 clean(dn) or None, clean(nir), clean(sexe),
                 adresse or None, clean(tel1) or clean(tel2), clean(email),
-                None, None,
+                None, None, NOW,
             ])
             n += 1
     pg_copy("Patient",
             ["id", "nom", "prenoms", "dateNaissance", "nirChiffre", "sexe",
-             "adresse", "telephone", "email", "carteVitale", "medecinTraitant"],
+             "adresse", "telephone", "email", "carteVitale", "medecinTraitant",
+             "updatedAt"],
             path)
-    pg_sql("UPDATE \"Patient\" SET \"updatedAt\" = now()")
     print(f"   {n} patients")
 
     # ---------- DONNEEPRATICIEN -> Praticien ----------
