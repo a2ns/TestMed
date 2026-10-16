@@ -92,6 +92,16 @@ def pg_copy(table, columns, csv_path):
         )
 
 
+def pg_ids(table):
+    """Retourne l'ensemble des id présents dans une table PostgreSQL."""
+    r = subprocess.run(
+        ["docker", "exec", "magicmed-postgres", "psql", "-U", "primia",
+         "-d", "primia", "-tAc", f'SELECT id FROM "{table}"'],
+        capture_output=True, text=True, check=True,
+    )
+    return set(x.strip() for x in r.stdout.splitlines() if x.strip())
+
+
 def pg_sql(sql):
     subprocess.run(
         ["docker", "exec", "-i", "magicmed-postgres", "psql",
