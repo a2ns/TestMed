@@ -52,8 +52,11 @@ def fb_query(db_path, select_sql):
     )
     out = p.stdout.decode("cp1252", errors="replace")
     err = p.stderr.decode("utf-8", errors="replace")
-    if "Statement failed" in err or "error" in err.lower():
-        raise RuntimeError(f"Erreur isql: {err}\nRequête: {select_sql[:200]}")
+    if "Statement failed" in out or "Statement failed" in err:
+        errlines = [l for l in (out + err).splitlines()
+                    if "Statement failed" in l or l.startswith("-") or "error" in l.lower()]
+        raise RuntimeError("Erreur isql: " + " | ".join(errlines[:5])
+                           + f"\nRequête: {select_sql[:200]}")
     rows = []
     for line in out.splitlines():
         line = line.rstrip("\r")
@@ -149,9 +152,9 @@ def main():
     with open(path, "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         for r in rows:
-            if len(r) != 13:
+            if len(r) != 14:
                 continue
-            num, nom, pre, dn, nir, sexe, adr, cp, ville, tel1, tel2, email, _ = r
+            num, nom, pre, dn, nir, sexe, adr, cp, ville, tel1, tel2, email, _, _ = r
             adresse = " - ".join(x for x in (clean(adr), clean(cp), clean(ville)) if x)
             w.writerow([
                 src_uuid("PATIENT", clean(num) or n),
@@ -184,12 +187,14 @@ def main():
     n = 0
     with open(path, "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
+        vus = set()
         for r in rows:
             if len(r) != 6:
                 continue
             num, nom, pre, rpps, spec = r[:5]
-            if not clean(nom):
+            if not clean(nom) or clean(num) in vus:
                 continue
+            vus.add(clean(num))
             w.writerow([
                 src_uuid("DONNEEPRATICIEN", clean(num) or n),
                 clean(nom), clean(pre) or "-", clean(rpps),
@@ -217,10 +222,14 @@ def main():
     n = 0
     with open(path, "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
+        vus = set()
         for r in rows:
             if len(r) != 6:
                 continue
             cid, numpat, prat, dte, texte = r[:5]
+            if cid in vus:
+                continue
+            vus.add(cid)
             numpat = clean(numpat)
             if not numpat:
                 continue
@@ -253,10 +262,14 @@ def main():
     n = 0
     with open(path, "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
+        vus = set()
         for r in rows:
             if len(r) != 7:
                 continue
             idoc, numpat, objet, typedoc, dte, etiqu = r[:6]
+            if idoc in vus:
+                continue
+            vus.add(idoc)
             numpat = clean(numpat)
             nom = clean(etiqu) or clean(objet) or f"document {clean(idoc) or n}"
             w.writerow([
@@ -285,10 +298,14 @@ def main():
     n = 0
     with open(path, "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
+        vus = set()
         for r in rows:
             if len(r) != 4:
                 continue
             idm, lib, com = r[:3]
+            if idm in vus:
+                continue
+            vus.add(idm)
             if not clean(idm):
                 continue
             w.writerow([
@@ -317,10 +334,14 @@ def main():
     n = 0
     with open(path, "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
+        vus = set()
         for r in rows:
             if len(r) != 6:
                 continue
             nump, numpat, modal, res, txt = r[:5]
+            if nump in vus:
+                continue
+            vus.add(nump)
             numpat = clean(numpat)
             if not numpat:
                 continue
