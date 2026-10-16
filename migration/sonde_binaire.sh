@@ -1,5 +1,5 @@
 #!/bin/bash
-# Identifie l'encodage des BLOB CONSULTATION binaires (compression ? format ?)
+# Sonde la STRUCTURE des BLOB CONSULTATION : contenu au-delà du marqueur initial.
 set -uo pipefail
 cd "$(dirname "$0")"
 ITB=$(ls data/*-sysdbb.itb data/*.ITB 2>/dev/null | head -1 || true)
@@ -8,26 +8,25 @@ DB="/database/$(basename "$ITB")"
 docker exec -i magicmed-firebird /usr/local/firebird/bin/isql \
   -user SYSDBA -password masterkey "$DB" <<'EOF'
 SET HEADING OFF;
+SET WIDTH LIGNE 32000;
 
--- Classification : classe calculee dans une sous-table derivee, puis GROUP BY simple
-SELECT 'H1|' || t.CLASSE || '|' || COUNT(*)
-FROM (
-  SELECT
-    CASE
-      WHEN p.CONSULTATION IS NULL THEN 'NULL'
-      WHEN CAST(SUBSTRING(p.CONSULTATION FROM 1 FOR 6) AS VARCHAR(6)) LIKE '{\rtf%' THEN 'RTF'
-      ELSE 'INCONNU'
-    END AS CLASSE
-  FROM PATIENTCONSULT p
-  WHERE EXISTS (SELECT 1 FROM PRESCRIPTIONS pr WHERE pr.CONS_ID = p.CONS_ID)
-) t
-GROUP BY t.CLASSE;
+-- Specimen 1 (CONS_ID=7) : les 300 premiers octets APRES le debut
+SELECT FIRST 1 'X1|' || p.CONS_ID || '|' ||
+  CAST(SUBSTRING(p.CONSULTATION FROM 1 FOR 300) AS VARCHAR(300) CHARACTER SET OCTETS)
+FROM PATIENTCONSULT p WHERE p.CONS_ID = 7;
 
--- Specimens INCONNU : 16 premiers octets bruts (charset OCTETS)
-SELECT FIRST 5 'H2|' || p.CONS_ID || '|' ||
-  CAST(SUBSTRING(p.CONSULTATION FROM 1 FOR 16) AS VARCHAR(16) CHARACTER SET OCTETS)
+-- Specimen 2 : un "INCONNU" plus gros (2 Ko) au hasard
+SELECT FIRST 1 'X2|' || p.CONS_ID || '|' ||
+  CAST(SUBSTRING(p.CONSULTATION FROM 1 FOR 300) AS VARCHAR(300) CHARACTER SET OCTETS)
 FROM PATIENTCONSULT p
 WHERE EXISTS (SELECT 1 FROM PRESCRIPTIONS pr WHERE pr.CONS_ID = p.CONS_ID)
-  AND p.CONSULTATION IS NOT NULL
-  AND CAST(SUBSTRING(p.CONSULTATION FROM 1 FOR 6) AS VARCHAR(6)) NOT LIKE '{\rtf%';
+  AND OCTET_LENGTH(p.CONSULTATION) > 2000
+  AND p.CONS_ID <> 7;
+
+-- Specimen 3 : le MILIEU d'un gros BLOB (octets 1000-1300) pour voir la suite
+SELECT FIRST 1 'X3|' || p.CONS_ID || '|' ||
+  CAST(SUBSTRING(p.CONSULTATION FROM 1000 FOR 300) AS VARCHAR(300) CHARACTER SET OCTETS)
+FROM PATIENTCONSULT p
+WHERE EXISTS (SELECT 1 FROM PRESCRIPTIONS pr WHERE pr.CONS_ID = p.CONS_ID)
+  AND OCTET_LENGTH(p.CONSULTATION) > 2000;
 EOF
