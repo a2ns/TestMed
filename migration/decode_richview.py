@@ -1,85 +1,99 @@
 #!/usr/bin/env python3
-"""Décode les BLOB CONSULTATION de MagicMed (format RichView Delphi) en HTML.
+"""Décode les BLOB CONSULTATION de MagicMed (format RichView Delphi) en texte.
 
-Structure observée :
-- marqueurs de sections : lignes commençant par '-<chiffre>' (-8 1 3 1, -9 2 0...)
-- bloc RVStyle : feuille de style (StyleName, FontName, Color...) à ignorer
-- texte : chaque caractère suivi d'un octet de padding (0x2E observé, variantes
-  possibles 0x00/0x20 selon versions) ; séparateurs \\r entre éléments
-
-Le décodeur :
-1. lit le BLOB en octets bruts
-2. ignore les lignes marqueurs et la feuille de style
-3. reconstruit le texte en éliminant l'octet de padding sur les paires
-4. produit du HTML minimal (paragraphes, gras si fsBold détecté par style — v1 : texte simple)
+Structure observée (vérifiée sur spécimens réels) :
+- marqueurs de sections : lignes ASCII « -8 1 3 1 », « -9 2 0 0 2 0 1 »...
+- bloc RVStyle : feuille de style ASCII brute (StyleName, FontName, Color...)
+- texte du document : paires (caractère, padding 0x2E), segments séparés par \\r
 """
 
 import re
 
 
-def decode_richview(raw: bytes) -> str:
-    """Décode un BLOB RichView MagicMed en texte (puis HTML)."""
+def _extraire_paires(b):
+    """Décode un segment en paires (caractère, padding). Alignement auto."""
+    def essai(phase):
+        res = bytes(b[i] for i in range(phase, len(b) - 1, 2))
+        ok = sum(1 for x in res if 32 <= x < 127 or x in (10, 13))
+        return ok / max(len(res), 1), res
+    cands = [essai(0), essai(1)]
+    return max(cands, key=lambda c: c[0])[1]
+
+
+def decode_richview(raw):
+    """Décode un BLOB RichView MagicMed en texte."""
     if raw is None:
         return ""
 
-    # Le contenu peut être un texte déjà lisible (RTF, texte brut) : cas simple
-    try:
-        debut = raw[:6].decode("ascii", errors="ignore")
-        if debut.startswith("{\\rtf"):
-            return raw.decode("cp1252", errors="replace")
-    except Exception:
-        pass
+    # BLOB déjà en texte lisible (RTF ou texte brut) : cas simple
+    debut = raw[:6].decode("ascii", errors="ignore")
+    if debut.startswith("{\\rtf"):
+        return raw.decode("cp1252", errors="replace")
 
-    # Format RichView : décoder octet par octet.
-    # Les paires (caractère, padding 0x2E) forment le texte ; les marqueurs sont
-    # des séquences d'octets ASCII sans padding. Heuristique : un octet est du
-    # padding si, sur une fenêtre, il vaut 0x2E/0x00/0x20 et précède un imprimable.
-    #
-    # Approche validée sur les spécimens : supprimer les octets de padding
-    # parmi {0x2E, 0x00} lorsqu'ils alternent avec des caractères imprimables,
-    # puis interpréter le reste comme ASCII/cp1252.
-    # Le texte est encodé en paires : (caractère, padding). Le padding est
-    # majoritairement 0x2E mais varie. Stratégie : sur les paires, garder
-    # l'octet de rang pair (index 0, 2, 4...) quand la structure est régulière.
-    # Détection d'alignement : essayer les deux phases et garder celle qui
-    # produit le plus de caractères imprimables ASCII.
-    def extraire(phase):
-        res = []
-        for i in range(phase, len(raw) - 1, 2):
-            res.append(raw[i])
-        return bytes(res)
+    brut_ascii = raw.decode("cp1252", errors="replace")
 
-    def score(b):
-        imprimables = sum(1 for x in b if 32 <= x < 127 or x in (10, 13))
-        return imprimables / max(len(b), 1)
+    # fin du bloc style : dernier mot-clé de style dans la première moitié
+    zone = brut_ascii[:max(200, len(brut_ascii) // 2)]
+    fins = []
+    for mot in ("Color", "Unicode", "Size", "Style"):
+        idx = zone.rfind(mot)
+        if idx != -1:
+            fins.append(idx + len(mot))
+    if fins:
+        fin_style = max(fins)
+        tete = brut_ascii[:fin_style]
+        corps = raw[fin_style:]
+    else:
+        tete = ""
+        corps = raw
 
-    cands = []
-    for phase in (0, 1):
-        b = extraire(phase)
-        cands.append((score(b), b))
-    meilleur = max(cands, key=lambda c: c[0])
-    texte = meilleur[1].decode("cp1252", errors="replace")
+    # découpage du corps en segments sur \r ; chaque segment est évalué :
+    # marqueur (chiffres) -> brut ; majoritairement paddé -> paires ; sinon brut
+    segments = []
+    for part in re.split(b"\r", corps):
+        if not part:
+            continue
+        try:
+            t = part.decode("ascii")
+            if re.match(r"^[-\d ]+$", t.strip()):
+                segments.append(part)
+                continue
+        except (UnicodeDecodeError, ValueError):
+            pass
+        n = len(part)
+        if n >= 4:
+            impairs = sum(1 for i in range(1, n, 2) if part[i] == 0x2E)
+            if impairs / max(n // 2, 1) > 0.5:
+                segments.append(_extraire_paires(part))
+                continue
+        segments.append(part)
 
-    # Nettoyage : lignes marqueurs (-8 1 3 1, -9 2 0...) et blocs de style
+    texte = tete + "\r" + "\r".join(
+        seg.decode("cp1252", errors="replace") for seg in segments
+    )
+    # fin de segment paire : un dernier caractère peut être perdu si le
+    # padding final manque ; rien à faire ici (perte max 1 char/segment).
+
+    # nettoyage : marqueurs et lignes de style
     lignes = []
     for ln in texte.split("\r"):
         ln = ln.strip("\x00.\x1f")
         if not ln:
             continue
-        # ligne de marqueurs : que chiffres/espaces/tirets courts
         if re.match(r"^[-\d ]+$", ln):
             continue
-        # blocs style (RVStyle, StyleName, FontName...) : ignorer jusqu'à fin de style
         if any(m in ln for m in ("RVStyle", "StyleName", "FontName", "Color",
                                   "fsBold", "VShift", "Size", "Unicode",
-                                  "RVCleanBookMark", "RVData", "Style")):
+                                  "RVCleanBookMark", "RVData")):
+            continue
+        if re.match(r"^!?\.+\t?", ln) or re.match(r"^cl[A-Z]", ln):
             continue
         lignes.append(ln)
 
     return "\n".join(lignes).strip()
 
 
-def vers_html(texte: str) -> str:
+def vers_html(texte):
     """Enveloppe le texte décodé en HTML minimal pour l'IHM Primia."""
     if not texte:
         return ""
