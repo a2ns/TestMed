@@ -63,6 +63,21 @@ réelle des tables/colonnes, je finalise le script de migration (étape 2) avec 
 mapping précis vers le schéma PostgreSQL de Primia (patients, praticiens,
 consultations, documents, courriers).
 
+## Schéma cible
+
+`schema.sql` est **généré depuis le schéma Prisma fusionné** (15 tables :
+Patient, Praticien avec auth, Antecedent, Traitement, Allergie, Consultation,
+Document, GabaritCourrier, Courrier, Ordonnance, Prescription, RendezVous,
+AuditLog, Correspondant, ConstanteBio). Consultation/Courrier `patientId`
+nullable (zéro perte). Régénérer après toute évolution du schéma :
+
+```bash
+cd packages/db
+DATABASE_URL="postgres://x" npx prisma migrate diff \
+  --from-empty --to-schema-datamodel prisma/schema.prisma --script \
+  > ../migration/schema.sql
+```
+
 ## Étape 2 — Migration (maintenant disponible)
 
 Le script `migrate.py` réalise l'import complet MagicMed → Primia :
