@@ -73,6 +73,35 @@ pub async fn contexte_patient(patient_id: &str) -> Result<crate::ia::ContextePat
     .fetch_all(pool)
     .await
     .map_err(|e| e.to_string())?;
+    let documents: Vec<(String, String, Option<String>)> = sqlx::query_as(
+        "SELECT \"nomFichier\", type::text, \"ocrTexte\" FROM document
+         WHERE \"patientId\" = $1 AND \"ocrTexte\" IS NOT NULL AND length(\"ocrTexte\") > 0
+         ORDER BY \"createdAt\" DESC LIMIT 3",
+    )
+    .bind(patient_id)
+    .fetch_all(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    let documents_recents: Vec<crate::ia::DocumentResume> = documents
+        .into_iter()
+        .map(|d| crate::ia::DocumentResume {
+            nom_fichier: d.0,
+            type_doc: d.1,
+            ocr_texte: d.2.unwrap_or_default()
+                .chars()
+                .take(4000)
+                .collect::<String>(),
+        })
+        .collect();
+    let courriers_valides: Vec<(String,)> = sqlx::query_as(
+        "SELECT contenu FROM courrier
+         WHERE \"patientId\" = $1 AND statut = 'VALIDE'
+         ORDER BY date DESC LIMIT 3",
+    )
+    .bind(patient_id)
+    .fetch_all(pool)
+    .await
+    .map_err(|e| e.to_string())?;
     Ok(crate::ia::ContextePatient {
         nom: p.0,
         prenoms: p.1,
@@ -87,6 +116,8 @@ pub async fn contexte_patient(patient_id: &str) -> Result<crate::ia::ContextePat
                 notes: c.2,
             })
             .collect(),
+        documents_recents,
+        courriers_valides: courriers_valides.into_iter().map(|c| c.0).collect(),
     })
 }
 
