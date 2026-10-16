@@ -30,33 +30,36 @@ else
 fi
 echo "Utilisation de : $COMPOSE"
 $COMPOSE up -d firebird
-sleep 5
+sleep 8
 
-# Tentative d'ouverture de la base ; si la version ODS est trop ancienne pour
-# Firebird 2.5, essai avec Firebird 1.5 (rétro-compatible InterBase 5/6).
-FIREBIRD_IN_CONTAINER="/database/$(basename "$FIRST_ITB")"
-echo "=== 3/4 Test d'ouverture de la base (Firebird 2.5) ==="
-if ! docker exec magicmed-firebird isql-fb -user SYSDBA -password masterkey \
-     "$FIREBIRD_IN_CONTAINER" -e 'SELECT 1 FROM RDB$DATABASE;' 2>data/fb_err.txt; then
-  echo "-- Firebird 2.5 refuse la base. Message : --"
-  cat data/fb_err.txt
-  echo "-- Essai avec Firebird 1.5 (rétro-compatible InterBase 5/6) --"
-  $COMPOSE down
-  sed 's|jacobalberty/firebird:v2.5.9-ss|jacobalberty/firebird:v1.5.6-ss|' docker-compose.yml > docker-compose.fb15.yml
-  $COMPOSE -f docker-compose.fb15.yml up -d firebird
-  sleep 5
-  FIREBIRD_CMD="docker exec magicmed-firebird isql -user SYSDBA -password masterkey"
-  if ! $FIREBIRD_CMD "$FIREBIRD_IN_CONTAINER" -e 'SELECT 1 FROM RDB$DATABASE;' 2>data/fb_err.txt; then
-    echo "-- Firebird 1.5 refuse aussi la base. Message : --"
-    cat data/fb_err.txt
-    echo "Copiez toute la sortie et envoyez-la."
-    exit 1
-  fi
-else
-  FIREBIRD_CMD="docker exec magicmed-firebird isql-fb -user SYSDBA -password masterkey"
+# Découverte automatique du binaire isql dans le conteneur
+ISQL_PATH=$(docker exec magicmed-firebird sh -c \
+  'command -v isql || command -v isql-fb || ls /usr/bin/isql* /opt/firebird/bin/isql* 2>/dev/null | head -1' || true)
+if [ -z "$ISQL_PATH" ]; then
+  echo "ERREUR : binaire isql introuvable dans le conteneur. Diagnostic :"
+  docker exec magicmed-firebird sh -c 'ls /usr/bin | grep -i -E "isql|firebird" ; ls /opt 2>/dev/null'
+  exit 1
 fi
+echo "isql détecté dans le conteneur : $ISQL_PATH"
+
+DB_IN_CONTAINER="/database/$(basename "$FIRST_ITB")"
+echo "=== 3/4 Test d'ouverture de la base ==="
+if ! docker exec magicmed-firebird "$ISQL_PATH" -user SYSDBA -password masterkey \
+     "$DB_IN_CONTAINER" -e 'SELECT 1 FROM RDB$DATABASE;' 2>data/fb_err.txt; then
+  echo "-- Échec de l'ouverture. Message de Firebird : --"
+  cat data/fb_err.txt
+  echo ""
+  echo "-- Diagnostic complémentaire (version ODS lue dans l'en-tête) : --"
+  docker exec magicmed-firebird sh -c "dd if=$DB_IN_CONTAINER bs=1 skip=0 count=4 2>/dev/null | od -A d -t u1"
+  echo "Copiez toute la sortie et envoyez-la."
+  exit 1
+fi
+echo "Ouverture OK — la base est lisible par Firebird 2.5."
+
+FIREBIRD_CMD=(docker exec magicmed-firebird "$ISQL_PATH" -user SYSDBA -password masterkey)
+
 echo "=== 4/4 Extraction du schéma (liste des tables) ==="
-$FIREBIRD_CMD "$FIREBIRD_IN_CONTAINER" <<'SQL'
+"${FIREBIRD_CMD[@]}" "$DB_IN_CONTAINER" <<'SQL'
 SET LIST ON;
 SELECT RDB$RELATION_NAME FROM RDB$RELATIONS
  WHERE RDB$SYSTEM_FLAG = 0 AND RDB$VIEW_BLR IS NULL
@@ -64,7 +67,7 @@ SELECT RDB$RELATION_NAME FROM RDB$RELATIONS
 SQL
 
 echo "=== Détail des colonnes par table ==="
-$FIREBIRD_CMD "$FIREBIRD_IN_CONTAINER" <<'SQL'
+"${FIREBIRD_CMD[@]}" "$DB_IN_CONTAINER" <<'SQL'
 SELECT r.RDB$RELATION_NAME AS TABLE_NAME,
        f.RDB$FIELD_NAME AS COLUMN_NAME,
        f.RDB$FIELD_ID AS POSITION
