@@ -24,6 +24,9 @@ fn main() {
             commands::courriers::list_courriers,
             commands::courriers::valider_courrier,
             commands::dashboard::statistiques,
+            commands::reconciliation::list_fiches_orphelines,
+            commands::reconciliation::list_occurrences_patients,
+            commands::reconciliation::lier_fiche,
         ])
         .run(tauri::generate_context!())
         .expect("erreur au lancement de MagicMed");

@@ -164,6 +164,70 @@ pub async fn valider_courrier(id: &str) -> Result<(), String> {
     Ok(())
 }
 
+// ---------- Réconciliation des fiches orphelines ----------
+
+pub async fn fiches_orphelines()
+-> Result<Vec<crate::commands::reconciliation::FicheOrpheline>, String> {
+    let pool = pool()?;
+    let consultations: Vec<crate::commands::reconciliation::FicheOrpheline> = sqlx::query_as(
+        "SELECT id, 'Consultation' AS kind, CAST(date AS VARCHAR(10)) AS date,
+                motif AS sujet, LEFT(COALESCE(notes, ''), 120) AS extrait
+         FROM "Consultation" WHERE "patientId" IS NULL ORDER BY date DESC",
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    let courriers: Vec<crate::commands::reconciliation::FicheOrpheline> = sqlx::query_as(
+        "SELECT id, 'Courrier' AS kind, CAST(date AS VARCHAR(10)) AS date,
+                sujet, LEFT(contenu, 120) AS extrait
+         FROM "Courrier" WHERE "patientId" IS NULL ORDER BY date DESC",
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    let mut fiches = consultations;
+    fiches.extend(courriers);
+    Ok(fiches)
+}
+
+pub async fn occurrences_patients()
+-> Result<Vec<crate::commands::reconciliation::OccurrencePatient>, String> {
+    let pool = pool()?;
+    let rows = sqlx::query_as::<_, crate::commands::reconciliation::OccurrencePatient>(
+        "SELECT p.id, p.nom, p.prenoms, COUNT(c.id) AS occurrences
+         FROM "Patient" p
+         JOIN "Consultation" c ON c."patientId" = p.id
+         GROUP BY p.id, p.nom, p.prenoms
+         ORDER BY COUNT(c.id) DESC LIMIT 100",
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(rows)
+}
+
+pub async fn lier_fiche(kind: &str, fiche_id: &str, patient_id: &str) -> Result<(), String> {
+    let pool = pool()?;
+    let table = match kind {
+        "Consultation" => "Consultation",
+        "Courrier" => "Courrier",
+        _ => return Err(format!("type de fiche inconnu : {kind}")),
+    };
+    let requete = format!(
+        "UPDATE \"{table}\" SET \"patientId\" = $1 WHERE id = $2 AND \"patientId\" IS NULL"
+    );
+    let res = sqlx::query(&requete)
+        .bind(patient_id)
+        .bind(fiche_id)
+        .execute(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    if res.rows_affected() == 0 {
+        return Err("fiche introuvable ou déjà rattachée".to_string());
+    }
+    Ok(())
+}
+
 // ---------- Statistiques tableau de bord ----------
 
 pub async fn statistiques() -> Result<crate::commands::dashboard::Stats, String> {

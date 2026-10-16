@@ -5,6 +5,7 @@ const MENU = [
   { to: "/patients", label: "Patients", icone: "👤", end: false },
   { to: "/ged", label: "GED", icone: "🗂️", end: false },
   { to: "/courriers", label: "Courriers", icone: "✉️", end: false },
+  { to: "/reconciliation", label: "Réconciliation", icone: "🔗", end: false },
 ];
 
 export default function Layout() {

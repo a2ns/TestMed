@@ -20,6 +20,21 @@ export type DocumentRow = {
   createdAt: string;
 };
 
+export type FicheOrpheline = {
+  id: string;
+  kind: string;
+  date: string | null;
+  sujet: string | null;
+  extrait: string | null;
+};
+
+export type OccurrencePatient = {
+  id: string;
+  nom: string;
+  prenoms: string;
+  occurrences: number;
+};
+
 export type Stats = {
   patientsTotal: number;
   documentsTotal: number;
@@ -73,4 +88,12 @@ export const api = {
     invoke<CourrierRow[]>("list_courriers", { patientId }),
   validerCourrier: (id: string) => invoke<void>("valider_courrier", { id }),
   statistiques: () => invoke<Stats>("statistiques"),
+};
+
+export const apiReconciliation = {
+  listFichesOrphelines: () => invoke<FicheOrpheline[]>("list_fiches_orphelines"),
+  listOccurrencesPatients: () =>
+    invoke<OccurrencePatient[]>("list_occurrences_patients"),
+  lierFiche: (req: { kind: string; ficheId: string; patientId: string }) =>
+    invoke<void>("lier_fiche", { req }),
 };
