@@ -209,6 +209,10 @@ def main():
 
     # ---------- PATIENTCONSULT -> Consultation ----------
     print("3/6 Consultations...")
+    patient_ids = set()
+    for r in fb_query(db, "SELECT " + q("NUM_PAT", "") + "'END' FROM PATIENT"):
+        if r and clean(r[0]):
+            patient_ids.add(clean(r[0]))
     rows = fb_query(
         db,
         "SELECT "
@@ -232,7 +236,8 @@ def main():
                 continue
             vus.add(cid)
             numpat = clean(numpat)
-            if not numpat:
+            if not numpat or numpat not in patient_ids:
+                orphelins += 1
                 continue
             w.writerow([
                 src_uuid("PATIENTCONSULT", clean(cid) or n),
@@ -248,6 +253,7 @@ def main():
 
     # ---------- DOCUMENT -> Document ----------
     print("4/6 Documents (GED)...")
+    orphelins = 0
     rows = fb_query(
         db,
         "SELECT "
@@ -272,6 +278,9 @@ def main():
                 continue
             vus.add(idoc)
             numpat = clean(numpat)
+            if numpat and numpat not in patient_ids:
+                orphelins += 1
+                continue
             nom = clean(etiqu) or clean(objet) or f"document {clean(idoc) or n}"
             w.writerow([
                 src_uuid("DOCUMENT", clean(idoc) or n),
@@ -285,7 +294,7 @@ def main():
             ["id", "patientId", "nomFichier", "cheminStockage", "type",
              "ocrTexte", "createdAt"],
             path)
-    print(f"   {n} documents")
+    print(f"   {n} documents ({orphelins} orphelins ignorés : patient absent)")
 
     # ---------- MODELEDOCUMENT -> GabaritCourrier ----------
     print("5/6 Gabarits de documents...")
@@ -344,7 +353,8 @@ def main():
                 continue
             vus.add(nump)
             numpat = clean(numpat)
-            if not numpat:
+            if not numpat or numpat not in patient_ids:
+                orphelins += 1
                 continue
             contenu = clean(txt) or clean(res)
             if not contenu:
@@ -359,7 +369,7 @@ def main():
     pg_copy("Courrier",
             ["id", "patientId", "sujet", "contenu", "aiGenere", "statut", "validePar"],
             path)
-    print(f"   {n} courriers")
+    print(f"   {n} courriers ({orphelins} orphelins ignorés : patient absent)")
 
     print("\n=== Migration terminée. Vérification des volumes : ===")
     for t in ["Patient", "Praticien", "Consultation", "Document",
