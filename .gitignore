@@ -8,3 +8,4 @@ Cargo.lock
 
 # Lockfiles régénérés par chaque poste (npm install)
 package-lock.json
+migration/__pycache__/
