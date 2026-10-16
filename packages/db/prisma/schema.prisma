@@ -57,8 +57,8 @@ model Patient {
 
 model Consultation {
   id        String   @id @default(uuid())
-  patientId String
-  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patientId String?
+  patient   Patient? @relation(fields: [patientId], references: [id], onDelete: SetNull)
   praticienId String?
   motif     String?
   notes     String?
@@ -96,8 +96,8 @@ model GabaritCourrier {
 
 model Courrier {
   id         String   @id @default(uuid())
-  patientId  String
-  patient    Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patientId  String?
+  patient    Patient? @relation(fields: [patientId], references: [id], onDelete: SetNull)
   gabaritId  String?
   gabarit    GabaritCourrier? @relation(fields: [gabaritId], references: [id])
   sujet      String?

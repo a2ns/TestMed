@@ -29,7 +29,7 @@ CREATE TABLE "Patient" (
 );
 CREATE TABLE "Consultation" (
     "id" TEXT NOT NULL PRIMARY KEY,
-    "patientId" TEXT NOT NULL REFERENCES "Patient"("id") ON DELETE CASCADE,
+    "patientId" TEXT REFERENCES "Patient"("id") ON DELETE SET NULL,
     "praticienId" TEXT,
     "motif" TEXT,
     "notes" TEXT,
@@ -61,7 +61,7 @@ CREATE TABLE "GabaritCourrier" (
 );
 CREATE TABLE "Courrier" (
     "id" TEXT NOT NULL PRIMARY KEY,
-    "patientId" TEXT NOT NULL REFERENCES "Patient"("id") ON DELETE CASCADE,
+    "patientId" TEXT REFERENCES "Patient"("id") ON DELETE SET NULL,
     "gabaritId" TEXT REFERENCES "GabaritCourrier"("id"),
     "sujet" TEXT,
     "contenu" TEXT NOT NULL,
