@@ -32,7 +32,6 @@ echo "Utilisation de : $COMPOSE"
 $COMPOSE up -d firebird
 sleep 8
 
-# Découverte automatique du binaire isql dans le conteneur
 ISQL_PATH=$(docker exec magicmed-firebird sh -c \
   'command -v isql || command -v isql-fb || ls /usr/local/firebird/bin/isql* /opt/firebird/bin/isql* /usr/bin/isql* 2>/dev/null | head -1' || true)
 if [ -z "$ISQL_PATH" ]; then
@@ -43,42 +42,44 @@ fi
 echo "isql détecté dans le conteneur : $ISQL_PATH"
 
 DB_IN_CONTAINER="/database/$(basename "$FIRST_ITB")"
-echo "=== 3/4 Test d’ouverture de la base ==="
-if ! printf 'SELECT 1 FROM RDB$DATABASE;\n' | \
-     docker exec -i magicmed-firebird "$ISQL_PATH" -user SYSDBA -password masterkey \
-     "$DB_IN_CONTAINER" 2>data/fb_err.txt; then
+echo "=== 3/4 Test d'ouverture de la base ==="
+cat > /tmp/migration_test.sql <<EOF
+CONNECT '$DB_IN_CONTAINER';
+SELECT 1 FROM RDB\$DATABASE;
+EOF
+if ! docker exec -i magicmed-firebird "$ISQL_PATH" \
+     -user SYSDBA -password masterkey < /tmp/migration_test.sql 2>data/fb_err.txt; then
   echo "-- Échec de l'ouverture. Message de Firebird : --"
   cat data/fb_err.txt
-  echo ""
-  echo "-- Diagnostic complémentaire (version ODS lue dans l'en-tête) : --"
-  docker exec magicmed-firebird sh -c "dd if=$DB_IN_CONTAINER bs=1 skip=0 count=4 2>/dev/null | od -A d -t u1"
   echo "Copiez toute la sortie et envoyez-la."
   exit 1
 fi
 echo "Ouverture OK — la base est lisible par Firebird 2.5."
 
-FIREBIRD_CMD=(docker exec -i magicmed-firebird "$ISQL_PATH" -user SYSDBA -password masterkey)
-
 echo "=== 4/4 Extraction du schéma (liste des tables) ==="
-"${FIREBIRD_CMD[@]}" <<SQL
+cat > /tmp/migration_tables.sql <<EOF
 CONNECT '$DB_IN_CONTAINER';
 SET LIST ON;
-SELECT RDB$RELATION_NAME FROM RDB$RELATIONS
- WHERE RDB$SYSTEM_FLAG = 0 AND RDB$VIEW_BLR IS NULL
- ORDER BY RDB$RELATION_NAME;
-SQL
+SELECT RDB\$RELATION_NAME FROM RDB\$RELATIONS
+ WHERE RDB\$SYSTEM_FLAG = 0 AND RDB\$VIEW_BLR IS NULL
+ ORDER BY RDB\$RELATION_NAME;
+EOF
+docker exec -i magicmed-firebird "$ISQL_PATH" \
+  -user SYSDBA -password masterkey < /tmp/migration_tables.sql
 
 echo "=== Détail des colonnes par table ==="
-"${FIREBIRD_CMD[@]}" <<SQL
+cat > /tmp/migration_columns.sql <<EOF
 CONNECT '$DB_IN_CONTAINER';
-SELECT r.RDB$RELATION_NAME AS TABLE_NAME,
-       f.RDB$FIELD_NAME AS COLUMN_NAME,
-       f.RDB$FIELD_ID AS POSITION
-FROM RDB$RELATION_FIELDS f
-JOIN RDB$RELATIONS r ON r.RDB$RELATION_NAME = f.RDB$RELATION_NAME
-WHERE r.RDB$SYSTEM_FLAG = 0 AND r.RDB$VIEW_BLR IS NULL
+SELECT r.RDB\$RELATION_NAME AS TABLE_NAME,
+       f.RDB\$FIELD_NAME AS COLUMN_NAME,
+       f.RDB\$FIELD_ID AS POSITION
+FROM RDB\$RELATION_FIELDS f
+JOIN RDB\$RELATIONS r ON r.RDB\$RELATION_NAME = f.RDB\$RELATION_NAME
+WHERE r.RDB\$SYSTEM_FLAG = 0 AND r.RDB\$VIEW_BLR IS NULL
 ORDER BY 1, 3;
-SQL
+EOF
+docker exec -i magicmed-firebird "$ISQL_PATH" \
+  -user SYSDBA -password masterkey < /tmp/migration_columns.sql
 
 echo ""
 echo "=== Terminé. Copiez TOUTE la sortie ci-dessus et envoyez-la. ==="
