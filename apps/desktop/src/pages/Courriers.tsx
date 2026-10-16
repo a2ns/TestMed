@@ -1,203 +1,237 @@
-import { useEffect, useMemo, useState } from "react";
-import { api, CourrierRow, Patient } from "../lib/api";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { api } from "../lib/api";
+import { useAuth } from "../lib/auth";
+import PatientPicker from "../components/PatientPicker";
+import IndicateurIa from "../components/IndicateurIa";
+import { Sparkles, FolderOpen } from "lucide-react";
+
+// token exposé via useAuth pour les appels audités
 
 const GABARITS = [
-  {
-    code: "adressage",
-    libelle: "Adressement spécialiste",
-    contenu:
-      "Docteur,\n\nJe vous adresse Madame/Monsieur [Nom] pour [motif d'adressage].\n\n[Examen clinique et antécédents pertinents]\n\nJe vous remercie de bien vouloir prendre en charge ce/tte patient(e) et reste à votre disposition pour tout complément d'information.\n\nVeuillez agréer, Docteur, l'expression de mes sentiments les meilleurs.",
-  },
-  {
-    code: "compte_rendu",
-    libelle: "Compte rendu de consultation",
-    contenu:
-      "Compte rendu de consultation du [date].\n\nMotif : [motif]\n\nHistorique :\n[antécédents]\n\nExamen clinique :\n[examen]\n\nConclusion :\n[conclusion]\n\nConduite à tenir :\n[traitement et suivi]",
-  },
-  {
-    code: "certificat",
-    libelle: "Certificat médical",
-    contenu:
-      "Je soussigné(e), Docteur [Nom du praticien], certifie avoir examiné ce jour Madame/Monsieur [Nom].\n\n[Observations]\n\nCertificat établi à la demande de l'intéressé(e) et remis en main propre pour faire valoir ce que de droit.",
-  },
+  { code: "adressage", libelle: "Adressement spécialiste" },
+  { code: "compte_rendu", libelle: "Compte rendu de consultation" },
+  { code: "certificat", libelle: "Certificat médical" },
 ];
 
 export default function Courriers() {
-  const [recherche, setRecherche] = useState("");
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [patient, setPatient] = useState<Patient | null>(null);
+  const [patientId, setPatientId] = useState("");
+  const [patientNom, setPatientNom] = useState("");
+  const [params] = useSearchParams();
+
+  // Carnet de correspondants
+  const [correspondants, setCorrespondants] = useState<
+    { id: string; nom: string; specialite: string | null }[]
+  >([]);
+  const [destinataire, setDestinataire] = useState("");
   const [gabarit, setGabarit] = useState(GABARITS[0].code);
+
+  function setPatient(id: string, nom: string) {
+    setPatientId(id);
+    setPatientNom(nom);
+  }
   const [notes, setNotes] = useState("");
-  const [sujet, setSujet] = useState("");
   const [contenu, setContenu] = useState("");
-  const [consigne, setConsigne] = useState("");
-  const [relecture, setRelecture] = useState<string | null>(null);
-  const [chargement, setChargement] = useState<string | null>(null);
+  const [chargement, setChargement] = useState(false);
+  const [impressionEnCours, setImpressionEnCours] = useState(false);
+  const [statut, setStatut] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
-  const [courriers, setCourriers] = useState<CourrierRow[]>([]);
-  const [modifie, setModifie] = useState(false);
+  const { utilisateur, token } = useAuth();
 
-  const gabaritSelectionne = useMemo(
-    () => GABARITS.find((g) => g.code === gabarit),
-    [gabarit]
-  );
-
+  // Carnet de correspondants
   useEffect(() => {
-    if (recherche.trim().length < 2) {
-      setPatients([]);
-      return;
-    }
-    api
-      .listPatients(recherche)
-      .then(setPatients)
-      .catch(() => setPatients([]));
-  }, [recherche]);
+    api.listCorrespondants(token!).then(setCorrespondants).catch(() => undefined);
+  }, [token]);
 
-  async function rafraichirCourriers(patientId: string | null) {
-    try {
-      setCourriers(await api.listCourriers(patientId));
-    } catch {
-      setCourriers([]);
-    }
+  // Pré-remplissage depuis la fiche patient (?patient=id)
+  useEffect(() => {
+    const p = params.get("patient");
+    if (!p) return;
+    setPatientId(p);
+    api
+      .getPatient(p, token!)
+      .then((d) => setPatientNom(`${d.prenoms} ${d.nom}`))
+      .catch(() => undefined);
+  }, [params, token]);
+
+  async function dossierGed() {
+    const p = await import("@tauri-apps/api/path");
+    return (await p.appDataDir()) + "ged";
   }
 
-  useEffect(() => {
-    rafraichirCourriers(patient?.id ?? null);
-  }, [patient?.id]);
-
-  async function action(nom: string, fn: () => Promise<void>) {
-    setChargement(nom);
+  async function imprimer() {
+    if (!contenu) return;
+    setImpressionEnCours(true);
     setErreur(null);
+    setStatut(null);
     try {
-      await fn();
+      await api.imprimerCourrier(
+        {
+          praticien: `Dr ${utilisateur?.nom ?? ""} ${utilisateur?.prenoms ?? ""}`.trim(),
+          cabinet: `${utilisateur?.cabinetNom ?? "Cabinet médical"} — ${utilisateur?.cabinetAdresse ?? ""}`.trim(),
+          patient: patientId,
+          destinataire: "Destinataire",
+          objet: gabarit,
+          corps: contenu,
+          signature: "Signature",
+        },
+        await dossierGed(),
+        true
+      );
+      setStatut("Courrier envoyé à l'imprimante (PDF archivé dans la GED)");
     } catch (e) {
       setErreur(String(e));
     } finally {
-      setChargement(null);
+      setImpressionEnCours(false);
     }
   }
 
-  function generer() {
-    if (!patient) return;
-    action("generation", async () => {
-      const res = await api.genererCourrier({
-        patientId: patient.id,
-        gabarit: gabaritSelectionne?.contenu ?? "",
-        notes,
-      });
-      setContenu(res.contenu);
-      setSujet(sujet || gabaritSelectionne?.libelle || "");
-      setModifie(false);
-    });
-  }
-
-  function reformuler() {
-    if (!patient || !contenu || !consigne) return;
-    action("reformulation", async () => {
-      const res = await api.reformulerCourrier({
-        patientId: patient.id,
-        contenu,
-        consigne,
-      });
-      setContenu(res.contenu);
-      setModifie(false);
-    });
-  }
-
-  function relire() {
+  async function corriger() {
     if (!contenu) return;
-    action("relecture", async () => {
-      const res = await api.relireCourrier(contenu);
-      setRelecture(res.contenu);
-    });
+    setChargement(true);
+    setErreur(null);
+    try {
+      const corrige = await api.assisterIa("correction", contenu, null, token!);
+      setContenu(corrige);
+    } catch (e) {
+      setErreur(String(e));
+    } finally {
+      setChargement(false);
+    }
   }
 
-  function enregistrer(valide: boolean) {
-    if (!patient || !contenu) return;
-    action("enregistrement", async () => {
-      const row = await api.enregistrerCourrier({
-        patientId: patient.id,
-        sujet: sujet || null,
+  async function reformuler() {
+    if (!contenu) return;
+    setChargement(true);
+    setErreur(null);
+    try {
+      const ameliore = await api.reformulerTexte(
         contenu,
-        aiGenere: true,
-        valide,
+        "Rends ce courrier plus clair et professionnel, sans rien changer au fond médical.",
+        token!
+      );
+      setContenu(ameliore);
+    } catch (e) {
+      setErreur(String(e));
+    } finally {
+      setChargement(false);
+    }
+  }
+
+  async function archiver() {
+    if (!contenu) return;
+    setImpressionEnCours(true);
+    setErreur(null);
+    setStatut(null);
+    try {
+      // 1. PDF mis en page, enregistré dans la GED (chemin retourné).
+      const cheminPdf = await api.imprimerCourrier(
+        {
+          praticien: `Dr ${utilisateur?.prenoms ?? ""} ${utilisateur?.nom ?? ""}`.trim(),
+          cabinet: `${utilisateur?.cabinetNom ?? ""}\n${utilisateur?.cabinetAdresse ?? ""}\n${utilisateur?.telephone ?? ""}`.trim(),
+          patient: patientNom,
+          destinataire: destinataire || "Cher Confrère",
+          objet: `Courrier — ${gabarit}`,
+          corps: contenu,
+          signature: `Dr ${utilisateur?.nom ?? ""}`,
+        },
+        await dossierGed(),
+        false // pas d'envoi imprimante : archivage seul
+      );
+      // 2. Enregistrement en base, rattaché au patient, avec le texte
+      //    pour la recherche plein texte (l'"OCR" du courrier = son contenu).
+      if (patientId) {
+        const id = await api.enregistrerCourrierGed(
+          {
+            patientId,
+            nomFichier: `courrier-${gabarit}-${new Date().toISOString().slice(0, 10)}.pdf`,
+            chemin: cheminPdf,
+            contenu,
+          },
+          token!
+        );
+        setStatut(`Courrier archivé dans le dossier du patient (${id.slice(0, 8)}…) — visible dans son onglet Documents`);
+      } else {
+        setStatut("PDF généré — sélectionnez un patient pour l'archiver dans son dossier");
+      }
+    } catch (e) {
+      setErreur(String(e));
+    } finally {
+      setImpressionEnCours(false);
+    }
+  }
+
+  async function generer() {
+    if (!patientId || !notes) return;
+    setChargement(true);
+    setErreur(null);
+    try {
+      const res = await api.genererCourrier({
+        patientId,
+        gabarit,
+        notes,
+        destinataire: destinataire || null,
+        token: token!,
       });
-      setCourriers((prev) => [row, ...prev]);
-    });
+      // Enrichit le carnet de correspondants (silencieux, dédupliqué).
+      if (destinataire.trim()) {
+        const morceaux = destinataire.split(",").map((x) => x.trim());
+        api
+          .creerCorrespondant(
+            {
+              nom: morceaux[0],
+              specialite: morceaux[1] ?? null,
+              adresse: null,
+              email: null,
+              telephone: null,
+            },
+            token!
+          )
+          .then(() =>
+            api.listCorrespondants(token!).then(setCorrespondants)
+          )
+          .catch(() => undefined);
+      }
+      setContenu(res.contenu);
+    } catch (e) {
+      setErreur(String(e));
+    } finally {
+      setChargement(false);
+    }
   }
-
-  function imprimer() {
-    const fenetre = window.open("", "_blank", "width=800,height=900");
-    if (!fenetre) return;
-    fenetre.document.write(
-      `<html><head><title>${sujet || "Courrier"}</title></head>
-       <body style="font-family: Georgia, serif; white-space: pre-wrap; padding: 2cm;">
-       ${contenu.replace(/</g, "&lt;")}
-       </body></html>`
-    );
-    fenetre.document.close();
-    fenetre.print();
-  }
-
-  const occupe = chargement !== null;
 
   return (
-    <div className="p-8 max-w-7xl">
+    <div className="p-8 max-w-6xl">
       <h1 className="text-2xl font-bold mb-6">Courriers — assistant IA</h1>
-
-      {erreur && (
-        <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
-          {erreur}
-        </div>
-      )}
-
       <div className="grid grid-cols-2 gap-6">
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-slate-500 mb-1">Patient</label>
-            {patient ? (
-              <div className="flex items-center justify-between border border-slate-300 rounded-lg px-3 py-2 bg-white">
-                <span className="font-medium">
-                  {patient.prenoms} {patient.nom}
-                </span>
-                <button
-                  onClick={() => {
-                    setPatient(null);
-                    setContenu("");
-                    setRelecture(null);
-                  }}
-                  className="text-xs text-sky-600 hover:underline"
-                >
-                  Changer
-                </button>
-              </div>
-            ) : (
-              <div className="relative">
-                <input
-                  autoFocus
-                  value={recherche}
-                  onChange={(e) => setRecherche(e.target.value)}
-                  placeholder="Rechercher un patient (nom, prénom)…"
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-sky-400"
-                />
-                {patients.length > 0 && (
-                  <ul className="absolute z-10 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg max-h-56 overflow-auto">
-                    {patients.map((p) => (
-                      <li key={p.id}>
-                        <button
-                          onClick={() => setPatient(p)}
-                          className="w-full text-left px-3 py-2 hover:bg-sky-50"
-                        >
-                          {p.prenoms} {p.nom}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
+            <PatientPicker
+              patientId={patientId}
+              patientNom={patientNom}
+              onSelect={setPatient}
+            />
           </div>
-
+          <div>
+            <label className="block text-sm text-slate-500 mb-1">
+              Destinataire (ex. « Dr Martin, urologue, CHU de … »)
+            </label>
+            <input
+              value={destinataire}
+              onChange={(e) => setDestinataire(e.target.value)}
+              list="correspondants"
+              placeholder="Dr Martin, cardiologue… (le carnet s'enrichit à chaque courrier)"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white"
+            />
+            <datalist id="correspondants">
+              {correspondants.map((c) => (
+                <option
+                  key={c.id}
+                  value={`${c.nom}${c.specialite ? `, ${c.specialite}` : ""}`}
+                />
+              ))}
+            </datalist>
+          </div>
           <div>
             <label className="block text-sm text-slate-500 mb-1">Gabarit</label>
             <select
@@ -212,7 +246,6 @@ export default function Courriers() {
               ))}
             </select>
           </div>
-
           <div>
             <label className="block text-sm text-slate-500 mb-1">
               Notes de consultation
@@ -220,164 +253,68 @@ export default function Courriers() {
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              rows={8}
+              rows={10}
               placeholder="Motif, examen, conclusion…"
-              className="w-full border border-slate-300 rounded-lg p-3 bg-white focus:outline-none focus:ring-2 focus:ring-sky-400"
+              className="w-full border border-slate-300 rounded-lg p-3 bg-white focus:outline-none focus:ring-2 focus:ring-lavande-400"
             />
           </div>
-
           <button
             onClick={generer}
-            disabled={occupe || !patient || !notes}
-            className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 disabled:opacity-40"
+            disabled={chargement || !patientId || !notes}
+            className="bg-lavande-600 text-white px-4 py-2 rounded-lg hover:bg-lavande-700 disabled:opacity-40"
           >
-            {chargement === "generation"
-              ? "Génération…"
-              : "✨ Générer le courrier"}
+            {chargement ? "Génération…" : "Générer le courrier"}
           </button>
-
-          <div>
-            <label className="block text-sm text-slate-500 mb-1">
-              Instruction de modification (reformulation IA)
-            </label>
-            <div className="flex gap-2">
-              <input
-                value={consigne}
-                onChange={(e) => setConsigne(e.target.value)}
-                placeholder="Ex. : plus court, ton plus formel…"
-                className="flex-1 border border-slate-300 rounded-lg px-3 py-2 bg-white"
-              />
-              <button
-                onClick={reformuler}
-                disabled={occupe || !patient || !contenu || !consigne}
-                className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-40 whitespace-nowrap"
-              >
-                {chargement === "reformulation" ? "Reformulation…" : "↻ Reformuler"}
-              </button>
-            </div>
-          </div>
+          <IndicateurIa actif={chargement} tache="courrier" />
         </div>
-
         <div className="flex flex-col">
-          <div className="flex items-center justify-between mb-1">
-            <label className="text-sm text-slate-500">
-              Courrier {modifie && <span className="text-amber-600">(modifié)</span>}
-            </label>
-            <button
-              onClick={relire}
-              disabled={occupe || !contenu}
-              className="text-xs bg-amber-100 text-amber-800 px-3 py-1 rounded-lg hover:bg-amber-200 disabled:opacity-40"
-            >
-              {chargement === "relecture" ? "Relecture…" : "🔍 Relecture IA"}
-            </button>
-          </div>
-          <input
-            value={sujet}
-            onChange={(e) => setSujet(e.target.value)}
-            placeholder="Sujet du courrier"
-            className="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white mb-2 text-sm"
-          />
+          <label className="text-sm text-slate-500 mb-1">
+            Courrier généré (modifiable)
+          </label>
           <textarea
             value={contenu}
-            onChange={(e) => {
-              setContenu(e.target.value);
-              setModifie(true);
-            }}
-            rows={18}
-            className="flex-1 w-full border border-slate-300 rounded-lg p-4 bg-white font-serif focus:outline-none focus:ring-2 focus:ring-sky-400"
+            onChange={(e) => setContenu(e.target.value)}
+            rows={22}
+            className="flex-1 w-full border border-slate-300 rounded-lg p-4 bg-white font-serif focus:outline-none focus:ring-2 focus:ring-lavande-400"
             placeholder="Le brouillon IA apparaîtra ici…"
           />
-          {relecture && (
-            <div className="mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-900 whitespace-pre-wrap">
-              <span className="font-semibold">Relecture IA : </span>
-              {relecture}
-            </div>
-          )}
-          <div className="flex gap-3 mt-3">
+          <IndicateurIa actif={chargement && !contenu} tache="reformulation" />
+          <div className="flex gap-3 mt-3 flex-wrap">
             <button
-              onClick={() => enregistrer(false)}
-              disabled={occupe || !patient || !contenu}
-              className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-100 disabled:opacity-40"
+              onClick={reformuler}
+              disabled={!contenu || chargement}
+              className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-nuit-100 disabled:opacity-40 text-sm"
+              title="Améliore la clarté et le style sans changer le sens médical"
             >
-              {chargement === "enregistrement" ? "Enregistrement…" : "💾 Brouillon"}
+              <Sparkles size={14} className="inline" /> Reformuler
             </button>
             <button
-              onClick={() => enregistrer(true)}
-              disabled={occupe || !patient || !contenu}
-              className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 disabled:opacity-40"
+              onClick={corriger}
+              disabled={!contenu || chargement}
+              className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-nuit-100 disabled:opacity-40 text-sm"
+              title="Corrige uniquement l'orthographe et la grammaire — ne touche pas au style ni au fond"
             >
-              ✓ Valider et archiver
+              Corriger l'orthographe
             </button>
             <button
               onClick={imprimer}
-              disabled={!contenu}
-              className="bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-700 disabled:opacity-40"
+              disabled={!contenu || impressionEnCours}
+              className="bg-nuit-950 text-white px-4 py-2 rounded-lg hover:bg-nuit-700 disabled:opacity-40"
             >
-              🖨️ Imprimer
+              {impressionEnCours ? "Impression…" : "Imprimer"}
+            </button>
+            <button
+              onClick={archiver}
+              disabled={!contenu}
+              className="bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-nuit-100 disabled:opacity-40"
+            >
+              <FolderOpen size={15} className="inline" /> Archiver dans la GED
             </button>
           </div>
+          {statut && <p className="text-sm text-emerald-600 mt-2">{statut}</p>}
         </div>
       </div>
-
-      {patient && courriers.length > 0 && (
-        <div className="mt-8">
-          <h2 className="font-semibold mb-3">
-            Courriers de {patient.prenoms} {patient.nom}
-          </h2>
-          <table className="w-full bg-white rounded-xl border border-slate-200 overflow-hidden text-left text-sm">
-            <thead className="bg-slate-100 text-slate-500">
-              <tr>
-                <th className="px-4 py-3">Date</th>
-                <th className="px-4 py-3">Sujet</th>
-                <th className="px-4 py-3">Statut</th>
-                <th className="px-4 py-3">IA</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {courriers.map((c) => (
-                <tr key={c.id} className="border-t border-slate-100 hover:bg-sky-50">
-                  <td className="px-4 py-2">
-                    {new Date(c.date).toLocaleDateString("fr-FR")}
-                  </td>
-                  <td className="px-4 py-2">{c.sujet || "—"}</td>
-                  <td className="px-4 py-2">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs ${
-                        c.statut === "VALIDE"
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-amber-100 text-amber-700"
-                      }`}
-                    >
-                      {c.statut}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2">{c.aiGenere ? "✨" : "—"}</td>
-                  <td className="px-4 py-2 text-right">
-                    {c.statut !== "VALIDE" && (
-                      <button
-                        onClick={() =>
-                          action("validation", async () => {
-                            await api.validerCourrier(c.id);
-                            setCourriers((prev) =>
-                              prev.map((x) =>
-                                x.id === c.id ? { ...x, statut: "VALIDE" } : x
-                              )
-                            );
-                          })
-                        }
-                        className="text-xs text-sky-600 hover:underline"
-                      >
-                        Valider
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {erreur && <p className="mt-4 text-sm text-red-600">Erreur : {erreur}</p>}
     </div>
   );
 }

@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# Primia — démarrage express sur macOS (mode démo/développement)
+# Usage : ./scripts/macos-demo.sh
+set -euo pipefail
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$REPO_ROOT"
+
+echo "🩺 Primia — démarrage express macOS"
+
+# 1. Homebrew
+if ! command -v brew >/dev/null; then
+  echo "📦 Installation de Homebrew…"
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv)"
+fi
+
+# 2. Prérequis
+echo "📦 Vérification des prérequis (rust, node, tesseract, sane, postgres)…"
+brew list --versions rust node tesseract tesseract-lang sane-backends postgresql@16 >/dev/null 2>&1 || \
+  brew install rust node tesseract tesseract-lang sane-backends postgresql@16
+
+# PostgreSQL local (démo) — démarre s'il n'est pas déjà lancé
+if ! brew services list 2>/dev/null | grep -q "postgresql@16.*started"; then
+  echo "🐘 Démarrage de PostgreSQL…"
+  brew services start postgresql@16
+  sleep 3
+  # Base + utilisateur de démo (ignore si déjà créés)
+  createdb primia 2>/dev/null || true
+  psql -d postgres -c "SELECT 1 FROM pg_roles WHERE rolname='primia'" 2>/dev/null | grep -q 1 || \
+    psql -d postgres -c "CREATE USER primia WITH PASSWORD 'primia' CREATEDB;"
+  psql -d primia -c "SELECT 1 FROM pg_roles WHERE rolname='primia'" >/dev/null 2>&1 || true
+fi
+
+# 3. Environnement du poste (créé s'il n'existe pas)
+if [ ! -f .env ]; then
+  echo "🔑 Création du .env local (clé de démonstration)…"
+  cat > .env <<EOF
+DATABASE_URL=postgresql://$(whoami)@localhost:5432/primia
+AI_BASE_URL=https://api.mistral.ai/v1
+AI_MODEL=mistral-small-latest
+AI_API_KEY=
+MAGICMED_CLE_MASTER=$(openssl rand -base64 32)
+MAGICMED_SAUVEGARDE_DOSSIER=$HOME/Primia-backups
+MAGICMED_SAUVEGARDE_RETENTION=30
+EOF
+  # Prisma lit packages/db/.env ; Tauri lit .env à la racine → les deux.
+  cp .env packages/db/.env
+  echo "⚠️  Pour activer l'assistant IA : renseignez AI_API_KEY dans .env"
+  echo "   (ou passez sur Ollama local : AI_BASE_URL=http://localhost:11434/v1)"
+fi
+# Synchronise packages/db/.env s'il manque (reprise après correction)
+[ -f .env ] && [ ! -f packages/db/.env ] && cp .env packages/db/.env
+
+# 4. Schéma + compte admin
+echo "🗄️  Initialisation du schéma et du compte admin…"
+cd packages/db
+npm install
+npx prisma db push
+npm run seed
+
+# 5. Lancement de l'application
+echo "🚀 Lancement de Primia (première compilation : quelques minutes)…"
+cd "$REPO_ROOT/apps/desktop"
+npm install
+npm run tauri dev

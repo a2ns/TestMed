@@ -1,5 +1,9 @@
+pub mod agenda;
 pub mod courriers;
-pub mod dashboard;
 pub mod documents;
+pub mod ordonnances;
 pub mod patients;
-pub mod reconciliation;
+pub mod recherche;
+pub mod scan;
+pub mod constantes;
+pub mod correspondants;
