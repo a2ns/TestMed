@@ -1,17 +1,38 @@
 #!/bin/bash
-# Exporte quelques BLOB CONSULTATION binaires en fichiers pour inspection d'encodage.
+# Identifie l'encodage des BLOB CONSULTATION binaires (compression ? format ?)
 set -uo pipefail
 cd "$(dirname "$0")"
 ITB=$(ls data/*-sysdbb.itb data/*.ITB 2>/dev/null | head -1 || true)
 DB="/database/$(basename "$ITB")"
 
-# isql ne peut pas écrire de binaire proprement ; on passe par un script Python
-# qui extrait les BLOB via ODBC... indisponible. Alternative : l'outil fb
-# "isql -e" ? Le plus simple : extraire en hex via isql et convertir.
 docker exec -i magicmed-firebird /usr/local/firebird/bin/isql \
   -user SYSDBA -password masterkey "$DB" <<'EOF'
 SET HEADING OFF;
-SET WIDTH HEXA 32000;
-SELECT 'H|' || p.CONS_ID || '|' || HEX(p.CONSULTATION)
-FROM PATIENTCONSULT p WHERE p.CONS_ID = 7 ROWS 1;
+
+-- Classification par signature binaire sur les consultations avec prescription
+SELECT 'H1|' ||
+  CASE
+    WHEN CAST(SUBSTRING(p.CONSULTATION FROM 1 FOR 2) AS VARCHAR(2) CHARACTER SET OCTETS) = _OCTETS x'1F8B' THEN 'GZIP'
+    WHEN CAST(SUBSTRING(p.CONSULTATION FROM 1 FOR 2) AS VARCHAR(2) CHARACTER SET OCTETS) = _OCTETS x'789C' THEN 'ZLIB'
+    WHEN CAST(SUBSTRING(p.CONSULTATION FROM 1 FOR 2) AS VARCHAR(2) CHARACTER SET OCTETS) = _OCTETS x'7801' THEN 'ZLIB'
+    WHEN CAST(SUBSTRING(p.CONSULTATION FROM 1 FOR 2) AS VARCHAR(2) CHARACTER SET OCTETS) = _OCTETS x'28B5' THEN 'ZSTD'
+    WHEN CAST(SUBSTRING(p.CONSULTATION FROM 1 FOR 2) AS VARCHAR(2) CHARACTER SET OCTETS) = _OCTETS x'4C5A' THEN 'LZ'
+    WHEN CAST(SUBSTRING(p.CONSULTATION FROM 1 FOR 2) AS VARCHAR(2) CHARACTER SET OCTETS) = _OCTETS x'5A4C' THEN 'LZ'
+    WHEN p.CONSULTATION IS NULL THEN 'NULL'
+    WHEN CAST(SUBSTRING(p.CONSULTATION FROM 1 FOR 6) AS VARCHAR(6)) LIKE '{\rtf%' THEN 'RTF'
+    ELSE 'INCONNU'
+  END
+  || '|' || COUNT(*)
+FROM PATIENTCONSULT p
+WHERE EXISTS (SELECT 1 FROM PRESCRIPTIONS pr WHERE pr.CONS_ID = p.CONS_ID)
+GROUP BY 1;
+
+-- Les 16 premiers octets bruts (charset OCTETS) d'un spécimen 'INCONNU'
+SELECT FIRST 5 'H2|' || p.CONS_ID || '|' ||
+  CAST(SUBSTRING(p.CONSULTATION FROM 1 FOR 16) AS VARCHAR(16) CHARACTER SET OCTETS)
+FROM PATIENTCONSULT p
+WHERE EXISTS (SELECT 1 FROM PRESCRIPTIONS pr WHERE pr.CONS_ID = p.CONS_ID)
+  AND p.CONSULTATION IS NOT NULL
+  AND CAST(SUBSTRING(p.CONSULTATION FROM 1 FOR 6) AS VARCHAR(6)) NOT LIKE '{\rtf%'
+ROWS 5;
 EOF
