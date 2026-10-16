@@ -20,8 +20,9 @@ export default function Dashboard() {
           Base de données indisponible : {erreur}
         </p>
       )}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
         <Carte titre="Patients" valeur={stats ? String(stats.patientsTotal) : "—"} />
+        <Carte titre="Consultations" valeur={stats ? String(stats.consultationsTotal) : "—"} />
         <Carte titre="Documents GED" valeur={stats ? String(stats.documentsTotal) : "—"} />
         <Carte
           titre="Courriers en brouillon"
@@ -31,6 +32,9 @@ export default function Dashboard() {
           titre="Courriers validés"
           valeur={stats ? String(stats.courriersValides) : "—"}
         />
+        {stats && stats.nonLies > 0 && (
+          <Carte titre="Fiches non liées" valeur={String(stats.nonLies)} />
+        )}
       </div>
       <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
         <h2 className="font-semibold mb-2">Bienvenue dans MagicMed v2</h2>

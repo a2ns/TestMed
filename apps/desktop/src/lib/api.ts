@@ -23,8 +23,10 @@ export type DocumentRow = {
 export type Stats = {
   patientsTotal: number;
   documentsTotal: number;
+  consultationsTotal: number;
   courriersBrouillons: number;
   courriersValides: number;
+  nonLies: number;
 };
 
 function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {

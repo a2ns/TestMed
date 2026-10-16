@@ -186,10 +186,22 @@ pub async fn statistiques() -> Result<crate::commands::dashboard::Stats, String>
             .fetch_one(pool)
             .await
             .map_err(|e| e.to_string())?;
+    let (consultations_total,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM \"Consultation\"")
+        .fetch_one(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    let (non_lies,): (i64,) = sqlx::query_as(
+        "SELECT (SELECT COUNT(*) FROM \"Consultation\" WHERE \"patientId\" IS NULL) + (SELECT COUNT(*) FROM \"Courrier\" WHERE \"patientId\" IS NULL)",
+    )
+    .fetch_one(pool)
+    .await
+    .map_err(|e| e.to_string())?;
     Ok(crate::commands::dashboard::Stats {
         patients_total,
         documents_total,
+        consultations_total,
         courriers_brouillons,
         courriers_valides,
+        non_lies,
     })
 }
