@@ -54,9 +54,15 @@ def fb_query(db, select_sql):
         line = line.rstrip("\r")
         if not line.strip() or line.startswith(("Use CONNECT", "Database:")):
             continue
-        parts = line.split(SEP)
-        if parts and parts[-1] == "END":
+        # split limité : les 6 premiers champs + le reste intégré au dernier
+        # (le commentaire peut contenir des ||| et des <NL> sans casser la ligne)
+        parts = line.split(SEP, 6)
+        if parts and parts[-1].endswith(SEP + "END"):
+            parts[-1] = parts[-1][:-len(SEP + "END")]
+        elif parts and parts[-1] == "END":
             parts = parts[:-1]
+        elif parts and len(parts) == 7 and parts[6] == "END":
+            parts = parts[:6]
         rows.append(parts)
     return rows
 
@@ -106,7 +112,14 @@ def main():
     for r in rows:
         if len(r) < 5:
             continue
-        aid, numpat, typ, libelle, cim10 = [clean(x) for x in r[:5]]
+        if len(r) < 3:
+            continue
+        aid, numpat, typ = [clean(x) for x in r[:3]]
+        # filtre anti-bruit : NUM_PAT doit être un nombre (fragments de style exclus)
+        if not numpat or not re.match(r"^\d+$", numpat):
+            continue
+        libelle = clean(r[3]) if len(r) > 3 else None
+        cim10 = clean(r[4]) if len(r) > 4 else None
         if typ:
             # ne garder que les lettres : '*AM', '\x93AM', 'AM ' -> 'AM'
             typ = re.sub(r"[^A-Za-z]", "", typ).upper()
