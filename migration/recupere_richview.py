@@ -77,16 +77,20 @@ def main():
         sys.exit(1)
     db = f"/database/{itb}"
 
-    # 1. consultations Primia encore marquées (leurs UUIDs)
+    # 1. consultations Primia à re-traiter : marqueurs + notes stériles
+    #    (HTML vide/quasi vide issus des rattrapages précédents)
+    CRITERE = ("notes IN ('-8 1 3 1', '-8 1 3 2') "
+               "OR notes = '<p></p>' "
+               "OR (notes LIKE '<p>%' AND length(notes) < 40)")
     nb = psql("SELECT COUNT(*) FROM \"Consultation\" "
-              "WHERE notes IN ('-8 1 3 1', '-8 1 3 2')").strip()
-    print(f"Consultations encore marquées : {nb}")
+              "WHERE " + CRITERE).strip()
+    print(f"Consultations à re-traiter (marqueurs + stériles) : {nb}")
     if nb == "0":
         print("Rien à faire.")
         return
     lignes_marquees = psql("SELECT id || '|' || COALESCE(\"patientId\", '') "
                            "FROM \"Consultation\" "
-                           "WHERE notes IN ('-8 1 3 1', '-8 1 3 2')").splitlines()
+                           "WHERE " + CRITERE).splitlines()
     marquees_par_patient = {}
     marques = set()
     for l in lignes_marquees:
@@ -224,7 +228,9 @@ def main():
     r = subprocess.run(PSQL + ["-v", "ON_ERROR_STOP=1", "-c",
                                'UPDATE "Consultation" c SET notes = m.contenu '
                                "FROM maj_rv m WHERE c.id = m.id "
-                               "AND c.notes IN ('-8 1 3 1', '-8 1 3 2');"],
+                               "AND (c.notes IN ('-8 1 3 1', '-8 1 3 2') "
+                               "OR c.notes = '<p></p>' "
+                               "OR (c.notes LIKE '<p>%' AND length(c.notes) < 40));"],
                        capture_output=True, text=True)
     if r.returncode != 0:
         print("ERREUR psql :", r.stderr[:300])
@@ -258,7 +264,7 @@ def main():
         print(f"{len(dates)} dates restaurées")
 
     restant = psql("SELECT COUNT(*) FROM \"Consultation\" "
-                   "WHERE notes IN ('-8 1 3 1', '-8 1 3 2')").strip()
+                   "WHERE " + CRITERE).strip()
     print(f"\nRésultat : {nb} marquées -> {restant} restantes")
     print("Aperçu d'une note mise à jour :")
     print(psql("SELECT LEFT(notes, 250) FROM \"Consultation\" "

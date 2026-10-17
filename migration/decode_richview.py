@@ -88,6 +88,10 @@ def decode_richview(raw):
             continue
         if re.match(r"^!?\.+\t?", ln) or re.match(r"^cl[A-Z]", ln):
             continue
+        # artefacts de feuille de style décodée en paires : "Style", "Name",
+        # "Text", "Bold", "Size", "Font", "Arial", "Color", "Black", "VShift"...
+        if re.match(r"^(Style|Name|Text|Bold|Size|Font|Arial|Color|Black|Blue|Navy|VShift|Double|Normal|Heading|Subheading|Unicode|fsBold)$", ln.strip()):
+            continue
         lignes.append(ln)
 
     return "\n".join(lignes).strip()
