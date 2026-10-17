@@ -105,8 +105,13 @@ def main():
     fld = lambda e: f"COALESCE(CAST({e} AS VARCHAR(32000)), '') || '{SEP}' ||"
     # échappement des sauts de ligne (CRITICAL : les BLOB multi-lignes sinon
     # fragmentés par le parsing ligne à ligne)
-    blob_esc = ("REPLACE(REPLACE(CAST(CONSULTATION AS VARCHAR(32000)), "
+    # ATTENTION : remplacer CRLF d'abord, puis CR seul, puis LF seul.
+    # Le format RichView utilise des CR solitaires comme séparateurs —
+    # ne pas les échapper tronquait le BLOB au premier marqueur
+    # (cause historique du « -8 1 3 1 » dans la migration initiale !).
+    blob_esc = ("REPLACE(REPLACE(REPLACE(CAST(CONSULTATION AS VARCHAR(32000)), "
                 "ASCII_CHAR(13)||ASCII_CHAR(10), '<NL>'), "
+                "ASCII_CHAR(13), '<NL>'), "
                 "ASCII_CHAR(10), '<NL>')")
     print("Liste des CONS_ID (depuis Firebird)...")
     rows_ids = fb_query(db, "SELECT " + fld("CONS_ID") + "'END' FROM PATIENTCONSULT "
