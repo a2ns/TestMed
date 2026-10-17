@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   api,
@@ -255,9 +255,12 @@ export default function FichePatient() {
           />
           {constantes.length > 0 && (
             <div className="mt-3 text-sm">
-              {constantes.slice(0, 6).map((c) => (
+              {constantes.slice(0, 12).map((c) => (
                 <div key={c.id} className="flex justify-between text-nuit-500">
-                  <span>{c.type}</span>
+                  <span>{{ TENSION_SYST: "Tension syst.",
+                            TENSION_DIAST: "Tension diast.",
+                            POIDS: "Poids", TAILLE: "Taille", IMC: "IMC",
+                            GLYCEMIE: "Glycémie" }[c.type] || c.type}</span>
                   <span className="font-medium">
                     {c.valeur}
                     {c.unite ? ` ${c.unite}` : ""}
@@ -418,13 +421,7 @@ function SectionConsultations({
           placeholder="Motif (obligatoire)"
           className="w-full border border-slate-300 rounded-lg px-3 py-2"
         />
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={5}
-          placeholder="Notes : examen, diagnostic, conduite à tenir…"
-          className="w-full border border-slate-300 rounded-lg p-3"
-        />
+        <EditeurNotes valeur={notes} onChange={setNotes} />
         <div className="flex gap-3">
           <button
             onClick={() =>
@@ -460,7 +457,9 @@ function SectionConsultations({
       {consultations.map((c) => (
         <div key={c.id} className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex justify-between">
-            <span className="font-semibold">{c.motif}</span>
+            <span className="font-semibold">
+              {c.motif || (c.notes ? c.notes.split("\n")[0].slice(0, 60) : "Consultation")}
+            </span>
             <div className="flex items-center gap-3">
               <span className="text-sm text-slate-500">
                 {new Date(c.date).toLocaleString("fr-FR")}
@@ -476,7 +475,7 @@ function SectionConsultations({
               </button>
             </div>
           </div>
-          {c.notes && <p className="mt-2 text-sm whitespace-pre-wrap">{c.notes}</p>}
+          {c.notes && <NotesRiches texte={c.notes} />}
         </div>
       ))}
     </div>
@@ -1021,6 +1020,93 @@ function EditionPatient({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+
+/// Affiche une note : HTML enrichi (issu du RTF MagicMed converti) ou texte brut.
+/// Sanitizer maison : seuls strong/em/u/br/p/ul/ol/li sont conservés.
+function sanitiserHtml(html: string): string {
+  const div = document.createElement("div");
+  div.innerHTML = html;
+  const AUTORISES = new Set(["STRONG", "EM", "U", "BR", "P", "UL", "OL", "LI",
+                            "B", "I", "#text"]);
+  const nettoyer = (noeud: Node) => {
+    [...noeud.childNodes].forEach((enfant) => {
+      if (!AUTORISES.has(enfant.nodeName)) {
+        enfant.replaceWith(...Array.from(enfant.childNodes));
+      }
+      nettoyer(enfant);
+    });
+  };
+  nettoyer(div);
+  return div.innerHTML;
+}
+
+function NotesRiches({ texte }: { texte: string }) {
+  const estHtml = texte.startsWith("<p>");
+  if (estHtml) {
+    return (
+      <div
+        className="mt-2 text-sm prose prose-sm max-w-none"
+        dangerouslySetInnerHTML={{ __html: sanitiserHtml(texte) }}
+      />
+    );
+  }
+  return <p className="mt-2 text-sm whitespace-pre-wrap">{texte}</p>;
+}
+
+
+/// Éditeur de notes enrichies : barre d'outils (gras/italique/souligné/liste)
+/// + zone contentEditable. Produit du HTML simple (<b>/<i>/<u>/<ul>/<li>/<br>)
+/// compatible avec l'affichage NotesRiches (sanitisé à l'affichage).
+function EditeurNotes({ valeur, onChange }: { valeur: string; onChange: (v: string) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  // synchroniser le contenu externe -> éditeur (une seule fois, sans écraser le curseur)
+  useEffect(() => {
+    if (ref.current && ref.current.innerHTML !== valeur && document.activeElement !== ref.current) {
+      ref.current.innerHTML = valeur || "";
+    }
+  }, [valeur]);
+
+  const emettre = () => {
+    if (ref.current) {
+      onChange(ref.current.innerHTML);
+    }
+  };
+
+  const cmd = (commande: string, arg?: string) => {
+    document.execCommand(commande, false, arg);
+    ref.current?.focus();
+    emettre();
+  };
+
+  const bouton = "px-2 py-1 border border-slate-300 rounded text-sm hover:bg-slate-100";
+
+  return (
+    <div className="border border-slate-300 rounded-lg overflow-hidden">
+      <div className="flex gap-1 p-1.5 bg-slate-50 border-b border-slate-200">
+        <button type="button" className={bouton} onClick={() => cmd("bold")}
+          title="Gras"><b>G</b></button>
+        <button type="button" className={bouton} onClick={() => cmd("italic")}
+          title="Italique"><i>I</i></button>
+        <button type="button" className={bouton} onClick={() => cmd("underline")}
+          title="Souligné"><u>U</u></button>
+        <button type="button" className={bouton} onClick={() => cmd("insertUnorderedList")}
+          title="Liste à puces">• —</button>
+        <button type="button" className={bouton} onClick={() => cmd("formatBlock", "<p>")}
+          title="Paragraphe">¶</button>
+      </div>
+      <div
+        ref={ref}
+        contentEditable
+        onInput={emettre}
+        onBlur={emettre}
+        data-placeholder="Notes : examen, diagnostic, conduite à tenir…"
+        className="min-h-[120px] p-3 text-sm focus:outline-none prose prose-sm max-w-none"
+      />
     </div>
   );
 }

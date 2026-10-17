@@ -1,19 +1,19 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod amelie;
 mod audit;
 mod auth;
 mod commands;
+mod config;
 mod crypto;
-mod dmp;
-mod fsv;
-mod sauvegarde;
 mod db;
 mod dicos;
-mod amelie;
-mod config;
+mod dmp;
+mod fsv;
 mod ia;
 mod impression;
 mod ocr;
+mod sauvegarde;
 mod scan;
 
 fn main() {
@@ -97,6 +97,10 @@ fn main() {
             fsv::valider_fse,
             dmp::verifier_dmp,
             dmp::deposer_dmp,
+            commands::reconciliation::list_fiches_orphelines,
+            commands::reconciliation::list_occurrences_patients,
+            commands::reconciliation::lier_fiche,
+            commands::dashboard::statistiques,
         ])
         .run(tauri::generate_context!())
         .expect("erreur au lancement de Primia");

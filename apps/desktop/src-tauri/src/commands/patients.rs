@@ -11,7 +11,9 @@ pub struct Patient {
 
 #[tauri::command]
 pub async fn list_patients(recherche: String) -> Result<Vec<Patient>, String> {
-    crate::db::query_patients(&recherche).await.map_err(|e| e.to_string())
+    crate::db::query_patients(&recherche)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[derive(Serialize, Deserialize, FromRow)]
@@ -61,7 +63,9 @@ pub async fn creer_patient(p: NouveauPatient) -> Result<String, String> {
     if p.nom.trim().is_empty() {
         return Err("le nom est obligatoire".into());
     }
-    crate::db::creer_patient(&p).await.map_err(|e| e.to_string())
+    crate::db::creer_patient(&p)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[derive(Serialize, Deserialize, FromRow)]

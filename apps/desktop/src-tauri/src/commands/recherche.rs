@@ -65,7 +65,10 @@ pub async fn importer_document_intelligent(
         id_document: id,
         patient_id,
         a_trier,
-        texte_ocr: ocr.as_ref().map(|r| r.texte.chars().take(300).collect::<String>()).unwrap_or_default(),
+        texte_ocr: ocr
+            .as_ref()
+            .map(|r| r.texte.chars().take(300).collect::<String>())
+            .unwrap_or_default(),
     })
 }
 
@@ -110,10 +113,7 @@ pub async fn recherche_multi(
             if !termes.is_empty() {
                 let tsquery = termes.join(" & ");
                 params.push(tsquery);
-                clauses.push(format!(
-                    "d.tsv @@ to_tsquery('french', ${})",
-                    params.len()
-                ));
+                clauses.push(format!("d.tsv @@ to_tsquery('french', ${})", params.len()));
             }
         }
     }
@@ -132,10 +132,7 @@ pub async fn recherche_multi(
     if let Some(d) = &date_debut {
         if !d.trim().is_empty() {
             params.push(d.clone());
-            clauses.push(format!(
-                "d.\"createdAt\" >= ${}::date",
-                params.len()
-            ));
+            clauses.push(format!("d.\"createdAt\" >= ${}::date", params.len()));
         }
     }
     if let Some(f) = &date_fin {
@@ -183,7 +180,9 @@ pub async fn list_documents_a_trier(token: String) -> Result<Vec<ResultatDocumen
 #[tauri::command]
 pub async fn compter_a_trier(token: String) -> Result<i64, String> {
     crate::auth::valider_session(&token).ok_or("session expirée")?;
-    crate::db::compter_a_trier().await.map_err(|e| e.to_string())
+    crate::db::compter_a_trier()
+        .await
+        .map_err(|e| e.to_string())
 }
 
 /// Classe un document du caddie vers un patient (ou type de document).

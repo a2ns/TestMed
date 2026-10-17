@@ -17,7 +17,10 @@ pub fn reconnaitre(chemin_image: &str) -> Result<OcrResultat, String> {
         .output()
         .map_err(|e| format!("tesseract introuvable ({e}) — installez tesseract-ocr + fra"))?;
     if !sortie.status.success() {
-        return Err(format!("OCR a échoué : {}", String::from_utf8_lossy(&sortie.stderr)));
+        return Err(format!(
+            "OCR a échoué : {}",
+            String::from_utf8_lossy(&sortie.stderr)
+        ));
     }
     let texte = String::from_utf8_lossy(&sortie.stdout).to_string();
     let confiance = confiance(chemin_image)?;

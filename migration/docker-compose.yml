@@ -1,0 +1,26 @@
+services:
+  firebird:
+    image: jacobalberty/firebird:v2.5.9-ss
+    container_name: magicmed-firebird
+    environment:
+      ISC_PASSWORD: masterkey
+    ports:
+      - "30550:3050"
+    volumes:
+      - ./data:/database
+
+  postgres:
+    image: postgres:16
+    container_name: magicmed-postgres
+    environment:
+      POSTGRES_USER: primia
+      POSTGRES_PASSWORD: primia
+      POSTGRES_DB: primia
+    ports:
+      - "54329:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+
+volumes:
+  postgres_data:

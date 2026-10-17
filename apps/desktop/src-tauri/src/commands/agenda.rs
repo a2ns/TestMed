@@ -26,7 +26,9 @@ pub struct NouveauRendezVous {
 
 #[tauri::command]
 pub async fn list_rdv_jour(jour: String) -> Result<Vec<RendezVous>, String> {
-    crate::db::list_rdv_jour(&jour).await.map_err(|e| e.to_string())
+    crate::db::list_rdv_jour(&jour)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

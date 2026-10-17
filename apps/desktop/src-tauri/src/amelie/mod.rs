@@ -25,9 +25,11 @@ pub struct EtatAmelie {
 #[tauri::command]
 pub async fn verifier_amelie(token: String) -> Result<EtatAmelie, String> {
     crate::auth::valider_session(&token).ok_or("session expirée")?;
-    let identifiant = crate::config::lire_config("AMELIE_IDENTIFIANT").await
+    let identifiant = crate::config::lire_config("AMELIE_IDENTIFIANT")
+        .await
         .or_else(|| std::env::var("AMELIE_IDENTIFIANT").ok());
-    let mot_de_passe = crate::config::lire_config("AMELIE_MOT_DE_PASSE").await
+    let mot_de_passe = crate::config::lire_config("AMELIE_MOT_DE_PASSE")
+        .await
         .or_else(|| std::env::var("AMELIE_MOT_DE_PASSE").ok());
     Ok(match (&identifiant, &mot_de_passe) {
         (Some(i), Some(_)) => EtatAmelie {
@@ -59,12 +61,13 @@ pub struct ArretTravail {
 pub async fn lister_arrets_amelie(token: String) -> Result<Vec<ArretTravail>, String> {
     let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
     let _ = utilisateur;
-    let url = std::env::var("AMELIE_URL")
-        .unwrap_or_else(|_| "https://api.ameli.fr/v1".into());
-    let identifiant = crate::config::lire_config("AMELIE_IDENTIFIANT").await
+    let url = std::env::var("AMELIE_URL").unwrap_or_else(|_| "https://api.ameli.fr/v1".into());
+    let identifiant = crate::config::lire_config("AMELIE_IDENTIFIANT")
+        .await
         .or_else(|| std::env::var("AMELIE_IDENTIFIANT").ok())
         .ok_or("Amélie non configuré (voir Système → Amélie)")?;
-    let mot_de_passe = crate::config::lire_config("AMELIE_MOT_DE_PASSE").await
+    let mot_de_passe = crate::config::lire_config("AMELIE_MOT_DE_PASSE")
+        .await
         .or_else(|| std::env::var("AMELIE_MOT_DE_PASSE").ok())
         .ok_or("Amélie non configuré")?;
 
@@ -107,12 +110,13 @@ pub async fn importer_arret_amelie(
 ) -> Result<ImportArretResultat, String> {
     let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
     // Récupérer le détail de l'AT (même service).
-    let url = std::env::var("AMELIE_URL")
-        .unwrap_or_else(|_| "https://api.ameli.fr/v1".into());
-    let identifiant = crate::config::lire_config("AMELIE_IDENTIFIANT").await
+    let url = std::env::var("AMELIE_URL").unwrap_or_else(|_| "https://api.ameli.fr/v1".into());
+    let identifiant = crate::config::lire_config("AMELIE_IDENTIFIANT")
+        .await
         .or_else(|| std::env::var("AMELIE_IDENTIFIANT").ok())
         .ok_or("Amélie non configuré")?;
-    let mot_de_passe = crate::config::lire_config("AMELIE_MOT_DE_PASSE").await
+    let mot_de_passe = crate::config::lire_config("AMELIE_MOT_DE_PASSE")
+        .await
         .or_else(|| std::env::var("AMELIE_MOT_DE_PASSE").ok())
         .ok_or("Amélie non configuré")?;
 
@@ -147,7 +151,8 @@ pub async fn importer_arret_amelie(
                 &format!("{date_debut} → {date_fin}"),
                 Some(motif),
                 &utilisateur.id,
-            ).await;
+            )
+            .await;
             ImportArretResultat {
                 rattache: true,
                 patient_id: Some(id),
@@ -157,7 +162,9 @@ pub async fn importer_arret_amelie(
         None => ImportArretResultat {
             rattache: false,
             patient_id: None,
-            detail: format!("Patient non trouvé pour l'AT {nom} {prenoms} — classez-le via le caddie GED"),
+            detail: format!(
+                "Patient non trouvé pour l'AT {nom} {prenoms} — classez-le via le caddie GED"
+            ),
         },
     };
     crate::audit::journaliser(

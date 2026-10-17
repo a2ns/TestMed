@@ -14,12 +14,15 @@ pub struct ConstanteBio {
 
 /// Historique des constantes d'un patient (dernières en premier).
 #[tauri::command]
-pub async fn list_constantes(patient_id: String, token: String) -> Result<Vec<ConstanteBio>, String> {
+pub async fn list_constantes(
+    patient_id: String,
+    token: String,
+) -> Result<Vec<ConstanteBio>, String> {
     crate::auth::valider_session(&token).ok_or("session expirée")?;
     let pool = crate::db::pool().map_err(|e| e.to_string())?;
     sqlx::query_as::<_, ConstanteBio>(
         "SELECT id, \"patientId\" as patient_id, type, valeur, unite, date FROM \"ConstanteBio\" \
-         WHERE \"patientId\" = $1 ORDER BY date DESC LIMIT 100",
+         WHERE \"patientId\" = $1 ORDER BY date DESC LIMIT 2000",
     )
     .bind(patient_id)
     .fetch_all(pool)
@@ -54,6 +57,12 @@ pub async fn creer_constante(
     .execute(pool)
     .await
     .map_err(|e| e.to_string())?;
-    crate::audit::journaliser(&utilisateur.id, "CONSTANTE_SAISIE", Some("patient"), Some(&patient_id), None);
+    crate::audit::journaliser(
+        &utilisateur.id,
+        "CONSTANTE_SAISIE",
+        Some("patient"),
+        Some(&patient_id),
+        None,
+    );
     Ok(id)
 }

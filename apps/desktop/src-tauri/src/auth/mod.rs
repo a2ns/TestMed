@@ -49,7 +49,8 @@ pub fn creer_session(utilisateur: Utilisateur) -> String {
     let token = Uuid::new_v4().to_string();
     avec_sessions(|s| {
         s.map.insert(token.clone(), (utilisateur, Instant::now()));
-        s.map.retain(|_, (_, ts)| ts.elapsed().as_secs() < EXPIRATION_SECONDES);
+        s.map
+            .retain(|_, (_, ts)| ts.elapsed().as_secs() < EXPIRATION_SECONDES);
     });
     token
 }
@@ -76,9 +77,14 @@ pub fn supprimer_session(token: &str) {
 pub async fn connexion(identifiants: Identifiants) -> Result<String, String> {
     let hash = crate::db::hash_mot_de_passe(&identifiants.identifiant).await;
     let ok = match &hash {
-        Ok(h) if h.starts_with('$') => bcrypt::verify(&identifiants.mot_de_passe, h).unwrap_or(false),
+        Ok(h) if h.starts_with('$') => {
+            bcrypt::verify(&identifiants.mot_de_passe, h).unwrap_or(false)
+        }
         Ok(h) => {
-            return Err(format!("compte admin incomplet (hash invalide : {}…) — relancez le seed", &h.chars().take(20).collect::<String>()))
+            return Err(format!(
+                "compte admin incomplet (hash invalide : {}…) — relancez le seed",
+                &h.chars().take(20).collect::<String>()
+            ))
         }
         Err(e) => {
             // L'erreur réelle (SQL, colonne, connexion) remonte pour diagnostic.
@@ -113,7 +119,11 @@ pub fn deconnexion(token: String) {
 }
 
 #[tauri::command]
-pub async fn creer_compte(identifiants: Identifiants, role: String, admin_token: String) -> Result<(), String> {
+pub async fn creer_compte(
+    identifiants: Identifiants,
+    role: String,
+    admin_token: String,
+) -> Result<(), String> {
     let admin = valider_session(&admin_token).ok_or("session admin requise")?;
     if admin.role != "ADMIN" {
         return Err("rôle ADMIN requis pour créer un compte".into());

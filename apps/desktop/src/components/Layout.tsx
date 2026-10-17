@@ -1,10 +1,12 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
+  BarChart3,
   CalendarDays,
   Users,
   FolderOpen,
   Mail,
+  Link2,
   ShieldCheck,
   Settings,
   LogOut,
@@ -15,10 +17,12 @@ import { useEffect, useState } from "react";
 
 const MENU = [
   { to: "/", label: "Aujourd'hui", Icone: LayoutDashboard, end: true },
+  { to: "/dashboard", label: "Tableau de bord", Icone: BarChart3, end: false },
   { to: "/agenda", label: "Agenda", Icone: CalendarDays, end: false },
   { to: "/patients", label: "Patients", Icone: Users, end: false },
   { to: "/ged", label: "GED", Icone: FolderOpen, end: false, badge: true },
   { to: "/courriers", label: "Courriers", Icone: Mail, end: false },
+  { to: "/reconciliation", label: "Réconciliation", Icone: Link2, end: false },
 ];
 
 const MENU_ADMIN = [

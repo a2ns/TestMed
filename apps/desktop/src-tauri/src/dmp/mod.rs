@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase")]
 pub struct DepotDmp {
     pub patient_id: String,
-    pub ins_et_id: String,   // INS de la personne (obtenu via FSV/INSc)
+    pub ins_et_id: String, // INS de la personne (obtenu via FSV/INSc)
     pub type_document: String,
     pub titre: String,
     pub chemin_pdf: String,
@@ -37,7 +37,9 @@ pub fn verifier_dmp(token: String) -> Result<EtatDmp, String> {
         configure: url.is_ok() && cert.is_ok(),
         detail: match (&url, &cert) {
             (Ok(u), Ok(c)) => format!("DMP configuré ({u}, certificat {c})"),
-            _ => "DMP non configuré : définissez DMP_URL et DMP_CERTIFICAT après habilitation".into(),
+            _ => {
+                "DMP non configuré : définissez DMP_URL et DMP_CERTIFICAT après habilitation".into()
+            }
         },
     })
 }
@@ -48,8 +50,7 @@ pub async fn deposer_dmp(depot: DepotDmp, token: String) -> Result<String, Strin
     let utilisateur = crate::auth::valider_session(&token).ok_or("session expirée")?;
     let url = std::env::var("DMP_URL")
         .map_err(|_| "DMP non configuré : habilitation requise (phase 3)")?;
-    let _cert = std::env::var("DMP_CERTIFICAT")
-        .map_err(|_| "certificat DMP manquant")?;
+    let _cert = std::env::var("DMP_CERTIFICAT").map_err(|_| "certificat DMP manquant")?;
 
     // Flux réel (phase 3) : wrapper CDA + appel SubmitDocument du DMP
     // en mTLS avec le certificat logiciel. Le squelette prépare la
