@@ -22,7 +22,7 @@ pub async fn list_constantes(
     let pool = crate::db::pool().map_err(|e| e.to_string())?;
     sqlx::query_as::<_, ConstanteBio>(
         "SELECT id, \"patientId\" as patient_id, type, valeur, unite, date FROM \"ConstanteBio\" \
-         WHERE \"patientId\" = $1 ORDER BY date DESC LIMIT 100",
+         WHERE \"patientId\" = $1 ORDER BY date DESC LIMIT 2000",
     )
     .bind(patient_id)
     .fetch_all(pool)

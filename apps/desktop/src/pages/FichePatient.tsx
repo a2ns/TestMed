@@ -255,9 +255,12 @@ export default function FichePatient() {
           />
           {constantes.length > 0 && (
             <div className="mt-3 text-sm">
-              {constantes.slice(0, 6).map((c) => (
+              {constantes.slice(0, 12).map((c) => (
                 <div key={c.id} className="flex justify-between text-nuit-500">
-                  <span>{c.type}</span>
+                  <span>{{ TENSION_SYST: "Tension syst.",
+                            TENSION_DIAST: "Tension diast.",
+                            POIDS: "Poids", TAILLE: "Taille", IMC: "IMC",
+                            GLYCEMIE: "Glycémie" }[c.type] || c.type}</span>
                   <span className="font-medium">
                     {c.valeur}
                     {c.unite ? ` ${c.unite}` : ""}
