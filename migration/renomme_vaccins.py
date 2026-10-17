@@ -17,17 +17,17 @@ PSQL = ["docker", "exec", "-i", "magicmed-postgres", "psql",
 # Correspondance ID MagicMed (VACCINS.ID) -> nom du vaccin.
 # Fréquences observées (nombre de patients) pour aider la reconnaissance.
 CORRESPONDANCE = {
-    "32": "Grippe saisonnière",          # 78 patients
-    "5": "",                             # 51 patients
-    "35": "",                            # 47 patients
-    "41": "",                            # 45 patients
-    "21": "",                            # 42 patients
-    "33": "",                            # 41 patients
-    "36": "",                            # 39 patients
-    "19": "",                            # 34 patients
-    "28": "",                            # 27 patients
-    "53": "",                            # 20 patients
-    # ... compléter les autres IDs au besoin
+    "25": "Vaxigrip tétra",       # 66 ans, lots E02 campagne
+    "19": "Prevenar 13",          # nourrissons, lots X3C241V Pfizer
+    "21": "Bexsero",              # nourrissons, lots A21CD/A GSK
+    "36": "Zostavax",             # 58 ans, lots P3K310V Merck
+    "5":  "Infanrix Hexa",        # 2 ans, lots ABX GSK
+    "32": "Pentavac",             # 8 ans, lots A#### Sanofi (rappels)
+    "33": "Infanrix Quinta",      # 2 ans, lots A69C GSK
+    "28": "BCG SSI",              # nourrissons, lots CW/AR SSI
+    "41": "Gardasil",             # 9 ans, lots P3H091V Merck (pic août)
+    "35": "Revaxis",              # 39 ans, lots DD Sanofi
+    "53": "Vaxigrip HS",          # 62 ans, lots R4A423V (autre grippe)
 }
 
 
