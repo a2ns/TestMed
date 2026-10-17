@@ -71,7 +71,20 @@ for line in out.splitlines():
         if f"{cle} rien du tout" not in specimens:
             specimens[f"{cle} rien du tout"] = f"type={typ!r}"
 
-print("=== Devenir des lignes extraites ===")
+print("=== Spécimens des lignes <5 champs (brut intégral) ===")
+vus = 0
+for line in out.splitlines():
+    line = line.rstrip("\r")
+    if not line.strip() or line.startswith(("Use CONNECT", "Database:")):
+        continue
+    parts = line.split(SEP)
+    if parts and parts[-1] == "END":
+        parts = parts[:-1]
+    if len(parts) < 5 and vus < 5:
+        print(f"  [{len(parts)} champs] {line[:300]!r}")
+        vus += 1
+
+print("\n=== Devenir des lignes extraites ===")
 for k, v in sorted(dest.items(), key=lambda x: -x[1]):
     print(f"  {v:6}  {k}")
 print("\n=== Spécimens par catégorie ===")
