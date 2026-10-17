@@ -93,6 +93,8 @@ def main():
         if "|" not in l:
             continue
         cid, pid = l.split("|", 1)
+        cid = cid.strip()
+        pid = pid.strip()
         marques.add(cid)
         if pid:
             marquees_par_patient.setdefault(pid, []).append(cid)
@@ -142,6 +144,10 @@ def main():
                 continue
             pid_uuid = src_uuid("PATIENT", numpat)
             cibles = marquees_par_patient.get(pid_uuid)
+            if cibles is None and len(updates) == 0 and i == 0:
+                # premier lot : montrer un échantillon pour diagnostic
+                print(f"   DEBUG premier lot : numpat={numpat!r} -> uuid={pid_uuid}")
+                print(f"   DEBUG clés dict (3) : {list(marquees_par_patient)[:3]}")
             if not cibles:
                 continue  # aucune marquée pour ce patient
             # prendre une consultation marquée non encore traitée pour ce patient
