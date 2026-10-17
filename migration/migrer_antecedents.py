@@ -56,13 +56,12 @@ def fb_query(db, select_sql):
             continue
         # split limité : les 6 premiers champs + le reste intégré au dernier
         # (le commentaire peut contenir des ||| et des <NL> sans casser la ligne)
-        parts = line.split(SEP, 6)
-        if parts and parts[-1].endswith(SEP + "END"):
+        parts = line.split(SEP, 7)
+        # retirer le marqueur END (8e champ émis)
+        if len(parts) == 8 and parts[7] == "END":
+            parts = parts[:7]
+        elif parts and parts[-1].endswith(SEP + "END"):
             parts[-1] = parts[-1][:-len(SEP + "END")]
-        elif parts and parts[-1] == "END":
-            parts = parts[:-1]
-        elif parts and len(parts) == 7 and parts[6] == "END":
-            parts = parts[:6]
         rows.append(parts)
     return rows
 
