@@ -82,44 +82,43 @@ def main():
     pg_patients = set(psql('SELECT id FROM "Patient"').split())
     print(f"Patients Primia : {len(pg_patients)}")
 
-    # 1. légende des vaccins : NOM est un BLOB UTF8 dont la collation n'existe
-    # pas dans le conteneur -> interdire tout tri/concaténation. On lit chaque
-    # NOM séparément, casté en OCTETS (aucune collation requise), et on décode
-    # l'UTF8 en Python.
-    print("Légende des vaccins (VACCINS, lecture OCTETS individuelle)...")
-    rows_ids = fb_query(db, "SELECT " + f"COALESCE(CAST(ID AS VARCHAR(20)), '') || '{SEP}' ||"
-                        + "'END' FROM VACCINS")
+    # 1. légende des vaccins : le champ NOM est en charset UTF8 avec une
+    # collation absente du conteneur. Parade : cast en OCTETS DANS la requête
+    # (aucune comparaison/tri sur du texte), lecture globale en bloc.
+    print("Légende des vaccins (VACCINS, via OCTETS)...")
+    script_legende = (
+        f"CONNECT '{db}' USER 'SYSDBA' PASSWORD 'masterkey' CHARSET NONE;\n"
+        "SET HEADING OFF;\n"
+        "SELECT ID || '|||' || "
+        "COALESCE(CAST(SUBSTRING(NOM FROM 1 FOR 120) "
+        "AS VARCHAR(120) CHARACTER SET OCTETS), '') || '|||' || "
+        "'END' FROM VACCINS;\n"
+    )
+    pr = subprocess.run(
+        ["docker", "exec", "-i", "magicmed-firebird", FB_ISQL],
+        input=script_legende.encode("utf-8"), capture_output=True)
+    out = pr.stdout.decode("latin1", errors="replace")
     noms = {}
-    for r in rows_ids:
-        vid = clean(r[0]) if r else None
-        if not vid:
+    if "Statement failed" in out:
+        print("  AVERTISSEMENT légende :", out[:200].replace("\n", " | "))
+    for ligne in out.splitlines():
+        ligne = ligne.rstrip("\r").strip()
+        if not ligne or ligne.startswith(("Use CONNECT", "Database:")) or "Statement failed" in ligne:
             continue
-        # lecture individuelle : connexion en charset NONE (aucune conversion
-        # de caractères -> aucune collation exigée), BLOB via SUBSTRING brut
-        try:
-            script = (f"CONNECT '{db}' USER 'SYSDBA' PASSWORD 'masterkey' CHARSET NONE;\n"
-                      "SET HEADING OFF;\n"
-                      f"SELECT COALESCE(CAST(SUBSTRING(NOM FROM 1 FOR 120) "
-                      f"AS VARCHAR(120)), '') || '{SEP}' || 'END' "
-                      f"FROM VACCINS WHERE ID = {vid};\n")
-            pr = subprocess.run(
-                ["docker", "exec", "-i", "magicmed-firebird", FB_ISQL],
-                input=script.encode("utf-8"), capture_output=True)
-            out = pr.stdout.decode("latin1", errors="replace")
-            for ligne in out.splitlines():
-                ligne = ligne.rstrip("\r").strip()
-                if not ligne or ligne.startswith(("Use CONNECT", "Database:")) or "Statement failed" in ligne:
-                    continue
-                if SEP in ligne:
-                    brut = ligne.split(SEP)[0].strip()
-                    if brut:
-                        # les octets UTF8 arrivent translittérés en latin1 :
-                        nom = brut.encode("latin1", errors="ignore").decode("utf-8", errors="replace").strip()
-                        if nom:
-                            noms[vid] = nom
-                        break
-        except Exception:
+        if "|||" not in ligne:
             continue
+        parties = ligne.split("|||")
+        if len(parties) >= 2:
+            vid = parties[0].strip()
+            brut = parties[1]
+            if not vid or not brut.strip():
+                continue
+            try:
+                nom = brut.encode("latin1", errors="ignore").decode("utf-8", errors="replace").strip()
+            except Exception:
+                nom = brut.strip()
+            if nom:
+                noms[vid] = nom
     print(f"  {len(noms)} vaccins nommés")
 
     fld = lambda e: f"COALESCE(CAST({e} AS VARCHAR(32000)), '') || '{SEP}' ||"
