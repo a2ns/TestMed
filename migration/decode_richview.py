@@ -92,6 +92,19 @@ def decode_richview(raw):
         # "Text", "Bold", "Size", "Font", "Arial", "Color", "Black", "VShift"...
         if re.match(r"^(Style|Name|Text|Bold|Size|Font|Arial|Color|Black|Blue|Navy|VShift|Double|Normal|Heading|Subheading|Unicode|fsBold)$", ln.strip()):
             continue
+        # artefacts d'objets embarqués et blocs de paramètres :
+        # HelloDoc (OLE), *VID*/*IMG* (clips), .) -6 1 -1 0 0 "80515" 0 18 (IDs internes)
+        if re.search(r"HelloDoc|\*VID\*|\*IMG\*", ln):
+            continue
+        if re.match(r"^\.[\s\d\-]*\)[\s\d\-]*\"?[\d]*\"?[\s\d]*$", ln.strip()):
+            continue
+        # lignes à dominante de paramètres numériques (marqueurs résiduels) :
+        # ex. "-6 1 -1 0 0 "80515" 0 18" — chiffres/espaces/quotes uniquement,
+        # trop de chiffres pour du texte clinique
+        lettres = sum(1 for c in ln if c.isalpha())
+        chiffres = sum(1 for c in ln if c.isdigit())
+        if len(ln) > 5 and lettres < 3 and chiffres > len(ln) * 0.3:
+            continue
         lignes.append(ln)
 
     return "\n".join(lignes).strip()
