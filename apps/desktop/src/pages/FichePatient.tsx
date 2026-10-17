@@ -9,8 +9,8 @@ import {
   ResultatDocument,
   ConstanteBio,
   CourrierDossier,
-  apiDossier,,
-  apiDossierVaccins,,
+  apiDossier,
+  apiDossierVaccins,
   VaccinationDossier,
 } from "../lib/api";
 import { useAuth } from "../lib/auth";
