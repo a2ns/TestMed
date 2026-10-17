@@ -84,9 +84,20 @@ def main():
     if nb == "0":
         print("Rien à faire.")
         return
-    marques = set(psql("SELECT id FROM \"Consultation\" "
-                       "WHERE notes IN ('-8 1 3 1', '-8 1 3 2')").split())
-    print(f"UUIDs marqués chargés : {len(marques)}")
+    lignes_marquees = psql("SELECT id || '|' || COALESCE(\"patientId\", '') "
+                           "FROM \"Consultation\" "
+                           "WHERE notes IN ('-8 1 3 1', '-8 1 3 2')").splitlines()
+    marquees_par_patient = {}
+    marques = set()
+    for l in lignes_marquees:
+        if "|" not in l:
+            continue
+        cid, pid = l.split("|", 1)
+        marques.add(cid)
+        if pid:
+            marquees_par_patient.setdefault(pid, []).append(cid)
+    print(f"UUIDs marqués chargés : {len(marques)} "
+          f"({len(marquees_par_patient)} patients concernés)")
 
     # 2. CONS_ID de toutes les consultations source
     fld = lambda e: f"COALESCE(CAST({e} AS VARCHAR(32000)), '') || '{SEP}' ||"
@@ -101,14 +112,19 @@ def main():
     tous_ids = [r[0].strip() for r in rows_ids if r and r[0].strip()]
     print(f"Consultations source : {len(tous_ids)}")
 
-    # 3. extraction par lots
+    # 3. extraction par lots : CONS_ID + NUM_PAT + DATE + BLOB
+    #    la jointure se fait par UUID patient (dérivable de NUM_PAT)
     TAILLE_LOT = 300
     updates = []
+    dates = []
     erreurs = 0
+    vus = set()
     for i in range(0, len(tous_ids), TAILLE_LOT):
         lot = tous_ids[i:i + TAILLE_LOT]
         sel = ("SELECT "
                + fld("CONS_ID")
+               + fld("NUM_PAT")
+               + fld("DATE_CONSULT")
                + "COALESCE(" + blob_esc + ", '') || '" + SEP + "' || "
                + "'END' FROM PATIENTCONSULT WHERE CONS_ID IN ("
                + ",".join(lot) + ")")
@@ -118,13 +134,25 @@ def main():
             erreurs += 1
             continue
         for r in rows:
-            if len(r) < 2:
+            if len(r) < 4:
                 continue
-            cons_id = r[0].strip()
-            cid_uuid = src_uuid("PATIENTCONSULT", cons_id)
-            if cid_uuid not in marques:
-                continue  # pas une consultation marquée : ignorer
-            brut = r[1].replace("<NL>", "\r")
+            cons_id, numpat, dte, brut = r[0].strip(), r[1].strip(), r[2].strip(), r[3]
+            brut = brut.replace("<NL>", "\r")
+            if not numpat:
+                continue
+            pid_uuid = src_uuid("PATIENT", numpat)
+            cibles = marquees_par_patient.get(pid_uuid)
+            if not cibles:
+                continue  # aucune marquée pour ce patient
+            # prendre une consultation marquée non encore traitée pour ce patient
+            cid_uuid = None
+            for c in cibles:
+                if c not in vus:
+                    cid_uuid = c
+                    break
+            if not cid_uuid:
+                continue  # toutes celles de ce patient déjà traitées
+            vus.add(cid_uuid)
             if not brut.strip():
                 continue
             try:
@@ -137,6 +165,8 @@ def main():
                 continue
             if html and html.strip() not in ("", "<p></p>", "<p><br></p>"):
                 updates.append((cid_uuid, html))
+                if dte:
+                    dates.append((cid_uuid, dte))
         if (i // TAILLE_LOT) % 50 == 0:
             print(f"   lot {i // TAILLE_LOT + 1}/{(len(tous_ids) + TAILLE_LOT - 1) // TAILLE_LOT} ({len(updates)} textes)")
 
@@ -175,6 +205,33 @@ def main():
     if r.returncode != 0:
         print("ERREUR psql :", r.stderr[:300])
         sys.exit(1)
+
+    # restauration des vraies dates (la migration initiale les avait écrasées
+    # par DEFAULT now())
+    if dates:
+        with open("/tmp/rv_dates.csv", "w", encoding="utf-8") as fh:
+            csv.writer(fh).writerows(dates)
+        subprocess.run(["docker", "cp", "/tmp/rv_dates.csv",
+                        "magicmed-postgres:/tmp/rv_dates.csv"],
+                       check=True, capture_output=True)
+        subprocess.run(PSQL + ["-c", "DROP TABLE IF EXISTS maj_dates; "
+                               "CREATE TABLE maj_dates (id TEXT, d DATE);"],
+                       check=True, capture_output=True)
+        r = subprocess.run(PSQL + ["-c",
+                                   "\\copy maj_dates FROM '/tmp/rv_dates.csv' WITH CSV"],
+                           capture_output=True, text=True)
+        if r.returncode != 0:
+            print("ERREUR import dates :", r.stderr[:300])
+            sys.exit(1)
+        r = subprocess.run(PSQL + ["-v", "ON_ERROR_STOP=1", "-c",
+                                   'UPDATE "Consultation" c SET date = m.d '
+                                   "FROM maj_dates m WHERE c.id = m.id "
+                                   "AND c.date::date = CURRENT_DATE;"],
+                           capture_output=True, text=True)
+        if r.returncode != 0:
+            print("ERREUR psql dates :", r.stderr[:300])
+            sys.exit(1)
+        print(f"{len(dates)} dates restaurées")
 
     restant = psql("SELECT COUNT(*) FROM \"Consultation\" "
                    "WHERE notes IN ('-8 1 3 1', '-8 1 3 2')").strip()
