@@ -68,7 +68,7 @@ def fb_query(db_path, select_sql):
 def blob(expr):
     """Échappe une colonne BLOB pour l'extraction une-ligne-par-ligne."""
     nl = f"' || ASCII_CHAR(13) || ASCII_CHAR(10) || '"
-    return f"REPLACE(REPLACE(CAST({expr} AS VARCHAR(32000)), ASCII_CHAR(13)||ASCII_CHAR(10), '<NL>'), ASCII_CHAR(10), '<NL>') || '{SEP}' ||"
+    return f"REPLACE(REPLACE(REPLACE(CAST({expr} AS VARCHAR(32000)), ASCII_CHAR(13)||ASCII_CHAR(10), '<NL>'), ASCII_CHAR(13), '<NL>'), ASCII_CHAR(10), '<NL>') || '{SEP}' ||"
 
 
 def fld(expr):

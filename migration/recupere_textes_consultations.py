@@ -60,8 +60,9 @@ def fb_query(db, select_sql):
 
 def blob(expr):
     nl = "' || ASCII_CHAR(13) || ASCII_CHAR(10) || '"
-    return (f"REPLACE(REPLACE(CAST({expr} AS VARCHAR(32000)), "
+    return (f"REPLACE(REPLACE(REPLACE(CAST({expr} AS VARCHAR(32000)), "
             "ASCII_CHAR(13)||ASCII_CHAR(10), '<NL>'), "
+            "ASCII_CHAR(13), '<NL>'), "
             f"ASCII_CHAR(10), '<NL>') || '{SEP}' ||")
 
 
