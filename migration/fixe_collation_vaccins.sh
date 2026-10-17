@@ -1,9 +1,7 @@
 #!/bin/bash
-# Retire la collation UNICODE_CI_AI de VACCINS.NOM (copie patchée) :
-# Firebird la valide à chaque accès à la colonne, et elle n'est pas installée
-# dans le conteneur. L'ALTER réécrit les métadonnées -> collation par défaut
-# (binaire UTF8, sans ICU), les données sont conservées.
-set -euo pipefail
+# Contournement : Firebird 2.0 interdit l'ALTER de type sur BLOB. On crée une
+# colonne VARCHAR (charset NONE = aucune collation) et on y copie les octets.
+set -uo pipefail
 cd "$(dirname "$0")"
 ITB=$(ls data/*-sysdbb.itb data/*.ITB 2>/dev/null | head -1)
 DB="/database/$(basename "$ITB")"
@@ -11,13 +9,16 @@ DB="/database/$(basename "$ITB")"
 echo "Base : $DB"
 docker exec -i magicmed-firebird /usr/local/firebird/bin/isql \
   -user SYSDBA -password masterkey "$DB" <<'EOF'
-ALTER TABLE VACCINS ALTER COLUMN NOM TYPE BLOB SUB_TYPE TEXT CHARACTER SET UTF8;
+ALTER TABLE VACCINS ADD NOM2 VARCHAR(120) CHARACTER SET NONE;
+COMMIT;
+UPDATE VACCINS SET NOM2 = CAST(SUBSTRING(NOM FROM 1 FOR 120) AS VARCHAR(120) CHARACTER SET NONE);
 COMMIT;
 EOF
-echo "Collation retirée. Test de lecture :"
+echo ""
+echo "Lecture via NOM2 :"
 docker exec -i magicmed-firebird /usr/local/firebird/bin/isql \
   -user SYSDBA -password masterkey "$DB" <<'EOF'
 SET HEADING OFF;
-SELECT 'OK|' || v.ID || '|' || COALESCE(CAST(SUBSTRING(v.NOM FROM 1 FOR 60) AS VARCHAR(60)), '(vide)')
+SELECT 'OK|' || v.ID || '|' || COALESCE(v.NOM2, '(vide)')
 FROM VACCINS v;
 EOF
