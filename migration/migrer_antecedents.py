@@ -18,6 +18,9 @@ import subprocess
 import sys
 import uuid
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from decode_richview import decode_richview
+
 MIG_DIR = os.path.dirname(os.path.abspath(__file__))
 NS = uuid.UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
 DRY_RUN = "--dry-run" in sys.argv
@@ -90,6 +93,9 @@ def main():
         db,
         "SELECT " + fld("ID") + fld("NUM_PAT") + fld("TYPEATCD")
         + fld("LIBELLEATCD") + fld("CIM10") + fld("DATEATCD")
+        + "COALESCE(REPLACE(REPLACE(REPLACE(CAST(COMMENTAIRE AS VARCHAR(32000)), "
+        "ASCII_CHAR(13)||ASCII_CHAR(10), '<NL>'), "
+        "ASCII_CHAR(13), '<NL>'), ASCII_CHAR(10), '<NL>'), '') || '" + SEP + "' || "
         + "'END' FROM PATIENTATCD")
     print(f"Antécédents extraits : {len(rows)}")
 
@@ -105,8 +111,27 @@ def main():
             # ne garder que les lettres : '*AM', '\x93AM', 'AM ' -> 'AM'
             typ = re.sub(r"[^A-Za-z]", "", typ).upper()
         date_raw = clean(r[5]) if len(r) > 5 else None
-        if not numpat or not libelle:
+        commentaire_raw = clean(r[6]) if len(r) > 6 else None
+        if not numpat:
             continue
+        if not libelle:
+            libelle = None
+            if commentaire_raw:
+                texte = decode_richview(
+                    commentaire_raw.replace("<NL>", "\r").encode("cp1252", errors="replace"))
+                lignes_txt = [l for l in texte.split("\n")
+                              if l.strip() and not l.strip().startswith("rvs")]
+                if lignes_txt:
+                    libelle = " ".join(lignes_txt)[:250]
+            if not libelle:
+                LIBELLES_GEN = {"AM": "Antécédent médical (non précisé)",
+                                "AC": "Antécédent chirurgical (non précisé)",
+                                "AF": "Antécédent familial (non précisé)"}
+                if typ in LIBELLES_GEN:
+                    libelle = LIBELLES_GEN[typ]
+                else:
+                    stats["ignores"] += 1
+                    continue
         pid = src_uuid("PATIENT", numpat)
         if pid not in pg_patients:
             stats["ignores"] += 1
