@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   api,
@@ -421,13 +421,7 @@ function SectionConsultations({
           placeholder="Motif (obligatoire)"
           className="w-full border border-slate-300 rounded-lg px-3 py-2"
         />
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={5}
-          placeholder="Notes : examen, diagnostic, conduite à tenir…"
-          className="w-full border border-slate-300 rounded-lg p-3"
-        />
+        <EditeurNotes valeur={notes} onChange={setNotes} />
         <div className="flex gap-3">
           <button
             onClick={() =>
@@ -1036,7 +1030,8 @@ function EditionPatient({
 function sanitiserHtml(html: string): string {
   const div = document.createElement("div");
   div.innerHTML = html;
-  const AUTORISES = new Set(["STRONG", "EM", "U", "BR", "P", "UL", "OL", "LI", "#text"]);
+  const AUTORISES = new Set(["STRONG", "EM", "U", "BR", "P", "UL", "OL", "LI",
+                            "B", "I", "#text"]);
   const nettoyer = (noeud: Node) => {
     [...noeud.childNodes].forEach((enfant) => {
       if (!AUTORISES.has(enfant.nodeName)) {
@@ -1060,4 +1055,58 @@ function NotesRiches({ texte }: { texte: string }) {
     );
   }
   return <p className="mt-2 text-sm whitespace-pre-wrap">{texte}</p>;
+}
+
+
+/// Éditeur de notes enrichies : barre d'outils (gras/italique/souligné/liste)
+/// + zone contentEditable. Produit du HTML simple (<b>/<i>/<u>/<ul>/<li>/<br>)
+/// compatible avec l'affichage NotesRiches (sanitisé à l'affichage).
+function EditeurNotes({ valeur, onChange }: { valeur: string; onChange: (v: string) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  // synchroniser le contenu externe -> éditeur (une seule fois, sans écraser le curseur)
+  useEffect(() => {
+    if (ref.current && ref.current.innerHTML !== valeur && document.activeElement !== ref.current) {
+      ref.current.innerHTML = valeur || "";
+    }
+  }, [valeur]);
+
+  const emettre = () => {
+    if (ref.current) {
+      onChange(ref.current.innerHTML);
+    }
+  };
+
+  const cmd = (commande: string, arg?: string) => {
+    document.execCommand(commande, false, arg);
+    ref.current?.focus();
+    emettre();
+  };
+
+  const bouton = "px-2 py-1 border border-slate-300 rounded text-sm hover:bg-slate-100";
+
+  return (
+    <div className="border border-slate-300 rounded-lg overflow-hidden">
+      <div className="flex gap-1 p-1.5 bg-slate-50 border-b border-slate-200">
+        <button type="button" className={bouton} onClick={() => cmd("bold")}
+          title="Gras"><b>G</b></button>
+        <button type="button" className={bouton} onClick={() => cmd("italic")}
+          title="Italique"><i>I</i></button>
+        <button type="button" className={bouton} onClick={() => cmd("underline")}
+          title="Souligné"><u>U</u></button>
+        <button type="button" className={bouton} onClick={() => cmd("insertUnorderedList")}
+          title="Liste à puces">• —</button>
+        <button type="button" className={bouton} onClick={() => cmd("formatBlock", "<p>")}
+          title="Paragraphe">¶</button>
+      </div>
+      <div
+        ref={ref}
+        contentEditable
+        onInput={emettre}
+        onBlur={emettre}
+        data-placeholder="Notes : examen, diagnostic, conduite à tenir…"
+        className="min-h-[120px] p-3 text-sm focus:outline-none prose prose-sm max-w-none"
+      />
+    </div>
+  );
 }
