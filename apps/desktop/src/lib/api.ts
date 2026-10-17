@@ -459,3 +459,16 @@ export const apiDossier = {
   listDocumentsPatient: (patientId: string) =>
     invoke<DocumentDossier[]>("list_documents_patient", { patientId }),
 };
+
+export type VaccinationDossier = {
+  id: string;
+  vaccin: string;
+  date: string | null;
+  dateRappel: string | null;
+  lot: string | null;
+};
+
+export const apiDossierVaccins = {
+  listVaccinationsPatient: (patientId: string) =>
+    invoke<VaccinationDossier[]>("list_vaccinations_patient", { patientId }),
+};

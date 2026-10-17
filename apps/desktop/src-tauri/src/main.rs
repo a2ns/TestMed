@@ -102,6 +102,7 @@ fn main() {
             commands::reconciliation::lier_fiche,
             commands::dossier::list_courriers_patient,
             commands::dossier::list_documents_patient,
+            commands::dossier::list_vaccinations_patient,
             commands::dashboard::statistiques,
         ])
         .run(tauri::generate_context!())

@@ -9,7 +9,9 @@ import {
   ResultatDocument,
   ConstanteBio,
   CourrierDossier,
-  apiDossier,
+  apiDossier,,
+  apiDossierVaccins,,
+  VaccinationDossier,
 } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import CourrierPatient from "../components/CourrierPatient";
@@ -27,7 +29,7 @@ import {
   CreditCard,
 } from "lucide-react";
 
-type Onglet = "consultations" | "antecedents" | "traitements" | "allergies" | "constantes" | "courriers" | "documents";
+type Onglet = "consultations" | "antecedents" | "traitements" | "allergies" | "constantes" | "courriers" | "vaccins" | "documents";
 
 const CATEGORIES = ["MEDICAL", "CHIRURGICAL", "FAMILIAL", "OBSTETRIQUE", "TOXIQUE"];
 const GRAVITES = ["SEVERE", "MODEREE", "FAIBLE"];
@@ -348,7 +350,7 @@ export default function FichePatient() {
         )}
 
         <div className="flex gap-1 mb-5 border-b border-slate-200">
-          {(["consultations", "antecedents", "traitements", "allergies", "constantes", "courriers", "documents"] as Onglet[]).map(
+          {(["consultations", "antecedents", "traitements", "allergies", "constantes", "courriers", "vaccins", "documents"] as Onglet[]).map(
             (o) => (
               <button
                 key={o}
@@ -389,6 +391,9 @@ export default function FichePatient() {
         )}
         {onglet === "courriers" && id && (
           <SectionCourriers patientId={id} />
+        )}
+        {onglet === "vaccins" && id && (
+          <SectionVaccins patientId={id} />
         )}
         {onglet === "documents" && id && (
           <SectionDocuments patientId={id} cle={cleDocuments} />
@@ -1316,6 +1321,59 @@ function SectionCourriers({ patientId }: { patientId: string }) {
               )}
             </div>
           )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+
+/// Onglet Vaccins : vaccinations du patient, statut vaccinal lisible.
+function SectionVaccins({ patientId }: { patientId: string }) {
+  const [vaccins, setVaccins] = useState<VaccinationDossier[]>([]);
+  const [chargement, setChargement] = useState(true);
+  const [erreur, setErreur] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiDossierVaccins
+      .listVaccinationsPatient(patientId)
+      .then(setVaccins)
+      .catch((e) => setErreur(String(e)))
+      .finally(() => setChargement(false));
+  }, [patientId]);
+
+  if (chargement) return <p className="text-sm text-slate-400">Chargement…</p>;
+  if (erreur)
+    return (
+      <p className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+        {erreur}
+      </p>
+    );
+  if (vaccins.length === 0)
+    return (
+      <div className="bg-white rounded-xl border border-slate-200 p-6 text-sm text-slate-500">
+        Aucune vaccination enregistrée.
+      </div>
+    );
+  return (
+    <div className="space-y-2">
+      {vaccins.map((v) => (
+        <div
+          key={v.id}
+          className="bg-white rounded-xl border border-slate-200 p-4 flex justify-between items-center"
+        >
+          <div>
+            <div className="font-medium">{v.vaccin}</div>
+            <div className="text-xs text-slate-400">
+              {v.lot ? `Lot ${v.lot}` : ""}
+              {v.dateRappel
+                ? ` · Rappel : ${new Date(v.dateRappel).toLocaleDateString("fr-FR")}`
+                : ""}
+            </div>
+          </div>
+          <span className="text-sm text-slate-500">
+            {v.date ? new Date(v.date).toLocaleDateString("fr-FR") : "—"}
+          </span>
         </div>
       ))}
     </div>
