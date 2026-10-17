@@ -180,22 +180,27 @@ def main():
             print(table, ": rien à convertir")
             continue
 
-        with open("/tmp/rtf_updates.csv", "w", encoding="utf-8") as fh:
-            csv_mod.writer(fh).writerows(updates)
-        subprocess.run(["docker", "cp", "/tmp/rtf_updates.csv",
-                        "magicmed-postgres:/tmp/rtf_updates.csv"],
+        # ré-injection : table dédiée (pas TEMP : disparait avec la session),
+        # \copy FROM STDIN en streaming (pas de fichier conteneur)
+        subprocess.run(PSQL + ["-c", "DROP TABLE IF EXISTS maj_rtf; "
+                               "CREATE TABLE maj_rtf (id TEXT, contenu TEXT);"],
                        check=True, capture_output=True)
-        req = (
-            "CREATE TEMP TABLE maj_rtf (id TEXT, contenu TEXT); "
-            "\\copy maj_rtf FROM '/tmp/rtf_updates.csv' WITH CSV; "
-            'UPDATE "' + table + '" t SET "' + col + '" = m.contenu '
-            "FROM maj_rtf m WHERE t.id = m.id;"
-        )
-        r = subprocess.run(PSQL + ["-v", "ON_ERROR_STOP=1", "-c", req],
+        with open("/tmp/rtf_updates.csv", encoding="utf-8") as fh_in:
+            r = subprocess.run(PSQL + ["-c",
+                                       "\\copy maj_rtf FROM STDIN WITH CSV"],
+                               stdin=fh_in, capture_output=True, text=True)
+        if r.returncode != 0:
+            print("ERREUR import", table, ":", (r.stderr or "")[:300])
+            sys.exit(1)
+        r = subprocess.run(PSQL + ["-v", "ON_ERROR_STOP=1", "-c",
+                                   'UPDATE "' + table + '" t SET "' + col + '" = m.contenu '
+                                   "FROM maj_rtf m WHERE t.id = m.id;"],
                           capture_output=True, text=True)
         if r.returncode != 0:
             print("ERREUR psql sur", table, ":", r.stderr[:300])
             sys.exit(1)
+        subprocess.run(PSQL + ["-c", "DROP TABLE IF EXISTS maj_rtf;"],
+                       capture_output=True)
         print(table, ":", len(updates), "enregistrements convertis (RTF -> HTML)")
 
     print("\nAperçu d'une note convertie :")
