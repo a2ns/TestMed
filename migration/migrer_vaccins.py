@@ -94,27 +94,35 @@ def main():
         vid = clean(r[0]) if r else None
         if not vid:
             continue
-        # lecture individuelle : SUBSTRING du BLOB casté en OCTETS
+        # lecture individuelle : connexion en charset NONE (aucune conversion
+        # de caractères -> aucune collation exigée), BLOB via SUBSTRING brut
         try:
-            lignes = fb_query(
-                db,
-                "SELECT COALESCE(CAST(SUBSTRING(NOM FROM 1 FOR 120) "
-                "AS VARCHAR(120) CHARACTER SET OCTETS), '') || '|||' || "
-                f"'END' FROM VACCINS WHERE ID = {vid}")
-            if lignes and lignes[0]:
-                brut = lignes[0][0]
-                # OCTETS sort en hexadécimal ? Non : en caractères bruts.
-                # Décoder l'UTF8 depuis les octets latin1-translittérés :
-                try:
-                    nom = brut.encode("latin1", errors="ignore").decode("utf-8", errors="replace").strip()
-                except Exception:
-                    nom = brut.strip()
-                if nom:
-                    noms[vid] = nom
-        except RuntimeError:
+            script = (f"CONNECT '{db}' USER 'SYSDBA' PASSWORD 'masterkey' CHARSET NONE;\n"
+                      "SET HEADING OFF;\n"
+                      f"SELECT COALESCE(CAST(SUBSTRING(NOM FROM 1 FOR 120) "
+                      f"AS VARCHAR(120)), '') || '{SEP}' || 'END' "
+                      f"FROM VACCINS WHERE ID = {vid};\n")
+            pr = subprocess.run(
+                ["docker", "exec", "-i", "magicmed-firebird", FB_ISQL],
+                input=script.encode("utf-8"), capture_output=True)
+            out = pr.stdout.decode("latin1", errors="replace")
+            for ligne in out.splitlines():
+                ligne = ligne.rstrip("\r").strip()
+                if not ligne or ligne.startswith(("Use CONNECT", "Database:")) or "Statement failed" in ligne:
+                    continue
+                if SEP in ligne:
+                    brut = ligne.split(SEP)[0].strip()
+                    if brut:
+                        # les octets UTF8 arrivent translittérés en latin1 :
+                        nom = brut.encode("latin1", errors="ignore").decode("utf-8", errors="replace").strip()
+                        if nom:
+                            noms[vid] = nom
+                        break
+        except Exception:
             continue
     print(f"  {len(noms)} vaccins nommés")
 
+    fld = lambda e: f"COALESCE(CAST({e} AS VARCHAR(32000)), '') || '{SEP}' ||"
     # 2. vaccinations des patients
     print("Vaccinations (VACCINS_PATIENTS)...")
     rows = fb_query(
