@@ -92,12 +92,8 @@ def decode_richview(raw):
         # "Text", "Bold", "Size", "Font", "Arial", "Color", "Black", "VShift"...
         if re.match(r"^(Style|Name|Text|Bold|Size|Font|Arial|Color|Black|Blue|Navy|VShift|Double|Normal|Heading|Subheading|Unicode|fsBold)$", ln.strip()):
             continue
-        # artefacts d'objets embarqués et blocs de paramètres :
-        # HelloDoc (OLE), *VID*/*IMG* (clips), .) -6 1 -1 0 0 "80515" 0 18 (IDs internes)
-        if re.search(r"HelloDoc|\*VID\*|\*IMG\*", ln):
-            continue
-        if re.match(r"^\.[\s\d\-]*\)[\s\d\-]*\"?[\d]*\"?[\s\d]*$", ln.strip()):
-            continue
+        # NB : les artefacts HelloDoc/*VID* sont poncés IN-PLACE plus bas,
+        # pas filtrés ici (des phrases légitimes mentionnent HelloDoc)
         # lignes à dominante de paramètres numériques (marqueurs résiduels) :
         # ex. "-6 1 -1 0 0 "80515" 0 18" — chiffres/espaces/quotes uniquement,
         # trop de chiffres pour du texte clinique
@@ -107,7 +103,24 @@ def decode_richview(raw):
             continue
         lignes.append(ln)
 
-    return "\n".join(lignes).strip()
+    # Ponçage in-place des artefacts embarqués DANS les lignes de texte :
+    # - "HelloDoc:)01-" (objet OLE de messagerie) et ses variantes
+    # - "*VID*", "*IMG*" (clips/images embarqués)
+    # - "RVSCleanBookMark"/"RVCleanBookMark" (signets RichView)
+    # - blocs de paramètres ".) -6 1 -1 0 0 \"80515\" 0 18" en fin/milieu de ligne
+    texte_final = "\n".join(lignes)
+    texte_final = re.sub(r"HelloDoc:?\)?[0-9-]*", "", texte_final)
+    texte_final = re.sub(r"\*VID\*|\*IMG\*", "", texte_final)
+    texte_final = re.sub(r"RVS?CleanBookMark", "", texte_final)
+    # blocs de paramètres ".) -6 1 -1 0 0 \"80515\" 0 18" : motif strict —
+    # ligne commençant par .) puis uniquement chiffres/espaces/tirets/quotes
+    texte_final = re.sub(
+        r"(?m)^\.?\)\s?-\d[\d\s\-\"']+$", "", texte_final)
+    # lignes devenues vides après ponçage
+    texte_final = "\n".join(
+        ln for ln in texte_final.split("\n") if ln.strip()
+    )
+    return texte_final.strip()
 
 
 def vers_html(texte):
