@@ -82,14 +82,37 @@ def main():
     pg_patients = set(psql('SELECT id FROM "Patient"').split())
     print(f"Patients Primia : {len(pg_patients)}")
 
-    # 1. légende des vaccins (NOM est BLOB -> CAST explicite)
-    fld = lambda e: f"COALESCE(CAST({e} AS VARCHAR(32000)), '') || '{SEP}' ||"
-    print("Légende des vaccins (VACCINS)...")
-    rows_vaccins = fb_query(db, "SELECT " + fld("ID") + fld("NOM") + "'END' FROM VACCINS")
+    # 1. légende des vaccins : NOM est un BLOB UTF8 dont la collation n'existe
+    # pas dans le conteneur -> interdire tout tri/concaténation. On lit chaque
+    # NOM séparément, casté en OCTETS (aucune collation requise), et on décode
+    # l'UTF8 en Python.
+    print("Légende des vaccins (VACCINS, lecture OCTETS individuelle)...")
+    rows_ids = fb_query(db, "SELECT " + f"COALESCE(CAST(ID AS VARCHAR(20)), '') || '{SEP}' ||"
+                        + "'END' FROM VACCINS")
     noms = {}
-    for r in rows_vaccins:
-        if len(r) >= 2 and clean(r[0]) and clean(r[1]):
-            noms[clean(r[0])] = clean(r[1])
+    for r in rows_ids:
+        vid = clean(r[0]) if r else None
+        if not vid:
+            continue
+        # lecture individuelle : SUBSTRING du BLOB casté en OCTETS
+        try:
+            lignes = fb_query(
+                db,
+                "SELECT COALESCE(CAST(SUBSTRING(NOM FROM 1 FOR 120) "
+                "AS VARCHAR(120) CHARACTER SET OCTETS), '') || '|||' || "
+                f"'END' FROM VACCINS WHERE ID = {vid}")
+            if lignes and lignes[0]:
+                brut = lignes[0][0]
+                # OCTETS sort en hexadécimal ? Non : en caractères bruts.
+                # Décoder l'UTF8 depuis les octets latin1-translittérés :
+                try:
+                    nom = brut.encode("latin1", errors="ignore").decode("utf-8", errors="replace").strip()
+                except Exception:
+                    nom = brut.strip()
+                if nom:
+                    noms[vid] = nom
+        except RuntimeError:
+            continue
     print(f"  {len(noms)} vaccins nommés")
 
     # 2. vaccinations des patients
