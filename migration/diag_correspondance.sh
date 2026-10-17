@@ -25,8 +25,19 @@ DB="/database/$(basename "$ITB")"
 docker exec -i magicmed-firebird /usr/local/firebird/bin/isql \
   -user SYSDBA -password masterkey "$DB" <<'EOF'
 SET HEADING OFF;
-SELECT 'FB|' || EXTRACT(YEAR FROM DATE_CONSULT) || '|' || COUNT(*) || '|' ||
-  MIN(CONS_ID) || '|' || MAX(CONS_ID)
-FROM PATIENTCONSULT WHERE DATE_SUPPR IS NULL
-GROUP BY 1 ORDER BY 1;
+SELECT 'FB|' || y.ANNEE || '|' || y.NB || '|' || y.MINC || '|' || y.MAXC
+FROM (
+  SELECT EXTRACT(YEAR FROM DATE_CONSULT) AS ANNEE, COUNT(*) AS NB,
+         MIN(CONS_ID) AS MINC, MAX(CONS_ID) AS MAXC
+  FROM PATIENTCONSULT WHERE DATE_SUPPR IS NULL
+) y;
+EOF
+
+echo ""
+echo "=== 4. Date "today" : consultations marquées au 2026-10-06 : que dit Firebird ? ==="
+docker exec -i magicmed-firebird /usr/local/firebird/bin/isql \
+  -user SYSDBA -password masterkey "$DB" <<'EOF'
+SET HEADING OFF;
+SELECT 'D1|' || COUNT(*) FROM PATIENTCONSULT WHERE DATE_CONSULT = '2026-10-06';
+SELECT 'D2|' || COUNT(*) FROM PATIENTCONSULT WHERE DATE_CONSULT IS NULL AND DATE_SUPPR IS NULL;
 EOF
