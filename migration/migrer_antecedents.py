@@ -130,7 +130,7 @@ def main():
             # allergie : substance = libellé nettoyé
             substance = libelle
             allergies.append((src_uuid("PATIENTATCD", aid), pid, substance,
-                              "NON_PRECISEE", notes_txt))
+                              "FAIBLE", notes_txt))
             stats["allergie"] += 1
         elif typ in CATEGORIES:
             antecedents.append((src_uuid("PATIENTATCD", aid), pid,
