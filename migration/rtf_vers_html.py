@@ -150,17 +150,22 @@ def main():
 
     import csv as csv_mod
     for table, col in [("Consultation", "notes"), ("Courrier", "contenu")]:
+        # export direct vers STDOUT redirige dans un fichier local :
+        # pas de fichier intermediaire conteneur, pas de docker cp
         sql_export = (
             "\\copy (SELECT id, " + col + ' FROM "' + table + '" '
             "WHERE " + col + " LIKE '%\\\\rtf1%') "
-            "TO '/tmp/rtf_export.csv' WITH CSV"
+            "TO STDOUT WITH CSV"
         )
-        r = subprocess.run(PSQL + ["-c", sql_export], capture_output=True, text=True)
+        with open("/tmp/rtf_export.csv", "w", encoding="utf-8") as fh_out:
+            r = subprocess.run(PSQL + ["-c", sql_export], stdout=fh_out,
+                               stderr=subprocess.PIPE, text=True)
         if r.returncode != 0:
-            print("ERREUR export", table, ":", r.stderr[:300])
+            print("ERREUR export", table, ":", (r.stderr or "")[:300])
             sys.exit(1)
-        subprocess.run(["docker", "cp", "magicmed-postgres:/tmp/rtf_export.csv",
-                        "/tmp/rtf_export.csv"], check=True, capture_output=True)
+        import os as _os
+        taille = _os.path.getsize("/tmp/rtf_export.csv")
+        print(f"   export {table} : {taille} octets")
 
         updates = []
         with open("/tmp/rtf_export.csv", encoding="utf-8") as fh:
