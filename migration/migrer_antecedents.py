@@ -63,9 +63,9 @@ def clean(v):
 
 
 CATEGORIES = {
-    "AM": "MEDICAL", "*AM": "MEDICAL",
-    "AC": "CHIRURGICAL", "*AC": "CHIRURGICAL",
-    "AF": "FAMILIAL", "*AF": "FAMILIAL",
+    "AM": "MEDICAL",
+    "AC": "CHIRURGICAL",
+    "AF": "FAMILIAL",
 }
 
 
@@ -101,6 +101,8 @@ def main():
         if len(r) < 5:
             continue
         aid, numpat, typ, libelle, cim10 = [clean(x) for x in r[:5]]
+        if typ:
+            typ = typ.lstrip("*").strip()  # '*AM' -> 'AM' (marquage variable)
         date_raw = clean(r[5]) if len(r) > 5 else None
         if not numpat or not libelle:
             continue
@@ -123,7 +125,7 @@ def main():
         else:
             notes_txt = None
 
-        if typ in ("ALL", "*ALL"):
+        if typ == "ALL":
             # allergie : substance = libellé nettoyé
             substance = libelle
             allergies.append((src_uuid("PATIENTATCD", aid), pid, substance, notes_txt))
@@ -150,7 +152,7 @@ def main():
             csv.writer(fh).writerows(antecedents)
         subprocess.run(PSQL + ["-c", "DROP TABLE IF EXISTS maj_atcd; "
                                "CREATE TABLE maj_atcd (id TEXT, pid TEXT, "
-                               "cat TEXT, lib TEXT, an INT, not TEXT);"],
+                               "cat TEXT, lib TEXT, an INT, nte TEXT);"],
                        check=True, capture_output=True)
         with open("/tmp/antecedents.csv", encoding="utf-8") as fh:
             r = subprocess.run(PSQL + ["-c", "\\copy maj_atcd FROM STDIN WITH CSV"],
@@ -160,7 +162,7 @@ def main():
             sys.exit(1)
         r = subprocess.run(PSQL + ["-v", "ON_ERROR_STOP=1", "-c",
             'INSERT INTO "Antecedent" (id, "patientId", categorie, libelle, annee, notes) '
-            "SELECT m.id, m.pid, m.cat, m.lib, m.an, m.not FROM maj_atcd m "
+            "SELECT m.id, m.pid, m.cat, m.lib, m.an, m.nte FROM maj_atcd m "
             'WHERE NOT EXISTS (SELECT 1 FROM "Antecedent" a WHERE a.id = m.id);'],
             capture_output=True, text=True)
         if r.returncode != 0:
