@@ -134,7 +134,7 @@ def main():
     rows = fb_query(
         db,
         "SELECT " + fld("PRESCRIPTIONSDET_ID") + fld("NUMPRESCRIPTION")
-        + fld("VIDALPRODUCT") + fld("DUREE") + fld("MOMENTPRISE")
+        + fld("VIDALPRODUCT") + fld("MEDICAMENT") + fld("DUREE") + fld("MOMENTPRISE")
         + "'END' FROM PRESCRIPTIONSDET")
     print(f"  {len(rows)} lignes extraites")
 
@@ -143,9 +143,9 @@ def main():
     for r in rows:
         if len(r) < 3:
             continue
-        lid, numpresc, vidal_id = [clean(x) for x in r[:3]]
-        duree = clean(r[3]) if len(r) > 3 else None
-        moment_brut = clean(r[4]) if len(r) > 4 else None
+        lid, numpresc, vidal_id, medicament_libre = [clean(x) for x in r[:4]]
+        duree = clean(r[4]) if len(r) > 4 else None
+        moment_brut = clean(r[5]) if len(r) > 5 else None
         if not numpresc or numpresc not in prescriptions:
             continue
         numpat, date_consult, date_suppr = prescriptions[numpresc]
@@ -155,10 +155,12 @@ def main():
         if pid not in pg_patients:
             continue
         nom = noms.get(vidal_id) if vidal_id else None
+        if not nom and medicament_libre:
+            nom = medicament_libre  # texte libre saisi par le médecin
         if not nom:
             sans_nom += 1
             nom = "Médicament (non identifié)"
-        posologie = decode_moment(moment_brut, legendes)
+        posologie = decode_moment(moment_brut, legendes) or ""
         # actif si la prescription n'est pas supprimée
         actif = date_suppr is None
         # id déterministe
