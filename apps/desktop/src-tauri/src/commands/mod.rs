@@ -4,6 +4,7 @@ pub mod correspondants;
 pub mod courriers;
 pub mod dashboard;
 pub mod documents;
+pub mod dossier;
 pub mod ordonnances;
 pub mod patients;
 pub mod recherche;

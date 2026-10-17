@@ -100,6 +100,8 @@ fn main() {
             commands::reconciliation::list_fiches_orphelines,
             commands::reconciliation::list_occurrences_patients,
             commands::reconciliation::lier_fiche,
+            commands::dossier::list_courriers_patient,
+            commands::dossier::list_documents_patient,
             commands::dashboard::statistiques,
         ])
         .run(tauri::generate_context!())

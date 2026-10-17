@@ -7,6 +7,9 @@ import {
   Consultation,
   Traitement,
   ResultatDocument,
+  ConstanteBio,
+  CourrierDossier,
+  apiDossier,
 } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import CourrierPatient from "../components/CourrierPatient";
@@ -24,7 +27,7 @@ import {
   CreditCard,
 } from "lucide-react";
 
-type Onglet = "consultations" | "antecedents" | "traitements" | "allergies" | "documents";
+type Onglet = "consultations" | "antecedents" | "traitements" | "allergies" | "bio" | "courriers" | "documents";
 
 const CATEGORIES = ["MEDICAL", "CHIRURGICAL", "FAMILIAL", "OBSTETRIQUE", "TOXIQUE"];
 const GRAVITES = ["SEVERE", "MODEREE", "FAIBLE"];
@@ -320,7 +323,7 @@ export default function FichePatient() {
         )}
 
         <div className="flex gap-1 mb-5 border-b border-slate-200">
-          {(["consultations", "antecedents", "traitements", "allergies", "documents"] as Onglet[]).map(
+          {(["consultations", "antecedents", "traitements", "allergies", "bio", "courriers", "documents"] as Onglet[]).map(
             (o) => (
               <button
                 key={o}
@@ -354,6 +357,12 @@ export default function FichePatient() {
         )}
         {onglet === "allergies" && (
           <SectionAllergies allergies={allergies} ajouter={ajouterAllergie} />
+        )}
+        {onglet === "bio" && (
+          <SectionBio constantes={constantes} />
+        )}
+        {onglet === "courriers" && id && (
+          <SectionCourriers patientId={id} />
         )}
         {onglet === "documents" && id && (
           <SectionDocuments patientId={id} cle={cleDocuments} />
@@ -408,6 +417,7 @@ function SectionConsultations({
     notes: string
   ) => Promise<{ motif: string; notes: string } | null>;
 }) {
+  const [ouverte, setOuverte] = useState<string | null>(null);
   const [motif, setMotif] = useState("");
   const [notes, setNotes] = useState("");
   const [structureEnCours, setStructureEnCours] = useState(false);
@@ -454,30 +464,47 @@ function SectionConsultations({
         </div>
         <IndicateurIa actif={structureEnCours} tache="structuration" />
       </div>
-      {consultations.map((c) => (
-        <div key={c.id} className="bg-white rounded-xl border border-slate-200 p-5">
-          <div className="flex justify-between">
-            <span className="font-semibold">
-              {c.motif || (c.notes ? c.notes.split("\n")[0].slice(0, 60) : "Consultation")}
-            </span>
+      {consultations.map((c) => {
+        const titre = c.motif ||
+          (c.notes ? c.notes.replace(/<[^>]+>/g, "").split("\n")[0].slice(0, 70) : "Consultation");
+        return (
+        <div key={c.id} className="bg-white rounded-xl border border-slate-200">
+          <button
+            onClick={() => setOuverte((v) => (v === c.id ? null : c.id))}
+            className="w-full flex justify-between items-center text-left p-4 hover:bg-slate-50"
+          >
+            <span className="font-semibold text-sm truncate max-w-[70%]">{titre}</span>
             <div className="flex items-center gap-3">
               <span className="text-sm text-slate-500">
                 {new Date(c.date).toLocaleString("fr-FR")}
               </span>
-              <button
-                onClick={() => {
-                  if (window.confirm("Supprimer cette consultation ?"))
-                    supprimer(c.id);
-                }}
-                className="text-xs text-red-500 hover:text-red-700"
-              >
-                <Trash2 size={14} className="inline" /> Supprimer
-              </button>
             </div>
-          </div>
-          {c.notes && <NotesRiches texte={c.notes} />}
+          </button>
+          {ouverte === c.id && (
+            <div className="px-4 pb-4 border-t border-slate-100">
+              {c.notes ? (
+                <NotesRiches texte={c.notes} />
+              ) : (
+                <p className="text-sm text-slate-400 italic mt-2">
+                  Consultation sans rédaction.
+                </p>
+              )}
+              <div className="mt-3 flex justify-end">
+                <button
+                  onClick={() => {
+                    if (window.confirm("Supprimer cette consultation ?"))
+                      supprimer(c.id);
+                  }}
+                  className="text-xs text-red-500 hover:text-red-700"
+                >
+                  <Trash2 size={14} className="inline" /> Supprimer
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -1107,6 +1134,146 @@ function EditeurNotes({ valeur, onChange }: { valeur: string; onChange: (v: stri
         data-placeholder="Notes : examen, diagnostic, conduite à tenir…"
         className="min-h-[120px] p-3 text-sm focus:outline-none prose prose-sm max-w-none"
       />
+    </div>
+  );
+}
+
+/// Onglet Bio : constantes groupées par type, avec dernières valeurs et historique
+function SectionBio({ constantes }: { constantes: ConstanteBio[] }) {
+  const LIBELLES: Record<string, string> = {
+    TENSION_SYST: "Tension systolique",
+    TENSION_DIAST: "Tension diastolique",
+    POIDS: "Poids",
+    TAILLE: "Taille",
+    IMC: "IMC",
+    GLYCEMIE: "Glycémie",
+  };
+  const parType = constantes.reduce<Record<string, ConstanteBio[]>>((acc, c) => {
+    (acc[c.type] = acc[c.type] || []).push(c);
+    return acc;
+  }, {});
+  const [detailOuvert, setDetailOuvert] = useState<string | null>(null);
+
+  if (constantes.length === 0) {
+    return (
+      <div className="bg-white rounded-xl border border-slate-200 p-6 text-sm text-slate-500">
+        Aucune constante biologique enregistrée.
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-4">
+      {Object.entries(parType).map(([type, valeurs]) => {
+        const derniere = valeurs[0];
+        const precedente = valeurs[1];
+        return (
+          <div key={type} className="bg-white rounded-xl border border-slate-200">
+            <button
+              onClick={() =>
+                setDetailOuvert((v) => (v === type ? null : type))
+              }
+              className="w-full flex justify-between items-center p-4 hover:bg-slate-50 text-left"
+            >
+              <span className="font-medium">{LIBELLES[type] || type}</span>
+              <span className="flex items-center gap-3">
+                <span className="text-2xl font-bold">
+                  {derniere.valeur}
+                  {derniere.unite ? ` ${derniere.unite}` : ""}
+                </span>
+                {precedente && (
+                  <span className="text-xs text-slate-400">
+                    (préc. {precedente.valeur}
+                    {precedente.unite ? ` ${precedente.unite}` : ""})
+                  </span>
+                )}
+                <span className="text-xs text-slate-400">
+                  {valeurs.length} mesures
+                </span>
+              </span>
+            </button>
+            {detailOuvert === type && (
+              <div className="px-4 pb-4 border-t border-slate-100 max-h-64 overflow-auto">
+                {valeurs.map((v) => (
+                  <div
+                    key={v.id}
+                    className="flex justify-between text-sm py-1 border-b border-slate-50 last:border-0"
+                  >
+                    <span className="text-slate-500">
+                      {v.date ? new Date(v.date).toLocaleDateString("fr-FR") : "—"}
+                    </span>
+                    <span className="font-medium">
+                      {v.valeur} {v.unite || ""}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/// Onglet Courriers : tous les courriers/ordonnances du patient, lecture intégrale
+function SectionCourriers({ patientId }: { patientId: string }) {
+  const [courriers, setCourriers] = useState<CourrierDossier[]>([]);
+  const [ouvert, setOuvert] = useState<string | null>(null);
+  const [chargement, setChargement] = useState(true);
+  const [erreur, setErreur] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiDossier
+      .listCourriersPatient(patientId)
+      .then(setCourriers)
+      .catch((e) => setErreur(String(e)))
+      .finally(() => setChargement(false));
+  }, [patientId]);
+
+  if (chargement) return <p className="text-sm text-slate-400">Chargement…</p>;
+  if (erreur)
+    return (
+      <p className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+        {erreur}
+      </p>
+    );
+  if (courriers.length === 0)
+    return (
+      <div className="bg-white rounded-xl border border-slate-200 p-6 text-sm text-slate-500">
+        Aucun courrier pour ce patient.
+      </div>
+    );
+  return (
+    <div className="space-y-2">
+      {courriers.map((c) => (
+        <div key={c.id} className="bg-white rounded-xl border border-slate-200">
+          <button
+            onClick={() => setOuvert((v) => (v === c.id ? null : c.id))}
+            className="w-full flex justify-between items-center p-4 hover:bg-slate-50 text-left"
+          >
+            <span className="font-medium text-sm truncate max-w-[60%]">
+              {c.sujet || "(sans objet)"}
+            </span>
+            <span className="flex items-center gap-3 text-sm text-slate-500">
+              <span className="px-2 py-0.5 rounded-full text-xs bg-violet-100 text-violet-700">
+                {c.statut}
+              </span>
+              {c.date ? new Date(c.date).toLocaleDateString("fr-FR") : "—"}
+            </span>
+          </button>
+          {ouvert === c.id && (
+            <div className="px-4 pb-4 border-t border-slate-100">
+              {c.contenu ? (
+                <NotesRiches texte={c.contenu} />
+              ) : (
+                <p className="text-sm text-slate-400 italic">
+                  Document sans contenu textuel.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

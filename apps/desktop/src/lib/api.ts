@@ -299,9 +299,7 @@ export const api = {
     nir: string | null;
   }, token: string) => invoke<void>("maj_patient", { ...p, token }),
   listConstantes: (patientId: string, token: string) =>
-    invoke<{ id: string; patientId: string; type: string; valeur: string; unite: string | null; date: string }[]>(
-      "list_constantes", { patientId, token }
-    ),
+    invoke<ConstanteBio[]>("list_constantes", { patientId, token }),
   creerConstante: (patientId: string, typeConstante: string, valeur: string, unite: string | null, token: string) =>
     invoke<string>("creer_constante", { patientId, typeConstante, valeur, unite, token }),
   supprimerConsultation: (id: string, token: string) =>
@@ -429,4 +427,35 @@ export type Stats = {
 
 export const apiStats = {
   statistiques: () => invoke<Stats>("statistiques"),
+};
+
+export type ConstanteBio = {
+  id: string;
+  patientId?: string;
+  type: string;
+  valeur: string;
+  unite: string | null;
+  date: string;
+};
+
+export type CourrierDossier = {
+  id: string;
+  sujet: string | null;
+  contenu: string;
+  statut: string;
+  date: string | null;
+};
+
+export type DocumentDossier = {
+  id: string;
+  nomFichier: string;
+  type: string;
+  createdAt: string | null;
+};
+
+export const apiDossier = {
+  listCourriersPatient: (patientId: string) =>
+    invoke<CourrierDossier[]>("list_courriers_patient", { patientId }),
+  listDocumentsPatient: (patientId: string) =>
+    invoke<DocumentDossier[]>("list_documents_patient", { patientId }),
 };
