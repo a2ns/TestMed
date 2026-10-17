@@ -82,6 +82,8 @@ def main():
     CRITERE = ("notes IN ('-8 1 3 1', '-8 1 3 2') "
                "OR notes = '<p></p>' "
                "OR notes IS NULL "
+               "OR notes LIKE '%HelloDoc%' "
+               "OR notes LIKE '%*VID*%' "
                "OR (notes LIKE '<p>%' AND length(notes) < 40)")
     nb = psql("SELECT COUNT(*) FROM \"Consultation\" "
               "WHERE " + CRITERE).strip()
@@ -232,6 +234,8 @@ def main():
                                "AND (c.notes IN ('-8 1 3 1', '-8 1 3 2') "
                                "OR c.notes = '<p></p>' "
                                "OR c.notes IS NULL "
+                               "OR c.notes LIKE '%HelloDoc%' "
+                               "OR c.notes LIKE '%*VID*%' "
                                "OR (c.notes LIKE '<p>%' AND length(c.notes) < 40));"],
                        capture_output=True, text=True)
     if r.returncode != 0:
