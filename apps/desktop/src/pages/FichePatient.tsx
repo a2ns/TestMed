@@ -31,6 +31,14 @@ type Onglet = "consultations" | "antecedents" | "traitements" | "allergies" | "b
 
 const CATEGORIES = ["MEDICAL", "CHIRURGICAL", "FAMILIAL", "OBSTETRIQUE", "TOXIQUE"];
 const GRAVITES = ["SEVERE", "MODEREE", "FAIBLE"];
+const LIBELLES_CONSTANTES: Record<string, string> = {
+  TENSION_SYST: "Tension syst.",
+  TENSION_DIAST: "Tension diast.",
+  POIDS: "Poids",
+  TAILLE: "Taille",
+  IMC: "IMC",
+  GLYCEMIE: "Glycémie",
+};
 
 /// Fiche patient repensée pour la consultation (médecin, 15 min/patient) :
 /// synthèse permanente à gauche, actions rapides en haut, onglets à droite.
@@ -344,6 +352,7 @@ export default function FichePatient() {
         {onglet === "consultations" && (
           <SectionConsultations
             consultations={consultations}
+            constantes={constantes}
             ajouter={ajouterConsultation}
             supprimer={supprimerUneConsultation}
             structurer={structurerNotes}
@@ -405,11 +414,13 @@ export default function FichePatient() {
 
 function SectionConsultations({
   consultations,
+  constantes,
   ajouter,
   supprimer,
   structurer,
 }: {
   consultations: Consultation[];
+  constantes: ConstanteBio[];
   ajouter: (motif: string, notes: string) => Promise<void>;
   supprimer: (id: string) => Promise<void>;
   structurer: (
@@ -467,6 +478,10 @@ function SectionConsultations({
       {consultations.map((c) => {
         const titre = c.motif ||
           (c.notes ? c.notes.replace(/<[^>]+>/g, "").split("\n")[0].slice(0, 70) : "Consultation");
+        const jour = c.date ? c.date.slice(0, 10) : null;
+        const constantesDuJour = jour
+          ? constantes.filter((v) => v.date && v.date.slice(0, 10) === jour)
+          : [];
         return (
         <div key={c.id} className="bg-white rounded-xl border border-slate-200">
           <button
@@ -482,6 +497,23 @@ function SectionConsultations({
           </button>
           {ouverte === c.id && (
             <div className="px-4 pb-4 border-t border-slate-100">
+              {constantesDuJour.length > 0 && (
+                <div className="mt-2 mb-3 flex flex-wrap gap-3 p-2.5 rounded-lg bg-sky-50 border border-sky-100">
+                  <span className="text-xs font-semibold text-sky-700 self-center">
+                    Constantes du jour :
+                  </span>
+                  {constantesDuJour.map((v) => (
+                    <span
+                      key={v.id}
+                      className="text-sm text-sky-900 bg-white px-2 py-0.5 rounded border border-sky-100"
+                    >
+                      {LIBELLES_CONSTANTES[v.type] || v.type}{" "}
+                      <b>{v.valeur}</b>
+                      {v.unite ? ` ${v.unite}` : ""}
+                    </span>
+                  ))}
+                </div>
+              )}
               {c.notes ? (
                 <NotesRiches texte={c.notes} />
               ) : (
@@ -1138,76 +1170,68 @@ function EditeurNotes({ valeur, onChange }: { valeur: string; onChange: (v: stri
   );
 }
 
-/// Onglet Bio : constantes groupées par type, avec dernières valeurs et historique
+/// Onglet Bio : constantes lues par DATE (comme en consultation) —
+/// chaque date regroupe les constantes mesurées ce jour-là.
 function SectionBio({ constantes }: { constantes: ConstanteBio[] }) {
   const LIBELLES: Record<string, string> = {
-    TENSION_SYST: "Tension systolique",
-    TENSION_DIAST: "Tension diastolique",
+    TENSION_SYST: "Tension syst.",
+    TENSION_DIAST: "Tension diast.",
     POIDS: "Poids",
     TAILLE: "Taille",
     IMC: "IMC",
     GLYCEMIE: "Glycémie",
   };
-  const parType = constantes.reduce<Record<string, ConstanteBio[]>>((acc, c) => {
-    (acc[c.type] = acc[c.type] || []).push(c);
+  // regrouper par date (YYYY-MM-DD), ordre chronologique décroissant
+  const parDate = constantes.reduce<Record<string, ConstanteBio[]>>((acc, c) => {
+    const d = c.date ? c.date.slice(0, 10) : "sans date";
+    (acc[d] = acc[d] || []).push(c);
     return acc;
   }, {});
-  const [detailOuvert, setDetailOuvert] = useState<string | null>(null);
+  const dates = Object.keys(parDate).sort().reverse();
 
   if (constantes.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-slate-200 p-6 text-sm text-slate-500">
-        Aucune constante biologique enregistrée.
+        Aucune constante enregistrée.
       </div>
     );
   }
   return (
-    <div className="space-y-4">
-      {Object.entries(parType).map(([type, valeurs]) => {
-        const derniere = valeurs[0];
-        const precedente = valeurs[1];
+    <div className="space-y-3">
+      {dates.map((d) => {
+        const valeurs = parDate[d];
+        const libelle =
+          d === "sans date"
+            ? "Date inconnue"
+            : new Date(d).toLocaleDateString("fr-FR", {
+                weekday: "long", day: "numeric", month: "long", year: "numeric",
+              });
         return (
-          <div key={type} className="bg-white rounded-xl border border-slate-200">
-            <button
-              onClick={() =>
-                setDetailOuvert((v) => (v === type ? null : type))
-              }
-              className="w-full flex justify-between items-center p-4 hover:bg-slate-50 text-left"
-            >
-              <span className="font-medium">{LIBELLES[type] || type}</span>
-              <span className="flex items-center gap-3">
-                <span className="text-2xl font-bold">
-                  {derniere.valeur}
-                  {derniere.unite ? ` ${derniere.unite}` : ""}
-                </span>
-                {precedente && (
-                  <span className="text-xs text-slate-400">
-                    (préc. {precedente.valeur}
-                    {precedente.unite ? ` ${precedente.unite}` : ""})
-                  </span>
-                )}
-                <span className="text-xs text-slate-400">
-                  {valeurs.length} mesures
-                </span>
-              </span>
-            </button>
-            {detailOuvert === type && (
-              <div className="px-4 pb-4 border-t border-slate-100 max-h-64 overflow-auto">
-                {valeurs.map((v) => (
-                  <div
-                    key={v.id}
-                    className="flex justify-between text-sm py-1 border-b border-slate-50 last:border-0"
-                  >
-                    <span className="text-slate-500">
-                      {v.date ? new Date(v.date).toLocaleDateString("fr-FR") : "—"}
-                    </span>
-                    <span className="font-medium">
-                      {v.valeur} {v.unite || ""}
-                    </span>
+          <div
+            key={d}
+            className="bg-white rounded-xl border border-slate-200 p-4"
+          >
+            <div className="text-xs font-semibold text-slate-400 uppercase mb-2">
+              {libelle}
+            </div>
+            <div className="flex flex-wrap gap-4">
+              {valeurs.map((v) => (
+                <div key={v.id}>
+                  <div className="text-xs text-slate-500">
+                    {LIBELLES[v.type] || v.type}
                   </div>
-                ))}
-              </div>
-            )}
+                  <div className="font-bold text-lg">
+                    {v.valeur}
+                    {v.unite ? (
+                      <span className="text-xs font-normal text-slate-500">
+                        {" "}
+                        {v.unite}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         );
       })}
