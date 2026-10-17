@@ -31,6 +31,17 @@ type Onglet = "consultations" | "antecedents" | "traitements" | "allergies" | "b
 
 const CATEGORIES = ["MEDICAL", "CHIRURGICAL", "FAMILIAL", "OBSTETRIQUE", "TOXIQUE"];
 const GRAVITES = ["SEVERE", "MODEREE", "FAIBLE"];
+/// Formate une valeur de constante : "160.00000" -> "160", "43.700001" -> "43,7",
+/// "0.0000000" -> invalide (None). Gère le séparateur décimal français.
+function formaterValeur(valeur: string): string | null {
+  const n = parseFloat(valeur.replace(",", "."));
+  if (isNaN(n)) return valeur; // valeur textuelle non numérique (ex. "130/70")
+  if (n === 0) return null; // artefact de migration (IMC 0.0000000)
+  // arrondi : entiers sans décimales, sinon 1-2 décimales significatives
+  const arrondi = Math.abs(n) >= 100 ? Math.round(n) : Math.round(n * 10) / 10;
+  return String(arrondi).replace(".", ",");
+}
+
 const LIBELLES_CONSTANTES: Record<string, string> = {
   TENSION_SYST: "Tension syst.",
   TENSION_DIAST: "Tension diast.",
@@ -266,18 +277,24 @@ export default function FichePatient() {
           />
           {constantes.length > 0 && (
             <div className="mt-3 text-sm">
-              {constantes.slice(0, 12).map((c) => (
-                <div key={c.id} className="flex justify-between text-nuit-500">
-                  <span>{{ TENSION_SYST: "Tension syst.",
-                            TENSION_DIAST: "Tension diast.",
-                            POIDS: "Poids", TAILLE: "Taille", IMC: "IMC",
-                            GLYCEMIE: "Glycémie" }[c.type] || c.type}</span>
-                  <span className="font-medium">
-                    {c.valeur}
-                    {c.unite ? ` ${c.unite}` : ""}
-                  </span>
-                </div>
-              ))}
+              {constantes
+                .map((c) => ({ c, val: formaterValeur(c.valeur) }))
+                .filter(({ val }) => val !== null)
+                .slice(0, 8)
+                .map(({ c, val }) => (
+                  <div key={c.id} className="flex justify-between text-nuit-500">
+                    <span>
+                      {LIBELLES_CONSTANTES[c.type] || c.type}
+                      <span className="text-xs text-slate-400 ml-1">
+                        {c.date ? new Date(c.date).toLocaleDateString("fr-FR") : ""}
+                      </span>
+                    </span>
+                    <span className="font-medium">
+                      {val}
+                      {c.unite ? ` ${c.unite}` : ""}
+                    </span>
+                  </div>
+                ))}
             </div>
           )}
         </div>
@@ -508,7 +525,7 @@ function SectionConsultations({
                       className="text-sm text-sky-900 bg-white px-2 py-0.5 rounded border border-sky-100"
                     >
                       {LIBELLES_CONSTANTES[v.type] || v.type}{" "}
-                      <b>{v.valeur}</b>
+                      <b>{formaterValeur(v.valeur) ?? v.valeur}</b>
                       {v.unite ? ` ${v.unite}` : ""}
                     </span>
                   ))}
@@ -1215,22 +1232,25 @@ function SectionBio({ constantes }: { constantes: ConstanteBio[] }) {
               {libelle}
             </div>
             <div className="flex flex-wrap gap-4">
-              {valeurs.map((v) => (
-                <div key={v.id}>
-                  <div className="text-xs text-slate-500">
-                    {LIBELLES[v.type] || v.type}
+              {valeurs
+                .map((v) => ({ v, val: formaterValeur(v.valeur) }))
+                .filter(({ val }) => val !== null)
+                .map(({ v, val }) => (
+                  <div key={v.id}>
+                    <div className="text-xs text-slate-500">
+                      {LIBELLES[v.type] || v.type}
+                    </div>
+                    <div className="font-bold text-lg">
+                      {val}
+                      {v.unite ? (
+                        <span className="text-xs font-normal text-slate-500">
+                          {" "}
+                          {v.unite}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
-                  <div className="font-bold text-lg">
-                    {v.valeur}
-                    {v.unite ? (
-                      <span className="text-xs font-normal text-slate-500">
-                        {" "}
-                        {v.unite}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              ))}
+                ))}
             </div>
           </div>
         );
