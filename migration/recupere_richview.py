@@ -121,6 +121,8 @@ def main():
     dates = []
     erreurs = 0
     vus = set()
+    stats_lot0 = {"trouvees": 0, "sans_patient_marque": 0, "blob_vide": 0,
+                  "champs_manquants": 0, "candidats": 0}
     for i in range(0, len(tous_ids), TAILLE_LOT):
         lot = tous_ids[i:i + TAILLE_LOT]
         sel = ("SELECT "
@@ -144,10 +146,20 @@ def main():
                 continue
             pid_uuid = src_uuid("PATIENT", numpat)
             cibles = marquees_par_patient.get(pid_uuid)
-            if cibles is None and len(updates) == 0 and i == 0:
-                # premier lot : montrer un échantillon pour diagnostic
-                print(f"   DEBUG premier lot : numpat={numpat!r} -> uuid={pid_uuid}")
-                print(f"   DEBUG clés dict (3) : {list(marquees_par_patient)[:3]}")
+            if i == 0:
+                # comptage des causes d'échec sur le premier lot
+                stats_lot0["trouvees"] += 1
+                if cibles is None:
+                    stats_lot0["sans_patient_marque"] += 1
+                elif not brut.strip():
+                    stats_lot0["blob_vide"] += 1
+                elif len(r) < 4:
+                    stats_lot0["champs_manquants"] += 1
+                else:
+                    stats_lot0["candidats"] += 1
+                if stats_lot0["trouvees"] <= 2:
+                    print(f"   DEBUG r={len(r)} champs : cons_id={r[0][:20]!r} "
+                          f"numpat={r[1][:10]!r} date={r[2][:15]!r} brut={brut[:40]!r}")
             if not cibles:
                 continue  # aucune marquée pour ce patient
             # prendre une consultation marquée non encore traitée pour ce patient
@@ -178,6 +190,7 @@ def main():
 
     print(f"Textes décodés pour consultations marquées : {len(updates)} "
           f"(lots en erreur : {erreurs})")
+    print(f"Stats 1er lot : {stats_lot0}")
     if DRY_RUN:
         if updates:
             print("Aperçu :")
