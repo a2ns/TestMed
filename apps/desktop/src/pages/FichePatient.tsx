@@ -27,7 +27,7 @@ import {
   CreditCard,
 } from "lucide-react";
 
-type Onglet = "consultations" | "antecedents" | "traitements" | "allergies" | "bio" | "courriers" | "documents";
+type Onglet = "consultations" | "antecedents" | "traitements" | "allergies" | "constantes" | "courriers" | "documents";
 
 const CATEGORIES = ["MEDICAL", "CHIRURGICAL", "FAMILIAL", "OBSTETRIQUE", "TOXIQUE"];
 const GRAVITES = ["SEVERE", "MODEREE", "FAIBLE"];
@@ -348,7 +348,7 @@ export default function FichePatient() {
         )}
 
         <div className="flex gap-1 mb-5 border-b border-slate-200">
-          {(["consultations", "antecedents", "traitements", "allergies", "bio", "courriers", "documents"] as Onglet[]).map(
+          {(["consultations", "antecedents", "traitements", "allergies", "constantes", "courriers", "documents"] as Onglet[]).map(
             (o) => (
               <button
                 key={o}
@@ -384,7 +384,7 @@ export default function FichePatient() {
         {onglet === "allergies" && (
           <SectionAllergies allergies={allergies} ajouter={ajouterAllergie} />
         )}
-        {onglet === "bio" && (
+        {onglet === "constantes" && (
           <SectionBio constantes={constantes} />
         )}
         {onglet === "courriers" && id && (
@@ -1187,7 +1187,7 @@ function EditeurNotes({ valeur, onChange }: { valeur: string; onChange: (v: stri
   );
 }
 
-/// Onglet Bio : constantes lues par DATE (comme en consultation) —
+/// Onglet Constantes : mesures du cabinet lues par DATE (comme en consultation) —
 /// chaque date regroupe les constantes mesurées ce jour-là.
 function SectionBio({ constantes }: { constantes: ConstanteBio[] }) {
   const LIBELLES: Record<string, string> = {
