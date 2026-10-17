@@ -155,7 +155,7 @@ def main():
 
     total = psql('SELECT COUNT(*) FROM "ConstanteBio"').strip()
     par_type = psql('SELECT type || \':\' || COUNT(*) FROM "ConstanteBio" '
-                   "GROUP BY type ORDER BY 2 DESC").strip()
+                   "GROUP BY type ORDER BY COUNT(*) DESC").strip()
     print(f"\nConstanteBio total : {total}")
     print(par_type)
 
