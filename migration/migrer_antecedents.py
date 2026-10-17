@@ -102,7 +102,8 @@ def main():
             continue
         aid, numpat, typ, libelle, cim10 = [clean(x) for x in r[:5]]
         if typ:
-            typ = typ.lstrip("*").strip()  # '*AM' -> 'AM' (marquage variable)
+            # ne garder que les lettres : '*AM', '\x93AM', 'AM ' -> 'AM'
+            typ = re.sub(r"[^A-Za-z]", "", typ).upper()
         date_raw = clean(r[5]) if len(r) > 5 else None
         if not numpat or not libelle:
             continue
@@ -128,7 +129,8 @@ def main():
         if typ == "ALL":
             # allergie : substance = libellé nettoyé
             substance = libelle
-            allergies.append((src_uuid("PATIENTATCD", aid), pid, substance, notes_txt))
+            allergies.append((src_uuid("PATIENTATCD", aid), pid, substance,
+                              "NON_PRECISEE", notes_txt))
             stats["allergie"] += 1
         elif typ in CATEGORIES:
             antecedents.append((src_uuid("PATIENTATCD", aid), pid,
@@ -177,7 +179,7 @@ def main():
             csv.writer(fh).writerows(allergies)
         subprocess.run(PSQL + ["-c", "DROP TABLE IF EXISTS maj_all; "
                                "CREATE TABLE maj_all (id TEXT, pid TEXT, "
-                               "sub TEXT, rea TEXT);"],
+                               "sub TEXT, gra TEXT, rea TEXT);"],
                        check=True, capture_output=True)
         with open("/tmp/allergies.csv", encoding="utf-8") as fh:
             r = subprocess.run(PSQL + ["-c", "\\copy maj_all FROM STDIN WITH CSV"],
@@ -186,8 +188,8 @@ def main():
             print("ERREUR import allergies :", r.stderr[:300])
             sys.exit(1)
         r = subprocess.run(PSQL + ["-v", "ON_ERROR_STOP=1", "-c",
-            'INSERT INTO "Allergie" (id, "patientId", substance, reactions) '
-            "SELECT m.id, m.pid, m.sub, m.rea FROM maj_all m "
+            'INSERT INTO "Allergie" (id, "patientId", substance, gravite, reactions) '
+            "SELECT m.id, m.pid, m.sub, m.gra, m.rea FROM maj_all m "
             'WHERE NOT EXISTS (SELECT 1 FROM "Allergie" a WHERE a.id = m.id);'],
             capture_output=True, text=True)
         if r.returncode != 0:
