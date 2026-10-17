@@ -237,7 +237,7 @@ model ConstanteBio {
   id        String   @id @default(uuid())
   patientId String
   patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  type      String   // POIDS | TENSION_SYST | TENSION_DIAST | GLYCEMIE | ...
+  type      String   // POIDS | TENSION_SYST | TENSION_DIAST | TAILLE | IMC | GLYCEMIE
   valeur    String
   unite     String?
   date      DateTime @default(now())

@@ -43,6 +43,7 @@ ETAPE_DESCRIPTIONS = [
     (6, "rtf",       "conversion RTF -> HTML (consultations + courriers)"),
     (7, "richview",  "décodage RichView + restauration des dates"),
     (8, "nettoyage", "coquilles vides -> NULL"),
+    (9, "constantes", "PATIENTSUIVI -> ConstanteBio (tension/poids/taille/IMC)"),
 ]
 
 
@@ -164,6 +165,12 @@ def etape_nettoyage():
     return True
 
 
+def etape_constantes():
+    r = subprocess.run(["python3", os.path.join(MIG_DIR, "migrer_constantes.py")],
+                       cwd=MIG_DIR)
+    return r.returncode == 0
+
+
 def main():
     args = sys.argv[1:]
     if "--liste" in args:
@@ -195,7 +202,7 @@ def main():
     for n, nom, desc in ETAPE_DESCRIPTIONS:
         if etapes_voulues is not None and n not in etapes_voulues:
             continue
-        print(f"\n--- Étape {n}/8 : {nom} ({desc}) ---")
+        print(f"\n--- Étape {n}/9 : {nom} ({desc}) ---")
         if dry and n > 1:
             print("  [dry-run] ignorée")
             continue
@@ -208,6 +215,7 @@ def main():
             "rtf": etape_rtf,
             "richview": etape_richview,
             "nettoyage": etape_nettoyage,
+            "constantes": etape_constantes,
         }
         ok = fonctions[nom](None)
         if not ok:
