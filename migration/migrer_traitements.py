@@ -165,7 +165,11 @@ def main():
         actif = date_suppr is None
         # id déterministe
         tid = src_uuid("PRESCRIPTIONSDET", lid) if lid else src_uuid("PRESCRIPTIONSDET", f"{numpresc}-{len(updates)}")
-        updates.append((tid, pid, nom, posologie or "", duree, actif, date_consult))
+        # colonnes NOT NULL côté Traitement : jamais None dans le CSV
+        updates.append((tid, pid, nom,
+                         posologie if posologie else "",
+                         duree if duree else "",
+                         actif, date_consult))
 
     print(f"Traitements à insérer : {len(updates)} (sans nom : {sans_nom})")
     if DRY_RUN or not updates:
@@ -188,7 +192,7 @@ def main():
         sys.exit(1)
     r = subprocess.run(PSQL + ["-v", "ON_ERROR_STOP=1", "-c",
         'INSERT INTO "Traitement" (id, "patientId", medicament, posologie, duree, actif, "dateDebut") '
-        "SELECT m.id, m.pid, m.med, m.poso, m.dur, m.act, m.d FROM maj_trait m "
+        "SELECT m.id, m.pid, m.med, COALESCE(m.poso, ''), COALESCE(m.dur, ''), m.act, m.d FROM maj_trait m "
         'WHERE NOT EXISTS (SELECT 1 FROM "Traitement" t WHERE t.id = m.id);'],
         capture_output=True, text=True)
     if r.returncode != 0:
