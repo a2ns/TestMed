@@ -168,14 +168,25 @@ def main():
         print(f"   export {table} : {taille} octets")
 
         updates = []
+        stats = {"lignes": 0, "mauvais_champs": 0, "conversion_vide": 0, "ok": 0}
         with open("/tmp/rtf_export.csv", encoding="utf-8") as fh:
             for row in csv_mod.reader(fh):
+                stats["lignes"] += 1
                 if len(row) != 2:
+                    stats["mauvais_champs"] += 1
+                    if stats["mauvais_champs"] <= 1:
+                        print(f"   DEBUG ligne à {len(row)} champs : {[c[:60] for c in row[:4]]}")
                     continue
                 cid, rtf = row
                 html_txt = rtf_vers_html(rtf)
-                if html_txt.strip() not in ("", "<p></p>", "<p><br></p>"):
+                if html_txt.strip() in ("", "<p></p>", "<p><br></p>"):
+                    stats["conversion_vide"] += 1
+                    if stats["conversion_vide"] <= 2:
+                        print(f"   DEBUG RTF -> vide : {rtf[:120]!r}")
+                else:
+                    stats["ok"] += 1
                     updates.append((cid, html_txt))
+        print(f"   stats {table} : {stats}")
         if not updates:
             print(table, ": rien à convertir")
             continue
